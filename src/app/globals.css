@@ -1,26 +1,306 @@
 @import "tailwindcss";
 
+/* Theme is set on <html data-theme> before first paint (see layout.tsx). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+  Tokens. One accent (cobalt) plus two semantic colors that always come with
+  a sign or icon: income (green) and expense (rose). Shape rule: containers
+  24px, inputs 16px, anything you press is a pill.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --bg: #eef0f3;
+  --surface: #fcfcfd;
+  --surface-2: #f4f5f7;
+  --surface-3: #e9ebef;
+  --ink: #12141a;
+  --ink-2: #565b66;
+  --ink-3: #868b95;
+  --line: #e2e4e9;
+  --line-strong: #cfd2d9;
+  --accent: #2b48e8;
+  --accent-hover: #2139c4;
+  --accent-ink: #f7f8ff;
+  --accent-soft: #e6eaff;
+  --income: #0a7469;
+  --income-soft: #dcf2ee;
+  --expense: #b23a0b;
+  --expense-soft: #fbe9df;
+  /* Chart marks, validated for colour-blind separation (dataviz validator) */
+  --chart-income: #0f9b8e;
+  --chart-expense: #c2410c;
+  --warn: #9a5b00;
+  --warn-soft: #fbefd9;
+  --scrim: rgb(14 16 22 / 0.45);
+  --shadow-tint: 222 30% 30%;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0b0e;
+  --surface: #121318;
+  --surface-2: #181a20;
+  --surface-3: #22252d;
+  --ink: #eceef2;
+  --ink-2: #a3a7b1;
+  --ink-3: #6f747e;
+  --line: #23262e;
+  --line-strong: #323640;
+  --accent: #8197ff;
+  --accent-hover: #9aabff;
+  --accent-ink: #0b0d18;
+  --accent-soft: rgb(129 151 255 / 0.14);
+  --income: #4fd1bf;
+  --income-soft: rgb(79 209 191 / 0.12);
+  --expense: #ff9466;
+  --expense-soft: rgb(255 148 102 / 0.12);
+  --chart-income: #1f9a8b;
+  --chart-expense: #e0652c;
+  --warn: #f1b54c;
+  --warn-soft: rgb(241 181 76 / 0.12);
+  --scrim: rgb(0 0 0 / 0.6);
+  --shadow-tint: 230 40% 2%;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-income: var(--income);
+  --color-income-soft: var(--income-soft);
+  --color-expense: var(--expense);
+  --color-expense-soft: var(--expense-soft);
+  --color-chart-income: var(--chart-income);
+  --color-chart-expense: var(--chart-expense);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-tint) / 0.06), 0 8px 24px -12px hsl(var(--shadow-tint) / 0.18);
+  --shadow-float: 0 2px 6px hsl(var(--shadow-tint) / 0.08), 0 24px 48px -16px hsl(var(--shadow-tint) / 0.35);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* z-index scale: content 0, sticky header 30, dock 40, sheet 50, toast 60 */
+
+html {
+  background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+summary,
+label[for],
+select {
+  touch-action: manipulation;
+}
+
+button:not(:disabled),
+summary,
+select,
+[role="button"] {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hide the number input spinners; amounts are typed, not clicked */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Entrance: content rises into place, staggered by --i */
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 520ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Skeleton shimmer for loading states */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  border-radius: 12px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Native <dialog> as a bottom sheet on phones, centered panel on larger screens */
+dialog.sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 92dvh;
+  border-radius: 28px 28px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0;
+  border: none;
+  box-shadow: var(--shadow-float);
+  overscroll-behavior: contain;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    transform 360ms var(--ease-out-expo),
+    opacity 240ms ease-out,
+    overlay 360ms allow-discrete,
+    display 360ms allow-discrete;
+}
+dialog.sheet:not([open]) {
+  opacity: 0;
+  transform: translateY(40px);
+  transition-duration: 200ms;
+}
+@starting-style {
+  dialog.sheet[open] {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+@media (min-width: 640px) {
+  dialog.sheet {
+    margin: auto;
+    width: min(560px, calc(100% - 32px));
+    border-radius: 28px;
+  }
+  dialog.sheet.sheet-wide {
+    width: min(720px, calc(100% - 32px));
+  }
+  dialog.sheet:not([open]) {
+    transform: translateY(16px) scale(0.98);
+  }
+  @starting-style {
+    dialog.sheet[open] {
+      transform: translateY(16px) scale(0.98);
+    }
+  }
+}
+dialog.sheet::backdrop {
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  opacity: 1;
+  transition:
+    opacity 300ms ease-out,
+    overlay 300ms allow-discrete,
+    display 300ms allow-discrete;
+}
+dialog.sheet:not([open])::backdrop {
+  opacity: 0;
+}
+@starting-style {
+  dialog.sheet[open]::backdrop {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.sheet,
+  dialog.sheet::backdrop {
+    transition: none;
+  }
+}
+
+/* Frosted dock. Falls back to a solid surface when transparency is reduced. */
+.glass {
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid color-mix(in oklab, var(--line-strong) 70%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 35%, transparent),
+    var(--shadow-float);
+}
+[data-theme="dark"] .glass {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    var(--shadow-float);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+}
+
+/* Dropdown menus (see components/menu.tsx) */
+.menu-panel {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 20px;
+  padding: 6px;
+  box-shadow: var(--shadow-float);
+  transform-origin: top right;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .menu-panel {
+    animation: menu-in 200ms var(--ease-out-expo) both;
+  }
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
 }

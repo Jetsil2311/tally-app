@@ -1,0 +1,47 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+
+import { CategoriesManager } from "@/components/categories-manager";
+import { Skeleton } from "@/components/ui";
+import { getCategories, getSummary } from "@/lib/data";
+import { currentMonthKey, monthRange } from "@/lib/dates";
+import { toCents } from "@/lib/money";
+import { getPreferences, requestTime } from "@/lib/session";
+
+export const metadata: Metadata = { title: "Categories" };
+
+export default function CategoriesPage() {
+  return (
+    <div className="space-y-5">
+      <Suspense fallback={<CategoriesSkeleton />}>
+        <Categories />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Categories() {
+  const { timeZone } = await getPreferences();
+  const range = monthRange(currentMonthKey(timeZone, await requestTime()), timeZone);
+  const [categories, summary] = await Promise.all([getCategories(), getSummary(range.from, range.to)]);
+
+  const spent: Record<string, number> = {};
+  for (const row of summary.byCategory) {
+    if (row.type === "expense" && row.categoryId) spent[row.categoryId] = toCents(row.total);
+  }
+
+  return <CategoriesManager categories={categories} spent={spent} />;
+}
+
+function CategoriesSkeleton() {
+  return (
+    <div className="space-y-5 pt-2" aria-busy aria-label="Loading">
+      <Skeleton className="h-9 w-48" />
+      <div className="grid gap-3 md:grid-cols-2">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-32 rounded-3xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
