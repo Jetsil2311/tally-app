@@ -104,6 +104,27 @@ export async function deleteTransaction(id: string): Promise<ActionState> {
 
 type ApprovalReason = "spendingLimit" | "requiresApproval" | null;
 
+// Confirms an unverified recurring charge really happened, so it counts.
+// Optionally with what really happened: the amount (account currency, e.g.
+// the bank's exchange rate) and the date (a salary that arrived late).
+export async function verifyTransaction(id: string, actual: { amount?: string; date?: string } = {}): Promise<ActionState> {
+  const { t } = await getI18n();
+  const { timeZone } = await getPreferences();
+  const amount = actual.amount ? parseAmount(actual.amount) : null;
+  if (actual.amount && !amount) return { ok: false, message: t.common.amountRequired };
+  const date = actual.date ? fromLocalInputValue(actual.date, timeZone) : null;
+  try {
+    await api(`/transactions/${id}/verify`, {
+      method: "POST",
+      body: { ...(amount ? { amount } : {}), ...(date ? { date: date.toISOString() } : {}) },
+    });
+    refresh();
+    return { ok: true, message: t.verify.verified };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
 // Owners and admins decide on a dependent's pending entry. A rejected entry
 // is kept (status "rejected") but never counts.
 export async function reviewTransaction(id: string, approve: boolean): Promise<ActionState> {

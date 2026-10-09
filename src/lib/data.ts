@@ -156,6 +156,17 @@ export const getPending = cache(async () => {
   return api<TransactionPage>("/transactions", { query: { status: "pending", limit: 100 } });
 });
 
+// Recurring charges waiting for someone to confirm they really happened
+// Empty on an API without verification yet, instead of failing the page
+export const getUnverified = cache(async (): Promise<TransactionPage> => {
+  try {
+    return await api<TransactionPage>("/transactions", { query: { status: "unverified", limit: 100 } });
+  } catch (error) {
+    if (error instanceof ApiError) return { data: [], nextCursor: null };
+    throw error;
+  }
+});
+
 // Things waiting on you, for the badge in the user menu and Home.
 // Managed profiles can't use connections or invitations (403): they count 0.
 export const getAttention = cache(async () => {
@@ -164,13 +175,14 @@ export const getAttention = cache(async () => {
       if (error instanceof ApiError) return empty;
       throw error;
     });
-  const [invitations, connections, pending] = await Promise.all([
+  const [invitations, connections, pending, unverified] = await Promise.all([
     optional(getInvitations(), []),
     optional(getConnections(), []),
     optional(getPending(), { data: [], nextCursor: null }),
+    optional(getUnverified(), { data: [], nextCursor: null }),
   ]);
   const requests = connections.filter((c) => c.status === "pending" && c.direction === "incoming");
-  return { invitations, requests, pending: pending.data };
+  return { invitations, requests, pending: pending.data, unverified: unverified.data };
 });
 
 // Everyone on your shared accounts (active members), for "added by" filters

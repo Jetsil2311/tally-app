@@ -7,7 +7,7 @@ export interface ActivityQuery {
   category?: string;
   filter?: "uncategorized";
   // Approval state; omitted = every status
-  status?: "pending" | "rejected";
+  status?: "pending" | "rejected" | "unverified";
   // Who added the entries (a user id)
   by?: string;
 }

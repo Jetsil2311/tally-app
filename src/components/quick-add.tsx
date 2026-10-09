@@ -28,7 +28,7 @@ import { useI18n } from "@/i18n/client";
 import { toLocalInputValue } from "@/lib/dates";
 import { categoryLabel, isSystemCategory } from "@/lib/insights";
 import { currencySymbol } from "@/lib/money";
-import { canAddTransactions, canDeleteTransaction, canEditTransaction, canReview } from "@/lib/permissions";
+import { canAddTransactions, canDeleteTransaction, canEditTransaction, canReview, canVerify } from "@/lib/permissions";
 import type { Account, ActionState, Category, Transaction, TransactionType } from "@/lib/types";
 
 import { AccountIcon } from "./account-icon";
@@ -36,6 +36,7 @@ import { ChipGroup, Segmented } from "./chips";
 import { Avatar, displayName, RoleBadge, TxStatusPill, useViewer } from "./people-ui";
 import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { Sheet } from "./sheet";
+import { VerifyActions } from "./verification";
 import { useToast } from "./toast";
 import { submitWith } from "./use-form-action";
 import { Button, buttonClass, cn, Field, Input, inputClass, Skeleton } from "./ui";
@@ -472,7 +473,7 @@ function TransactionForm({
       <input type="hidden" name="categoryId" value={categoryId} />
 
       {transaction && transaction.status !== "approved" ? (
-        <StatusNote tx={transaction} canReviewIt={review} onDone={onDone} />
+        <StatusNote tx={transaction} canReviewIt={review} canVerifyIt={canVerify(selected?.myRole, transaction)} onDone={onDone} />
       ) : null}
 
       {transaction ? <input type="hidden" name="originalCurrency" value={initialCurrency} /> : null}
@@ -797,11 +798,34 @@ function AddedBy({ person }: { person: { name: string | null; imageUrl: string |
 }
 
 // Pending / rejected explanation, with Approve and Reject for owners/admins
-function StatusNote({ tx, canReviewIt, onDone }: { tx: Transaction; canReviewIt: boolean; onDone: () => void }) {
+function StatusNote({
+  tx,
+  canReviewIt,
+  canVerifyIt,
+  onDone,
+}: {
+  tx: Transaction;
+  canReviewIt: boolean;
+  canVerifyIt: boolean;
+  onDone: () => void;
+}) {
   const { t } = useI18n();
   const toast = useToast();
   const [pending, setPending] = useState<"approve" | "reject" | null>(null);
   const pendingTx = tx.status === "pending";
+
+  // A recurring charge waiting to be confirmed
+  if (tx.status === "unverified") {
+    return (
+      <div className="space-y-3 rounded-3xl border border-accent/25 bg-accent-soft px-4 py-3">
+        <div className="flex items-start gap-3">
+          <TxStatusPill status={tx.status} className="mt-0.5 bg-surface" />
+          <p className="flex-1 text-sm leading-relaxed text-ink-2">{canVerifyIt ? t.verify.entryHint : t.verify.viewerHint}</p>
+        </div>
+        {canVerifyIt ? <VerifyActions tx={tx} onDone={onDone} compact /> : null}
+      </div>
+    );
+  }
 
   const decide = async (approve: boolean) => {
     setPending(approve ? "approve" : "reject");
@@ -851,7 +875,9 @@ function TransactionDetails({ tx, accounts, onDone }: { tx: Transaction; account
 
   return (
     <div className="space-y-5 pb-2">
-      {tx.status !== "approved" ? <StatusNote tx={tx} canReviewIt={canReview(role, tx)} onDone={onDone} /> : null}
+      {tx.status !== "approved" ? (
+        <StatusNote tx={tx} canReviewIt={canReview(role, tx)} canVerifyIt={canVerify(role, tx)} onDone={onDone} />
+      ) : null}
       <div className={cn("rounded-3xl px-4 py-5 text-center", income ? "bg-income-soft" : "bg-expense-soft")}>
         <Money
           value={income ? tx.amount : -Number(tx.amount)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Crown, Eye, ShieldCheck, User, UserCircle, XCircle } from "@phosphor-icons/react";
+import { Clock, Crown, Eye, SealQuestion, ShieldCheck, User, UserCircle, XCircle } from "@phosphor-icons/react";
 import Image from "next/image";
 import { createContext, use, type ReactNode } from "react";
 
@@ -141,16 +141,20 @@ export function RoleIcon({ role, size = 18 }: { role: MemberRole; size?: number 
 export function TxStatusPill({ status, className }: { status: TransactionStatus; className?: string }) {
   const { t } = useI18n();
   if (status === "approved") return null;
-  const pending = status === "pending";
+  // Three looks that can't be confused: waiting for a guardian (amber),
+  // waiting to be confirmed (accent), rejected (red)
+  const Icon = status === "pending" ? Clock : status === "unverified" ? SealQuestion : XCircle;
   return (
     <span
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-px text-xs font-medium",
-        pending ? "bg-warn-soft text-warn" : "bg-expense-soft text-expense",
+        status === "pending" && "bg-warn-soft text-warn",
+        status === "unverified" && "bg-accent-soft text-accent",
+        status === "rejected" && "bg-expense-soft text-expense",
         className,
       )}
     >
-      {pending ? <Clock size={12} weight="bold" aria-hidden /> : <XCircle size={12} weight="bold" aria-hidden />}
+      <Icon size={12} weight="bold" aria-hidden />
       {t.approvals.status[status]}
     </span>
   );

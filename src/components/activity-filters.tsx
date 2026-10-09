@@ -132,6 +132,7 @@ export function ActivityFilters({
             onChange={(e) => go({ status: (e.target.value || undefined) as ActivityQuery["status"] })}
           >
             <option value="">{t.approvals.allStatuses}</option>
+            <option value="unverified">{t.verify.onlyFilter}</option>
             <option value="pending">{t.approvals.onlyPending}</option>
             <option value="rejected">{t.approvals.onlyRejected}</option>
           </Select>

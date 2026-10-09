@@ -14,7 +14,17 @@ import { getI18n } from "@/i18n/server";
 import { activityHref, type ActivityQuery } from "@/lib/activity-query";
 import { ApprovalQueue } from "@/components/approvals";
 import { txCents } from "@/lib/convert";
-import { getAccounts, getAllTransactions, getCategories, getCurrentUser, getPending, getRatesTo, getSharedPeople } from "@/lib/data";
+import { VerificationQueue } from "@/components/verification";
+import {
+  getAccounts,
+  getAllTransactions,
+  getCategories,
+  getCurrentUser,
+  getPending,
+  getRatesTo,
+  getSharedPeople,
+  getUnverified,
+} from "@/lib/data";
 import { currentMonthKey, dayKey, monthLabel, monthRange, parseMonthKey, shiftMonth, type MonthKey } from "@/lib/dates";
 import { isTransfer } from "@/lib/insights";
 import { getPreferences, requestTime } from "@/lib/session";
@@ -56,16 +66,17 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
     account: single(params.account) || undefined,
     category: single(params.category) || undefined,
     filter: single(params.filter) === "uncategorized" ? "uncategorized" : undefined,
-    status: single(params.status) === "pending" ? "pending" : single(params.status) === "rejected" ? "rejected" : undefined,
+    status: (["pending", "rejected", "unverified"] as const).find((s) => s === single(params.status)),
     by: single(params.by) || undefined,
   };
 
   const range = month === "all" ? {} : monthRange(month, timeZone);
-  const [accounts, categories, people, pending, result] = await Promise.all([
+  const [accounts, categories, people, pending, unverified, result] = await Promise.all([
     getAccounts(true),
     getCategories(),
     getSharedPeople(),
     getPending(),
+    getUnverified(),
     getAllTransactions(
       {
         ...range,
@@ -120,6 +131,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   return (
     <>
       {/* Owners and admins decide on dependents' entries first */}
+      {!query.status ? <VerificationQueue unverified={unverified.data} accounts={accounts} /> : null}
       {!query.status ? <ApprovalQueue pending={pending.data} accounts={accounts} /> : null}
 
       <ActivityFilters query={query} accounts={accounts} categories={categories} people={people} />

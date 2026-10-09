@@ -13,6 +13,7 @@ import { Avatar, displayName, useViewer } from "./people-ui";
 import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
 import { useToast } from "./toast";
+import { VerificationQueue } from "./verification";
 import { Button, Card, cn, SectionTitle } from "./ui";
 
 // Dependents' entries waiting for an owner or admin. Approve or reject
@@ -111,11 +112,14 @@ export function NeedsAttention({
   invitations,
   requests,
   pending,
+  unverified,
   accounts,
 }: {
   invitations: number;
   requests: number;
   pending: Transaction[];
+  // Recurring charges waiting to be confirmed
+  unverified: Transaction[];
   accounts: Account[];
 }) {
   const { t } = useI18n();
@@ -148,6 +152,7 @@ export function NeedsAttention({
           ))}
         </nav>
       ) : null}
+      <VerificationQueue unverified={unverified} accounts={accounts} limit={3} />
       <ApprovalQueue pending={pending} accounts={accounts} limit={3} />
     </>
   );

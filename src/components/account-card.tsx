@@ -67,6 +67,20 @@ export function AccountCard({ account, className, href }: { account: Account; cl
           </p>
         ) : null}
         {!credit && cents < 0 ? <p className="text-xs text-white/80">{t.accountCard.overdrawn}</p> : null}
+        {/* Recurring charges waiting to be confirmed: the balance above
+            leaves them out, this is what it becomes once they're verified */}
+        {account.unverified?.count ? (
+          <p className="mt-1 truncate text-xs text-white/80">
+            {t.verify.projected(
+              <Money
+                value={credit ? Math.abs(Number(account.projectedBalance)) : account.projectedBalance}
+                currency={account.currency}
+                className="font-medium text-white"
+              />,
+            )}{" "}
+            · {t.verify.waiting(account.unverified.count)}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -612,6 +612,9 @@ function PaymentRow({
           <span className="mt-0.5 block truncate text-sm text-ink-2">
             {scheduleLabel(payment, r, locale)}
             <span className="text-ink-3"> · {payment.account.name}</span>
+            {payment.awaitingVerification ? (
+              <span className="text-accent"> · {t.verify.waiting(payment.awaitingVerification)}</span>
+            ) : null}
             {!editable && payment.createdBy && payment.createdBy.id !== viewer.id ? (
               <span className="text-ink-3"> · {t.sharing.setUpBy(payment.createdBy.name ?? t.audit.someone)}</span>
             ) : null}
@@ -947,6 +950,21 @@ function RecurringForm({
           <p className="text-sm text-ink-2">{r.shortHint}</p>
         ) : null}
       </fieldset>
+
+      {/* Tally can't see the bank: by default each charge waits until
+          someone confirms it really happened */}
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-surface-2 p-4">
+        <input
+          type="checkbox"
+          name="requiresVerification"
+          defaultChecked={payment?.requiresVerification ?? true}
+          className="mt-1 size-5 shrink-0 accent-[var(--accent)]"
+        />
+        <span>
+          <span className="block text-[15px] font-medium">{t.verify.requiresVerification}</span>
+          <span className="mt-0.5 block text-sm leading-relaxed text-ink-2">{t.verify.requiresVerificationHint}</span>
+        </span>
+      </label>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t.common.category} htmlFor="recurring-category" optional error={errors.categoryId}>

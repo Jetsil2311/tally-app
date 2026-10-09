@@ -81,6 +81,7 @@ async function Home() {
       invitations={attention.invitations.length}
       requests={attention.requests.length}
       pending={attention.pending}
+      unverified={attention.unverified}
       accounts={accounts}
     />
   );

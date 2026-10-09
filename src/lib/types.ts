@@ -3,8 +3,10 @@
 
 export type AccountType = "cash" | "debit" | "creditCard";
 export type TransactionType = "income" | "expense";
-// approved counts toward balances; pending waits for an owner/admin; rejected never counts
-export type TransactionStatus = "approved" | "pending" | "rejected";
+// approved counts toward balances; pending waits for an owner/admin (a
+// dependent's entry); unverified is a recurring charge waiting for someone to
+// confirm it really happened; rejected never counts
+export type TransactionStatus = "approved" | "pending" | "rejected" | "unverified";
 export type MemberRole = "owner" | "admin" | "member" | "viewer" | "dependent";
 
 export interface User {
@@ -49,7 +51,12 @@ export interface Account {
   isActive: boolean;
   // ISO 4217. The balance and every transaction amount on it are in this currency
   currency: string;
+  // Verified only: unverified recurring charges don't count yet
   balance: string;
+  // Recurring charges waiting to be confirmed, in the account's currency
+  unverified: { income: string; expense: string; count: number };
+  // As if every unverified charge were confirmed as is
+  projectedBalance: string;
   // The balance in your preferred currency at today's rate; null when no rate is available
   preferredBalance: ConvertedAmount | null;
   // Your role on it; accounts are shared between members
@@ -217,6 +224,10 @@ export interface RecurringPayment {
   isActive: boolean;
   lastAttemptAt: string | null;
   lastAttemptStatus: "paid" | "insufficientFunds" | "accountInactive" | "exchangeRateUnavailable" | null;
+  // Its charges wait as "unverified" until someone confirms them (default true)
+  requiresVerification: boolean;
+  // How many of its charges are still waiting to be verified
+  awaitingVerification: number;
   accountId: string;
   categoryId: string | null;
   account: { id: string; name: string; type: AccountType; isActive: boolean; currency: string };

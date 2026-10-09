@@ -29,6 +29,8 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
   const description = text(formData, "description");
   // The currency it's charged in; on edit only sent when it changed
   const currency = text(formData, "currency");
+  // Charges wait as "unverified" until confirmed, unless switched off
+  const requiresVerification = formData.get("requiresVerification") === "on";
   const originalCurrency = text(formData, "originalCurrency");
   const { t } = await getI18n();
   const r = t.recurring;
@@ -69,6 +71,7 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
           ...(startDate !== original.startDate ? { startDate } : {}),
           ...(endDate !== original.endDate ? { endDate: endDate || null } : {}),
           ...(currency && currency !== originalCurrency ? { currency } : {}),
+          requiresVerification,
         },
       });
     } else {
@@ -83,6 +86,7 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
           startDate,
           accountId,
           ...(currency ? { currency } : {}),
+          requiresVerification,
           ...(endDate ? { endDate } : {}),
           ...(categoryId ? { categoryId } : {}),
           ...(description ? { description } : {}),

@@ -39,5 +39,10 @@ export function canDeleteTransaction(role: MemberRole | null | undefined, tx: Pi
   return role === "dependent" && tx.createdBy?.id === userId && tx.status !== "approved";
 }
 
+// Confirming (or rejecting) an unverified recurring charge: owners, admins
+// and members; viewers and dependents can't
+export const canVerify = (role: MemberRole | null | undefined, tx: Pick<Transaction, "status">) =>
+  has(role, ["owner", "admin", "member"]) && tx.status === "unverified";
+
 export const canReview = (role: MemberRole | null | undefined, tx: Pick<Transaction, "status">) =>
   canManage(role) && tx.status === "pending";
