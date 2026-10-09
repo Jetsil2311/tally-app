@@ -10,6 +10,14 @@ import { env } from "./env";
 export const OAUTH_STATE_COOKIE = "ft_oauth_state";
 export const OAUTH_VERIFIER_COOKIE = "ft_oauth_verifier";
 export const OAUTH_NEXT_COOKIE = "ft_oauth_next";
+// A managed profile's one-time login code, carried through the Google round trip
+export const OAUTH_PROFILE_COOKIE = "ft_oauth_profile";
+
+// "k7qm x2pd" -> "K7QM-X2PD"; null unless it's 8 characters from the code alphabet
+export function normalizeProfileCode(value: string | null | undefined) {
+  const raw = (value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return /^[A-HJ-NP-Z2-9]{8}$/.test(raw) ? `${raw.slice(0, 4)}-${raw.slice(4)}` : null;
+}
 
 export const redirectUri = () => `${env.appUrl}/auth/callback`;
 

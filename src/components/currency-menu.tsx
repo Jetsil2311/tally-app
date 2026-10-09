@@ -24,7 +24,9 @@ export function CurrencyMenu() {
   return (
     <Menu
       label={t.currency.label(currency)}
-      panelClassName="w-72"
+      // On phones the trigger sits mid-header, so a right-aligned 18rem panel
+      // would hang off the left edge: pin it to the screen edges instead
+      panelClassName="w-72 max-sm:fixed max-sm:inset-x-4 max-sm:top-[calc(env(safe-area-inset-top)+4.5rem)] max-sm:w-auto"
       trigger={() => (
         <span className="inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink">
           <span className="flex size-6 items-center justify-center rounded-full bg-surface-3 text-xs text-ink">

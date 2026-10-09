@@ -79,7 +79,9 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn("inline-grid auto-cols-fr grid-flow-col rounded-full bg-surface-3/70 p-1", className)}
+      // minmax(0,1fr): equal columns that may shrink below their label, so
+      // "Transferencia" truncates instead of widening the whole sheet
+      className={cn("inline-grid auto-cols-[minmax(0,1fr)] grid-flow-col rounded-full bg-surface-3/70 p-1", className)}
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -91,8 +93,8 @@ export function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative inline-flex items-center justify-center gap-1.5 rounded-full px-4 font-medium transition-colors duration-200",
-              size === "md" ? "h-10 text-[15px]" : "h-8 text-sm",
+              "relative inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full px-2 font-medium transition-colors duration-200 sm:px-4",
+              size === "md" ? "h-10 text-sm sm:text-[15px]" : "h-8 text-sm",
               active ? "text-ink" : "text-ink-2 hover:text-ink",
             )}
           >
@@ -103,9 +105,9 @@ export function Segmented<T extends string>({
                 className="absolute inset-0 rounded-full bg-surface shadow-soft"
               />
             ) : null}
-            <span className="relative inline-flex items-center gap-1.5">
-              {option.icon}
-              {option.label}
+            <span className="relative inline-flex min-w-0 items-center gap-1.5">
+              <span className="shrink-0">{option.icon}</span>
+              <span className="truncate">{option.label}</span>
             </span>
           </button>
         );

@@ -1,4 +1,4 @@
-import { LockSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { KeyReturn, LockSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -90,6 +90,7 @@ async function SignIn({ searchParams, t }: { searchParams: PageProps<"/login">["
   const error = typeof params.error === "string" ? t.login.errors[params.error] : undefined;
   const next = typeof params.next === "string" ? params.next : undefined;
   const href = next ? `/auth/google?next=${encodeURIComponent(next)}` : "/auth/google";
+  const codeError = params.error === "profileCode";
   return (
     <>
       {error ? (
@@ -98,6 +99,42 @@ async function SignIn({ searchParams, t }: { searchParams: PageProps<"/login">["
         </p>
       ) : null}
       <GoogleButton href={href} label={t.login.continueWithGoogle} />
+
+      {/* A family profile's first sign-in: the code from their guardian. A
+          plain POST form: works before any JavaScript loads and keeps the code out of the URL. */}
+      <details className="group mt-5" open={codeError}>
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full text-sm font-medium text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
+          <KeyReturn size={18} /> {t.login.haveCode}
+        </summary>
+        <form action="/auth/google" method="post" className="mt-3 space-y-3 rounded-3xl border border-line bg-surface p-4">
+          {next ? <input type="hidden" name="next" value={next} /> : null}
+          <label htmlFor="profile-code" className="block text-sm font-medium">
+            {t.login.codeLabel}
+          </label>
+          <input
+            id="profile-code"
+            name="code"
+            required
+            autoComplete="one-time-code"
+            autoCapitalize="characters"
+            spellCheck={false}
+            pattern="[A-Za-z0-9]{4}-?[A-Za-z0-9]{4}"
+            title={t.login.codeInvalid}
+            placeholder={t.login.codePlaceholder}
+            aria-describedby="profile-code-hint"
+            className="h-12 w-full rounded-2xl border border-line bg-surface-2 px-4 font-mono text-lg tracking-[0.12em] uppercase placeholder:text-ink-3 focus:border-accent focus:ring-4 focus:ring-accent-soft focus:outline-none"
+          />
+          <p id="profile-code-hint" className="text-sm text-ink-2">
+            {t.login.codeHint}
+          </p>
+          <button
+            type="submit"
+            className="flex h-12 w-full items-center justify-center rounded-full bg-ink text-[15px] font-medium text-surface transition-[opacity,transform] hover:opacity-90 active:scale-[0.98]"
+          >
+            {t.login.continueWithGoogle}
+          </button>
+        </form>
+      </details>
     </>
   );
 }
@@ -146,11 +183,11 @@ function Preview({ t }: { t: Dictionary }) {
           <div className="grid grid-cols-2 gap-4">
             <AccountCard
               className="rotate-[-2deg]"
-              account={{ id: "a", name: t.login.exampleAccounts.debit, type: "debit", isActive: true, balance: "2841.37" }}
+              account={{ id: "a", name: t.login.exampleAccounts.debit, type: "debit", isActive: true, balance: "2841.37", myRole: "owner", memberCount: 1 }}
             />
             <AccountCard
               className="translate-y-6 rotate-[2deg]"
-              account={{ id: "b", name: t.login.exampleAccounts.credit, type: "creditCard", isActive: true, balance: "-612.09" }}
+              account={{ id: "b", name: t.login.exampleAccounts.credit, type: "creditCard", isActive: true, balance: "-612.09", myRole: "owner", memberCount: 2 }}
             />
           </div>
           <div className="rounded-3xl border border-white/10 bg-surface/95 p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.6)]">

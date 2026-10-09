@@ -12,7 +12,8 @@ import { Card, cn, EmptyState, Skeleton } from "@/components/ui";
 import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { activityHref, type ActivityQuery } from "@/lib/activity-query";
-import { getAccounts, getAllTransactions, getCategories } from "@/lib/data";
+import { ApprovalQueue } from "@/components/approvals";
+import { getAccounts, getAllTransactions, getCategories, getPending, getSharedPeople } from "@/lib/data";
 import { currentMonthKey, dayKey, monthLabel, monthRange, parseMonthKey, shiftMonth, type MonthKey } from "@/lib/dates";
 import { isTransfer } from "@/lib/insights";
 import { toCents } from "@/lib/money";
@@ -55,18 +56,24 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
     account: single(params.account) || undefined,
     category: single(params.category) || undefined,
     filter: single(params.filter) === "uncategorized" ? "uncategorized" : undefined,
+    status: single(params.status) === "pending" ? "pending" : single(params.status) === "rejected" ? "rejected" : undefined,
+    by: single(params.by) || undefined,
   };
 
   const range = month === "all" ? {} : monthRange(month, timeZone);
-  const [accounts, categories, result] = await Promise.all([
+  const [accounts, categories, people, pending, result] = await Promise.all([
     getAccounts(true),
     getCategories(),
+    getSharedPeople(),
+    getPending(),
     getAllTransactions(
       {
         ...range,
         type: query.type,
+        status: query.status,
         accountId: query.account,
         categoryId: query.category,
+        createdById: query.by,
         search: query.q,
       },
       month === "all" ? 600 : 2000,
@@ -80,7 +87,8 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   let income = 0;
   let expense = 0;
   for (const tx of rows) {
-    if (isTransfer(tx)) continue;
+    // Pending and rejected entries don't count toward totals (same as the API)
+    if (isTransfer(tx) || tx.status !== "approved") continue;
     if (tx.type === "income") income += toCents(tx.amount);
     else expense += toCents(tx.amount);
   }
@@ -89,11 +97,14 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   const today = dayKey(now, timeZone);
   const yesterday = dayKey(new Date(now.getTime() - 86_400_000), timeZone);
-  const filtered = Boolean(query.q || query.type || query.account || query.category || query.filter);
+  const filtered = Boolean(query.q || query.type || query.account || query.category || query.filter || query.status || query.by);
 
   return (
     <>
-      <ActivityFilters query={query} accounts={accounts} categories={categories} />
+      {/* Owners and admins decide on dependents' entries first */}
+      {!query.status ? <ApprovalQueue pending={pending.data} accounts={accounts} /> : null}
+
+      <ActivityFilters query={query} accounts={accounts} categories={categories} people={people} />
 
       <div className="flex flex-wrap items-center gap-3">
         <MonthSwitcher month={month} current={current} query={query} t={t} locale={locale} />
@@ -183,7 +194,7 @@ function groupByDay(rows: Transaction[], timeZone: string) {
       groups.push(group);
     }
     group.rows.push(tx);
-    if (tx.type === "expense" && !isTransfer(tx)) group.spent += toCents(tx.amount);
+    if (tx.type === "expense" && !isTransfer(tx) && tx.status === "approved") group.spent += toCents(tx.amount);
   }
   return groups;
 }
@@ -211,7 +222,7 @@ function MonthSwitcher({
       <Link href={href(shiftMonth(base, -1))} aria-label={t.activity.previousMonth} className={cn(pill, "w-11")}>
         <CaretLeft size={18} />
       </Link>
-      <p className="min-w-40 flex-1 text-center text-[17px] font-semibold tracking-tight sm:flex-none" aria-live="polite">
+      <p className="min-w-0 flex-1 truncate text-center text-[17px] font-semibold tracking-tight sm:min-w-40 sm:flex-none" aria-live="polite">
         {month === "all" ? t.activity.allTime : capitalize(monthLabel(month, "long", true, locale))}
       </p>
       {next <= current ? (

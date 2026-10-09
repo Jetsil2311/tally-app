@@ -26,6 +26,7 @@ import { useI18n } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { capitalize } from "@/i18n/format";
 import { isSystemCategory } from "@/lib/insights";
+import { canManage } from "@/lib/permissions";
 import { toCents } from "@/lib/money";
 import {
   FREQUENCIES,
@@ -52,6 +53,7 @@ import type {
 import { AccountIcon } from "./account-icon";
 import { ChipGroup, Segmented } from "./chips";
 import { Menu, MenuItem } from "./menu";
+import { useViewer, ViewOnlyTag } from "./people-ui";
 import { Money } from "./preferences";
 import { AmountInput } from "./quick-add";
 import { Sheet } from "./sheet";
@@ -90,6 +92,9 @@ export function RecurringManager({
   const r = t.recurring;
   const [editing, setEditing] = useState<{ payment?: RecurringPayment; draft?: Draft; session: number } | null>(null);
   const [open, setOpen] = useState(false);
+  // Only owners and admins of an account manage its recurring payments
+  const manageable = accounts.filter((a) => a.isActive && canManage(a.myRole));
+  const editable = (payment: RecurringPayment) => canManage(accounts.find((a) => a.id === payment.accountId)?.myRole);
   const active = payments.filter((p) => p.isActive);
   const inactive = payments.filter((p) => !p.isActive);
 
@@ -105,7 +110,7 @@ export function RecurringManager({
           <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.recurring}</h1>
           <p className="mt-1 max-w-[56ch] text-sm leading-relaxed text-ink-2">{r.intro}</p>
         </div>
-        {active.length > 0 || inactive.length > 0 ? (
+        {(active.length > 0 || inactive.length > 0) && manageable.length > 0 ? (
           <Button onClick={() => start()} className="w-full sm:w-auto">
             <Plus size={18} weight="bold" /> {r.newRecurring}
           </Button>
@@ -117,41 +122,43 @@ export function RecurringManager({
           <EmptyState
             icon={<Repeat size={24} />}
             title={r.emptyTitle}
-            action={<Button onClick={() => start()}>{r.addFirst}</Button>}
+            action={manageable.length > 0 ? <Button onClick={() => start()}>{r.addFirst}</Button> : undefined}
           >
             {r.emptyBody}
           </EmptyState>
-          <div className="border-t border-line px-6 py-5">
-            <p className="mb-3 text-center text-sm text-ink-2">{r.startFromCommon}</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => start(undefined, { name: r.suggestions[s.key], type: s.type, frequency: s.frequency })}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface-2 px-4 text-[15px] transition-[border-color,transform] duration-200 hover:border-line-strong active:scale-[0.97]"
-                >
-                  {s.type === "income" ? (
-                    <ArrowDownLeft size={16} weight="bold" className="text-income" />
-                  ) : (
-                    <ArrowUpRight size={16} weight="bold" className="text-ink-2" />
-                  )}
-                  {r.suggestions[s.key]}
-                </button>
-              ))}
+          {manageable.length > 0 ? (
+            <div className="border-t border-line px-6 py-5">
+              <p className="mb-3 text-center text-sm text-ink-2">{r.startFromCommon}</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => start(undefined, { name: r.suggestions[s.key], type: s.type, frequency: s.frequency })}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface-2 px-4 text-[15px] transition-[border-color,transform] duration-200 hover:border-line-strong active:scale-[0.97]"
+                  >
+                    {s.type === "income" ? (
+                      <ArrowDownLeft size={16} weight="bold" className="text-income" />
+                    ) : (
+                      <ArrowUpRight size={16} weight="bold" className="text-ink-2" />
+                    )}
+                    {r.suggestions[s.key]}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </Card>
       ) : (
         <>
-          <OverdueBanner upcoming={upcoming} />
+          <OverdueBanner upcoming={upcoming} canCharge={manageable.length > 0} />
 
           <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
             <Card className="rise p-3 sm:p-4 lg:col-span-7" style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="next-title">
               <div className="px-3 pt-2">
                 <SectionTitle id="next-title">{r.next30}</SectionTitle>
               </div>
-              <Timeline upcoming={upcoming} payments={active} today={today} onOpen={start} />
+              <Timeline upcoming={upcoming} payments={active.filter(editable)} today={today} onOpen={start} />
             </Card>
 
             <div className="flex flex-col gap-4 lg:col-span-5 lg:gap-5">
@@ -165,7 +172,13 @@ export function RecurringManager({
               <SectionTitle id="all-title">{r.allRecurring}</SectionTitle>
               <Card className="divide-y divide-line p-0">
                 {active.map((payment) => (
-                  <PaymentRow key={payment.id} payment={payment} today={today} onEdit={() => start(payment)} />
+                  <PaymentRow
+                    key={payment.id}
+                    payment={payment}
+                    today={today}
+                    editable={editable(payment)}
+                    onEdit={() => start(payment)}
+                  />
                 ))}
               </Card>
             </section>
@@ -177,7 +190,13 @@ export function RecurringManager({
               <p className="-mt-2 mb-4 max-w-[60ch] text-sm text-ink-2">{r.pausedHint}</p>
               <Card className="divide-y divide-line p-0">
                 {inactive.map((payment) => (
-                  <PaymentRow key={payment.id} payment={payment} today={today} onEdit={() => start(payment)} />
+                  <PaymentRow
+                    key={payment.id}
+                    payment={payment}
+                    today={today}
+                    editable={editable(payment)}
+                    onEdit={() => start(payment)}
+                  />
                 ))}
               </Card>
             </section>
@@ -196,7 +215,7 @@ export function RecurringManager({
             key={editing.session}
             payment={editing.payment}
             draft={editing.draft}
-            accounts={accounts}
+            accounts={manageable}
             categories={categories}
             today={today}
             onDone={() => setOpen(false)}
@@ -211,7 +230,7 @@ export function RecurringManager({
 // Overview
 // ---------------------------------------------------------------------------
 
-function OverdueBanner({ upcoming }: { upcoming: Upcoming }) {
+function OverdueBanner({ upcoming, canCharge }: { upcoming: Upcoming; canCharge: boolean }) {
   const toast = useToast();
   const { t } = useI18n();
   const [pending, startTransition] = useTransition();
@@ -232,19 +251,21 @@ function OverdueBanner({ upcoming }: { upcoming: Upcoming }) {
           {t.recurring.overdueHint}
         </span>
       </p>
-      <Button
-        variant="secondary"
-        size="sm"
-        disabled={pending}
-        onClick={() =>
-          startTransition(async () => {
-            const result = await processDue();
-            toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
-          })
-        }
-      >
-        <Lightning size={16} weight="fill" /> {pending ? t.recurring.charging : t.recurring.chargeNow}
-      </Button>
+      {canCharge ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await processDue();
+              toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
+            })
+          }
+        >
+          <Lightning size={16} weight="fill" /> {pending ? t.recurring.charging : t.recurring.chargeNow}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -298,17 +319,17 @@ function Timeline({
 
   return (
     <div>
-      <dl className="mx-3 mb-4 grid grid-cols-2 gap-4 rounded-2xl bg-surface-2 p-4">
+      <dl className="mx-3 mb-4 grid grid-cols-2 [&>div]:min-w-0 gap-4 rounded-2xl bg-surface-2 p-4">
         <div>
           <dt className="text-sm text-ink-2">{t.recurring.goingOut}</dt>
           <dd>
-            <Money cents={out} className="text-2xl font-semibold tracking-tight" />
+            <Money cents={out} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
           </dd>
         </div>
         <div>
           <dt className="text-sm text-ink-2">{t.recurring.comingIn}</dt>
           <dd>
-            <Money cents={inflow} className="text-2xl font-semibold tracking-tight text-income" />
+            <Money cents={inflow} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
           </dd>
         </div>
       </dl>
@@ -380,11 +401,11 @@ function Commitments({ payments }: { payments: RecurringPayment[] }) {
   return (
     <Card className="rise p-6" style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="monthly-title">
       <SectionTitle id="monthly-title">{r.typicalMonth}</SectionTitle>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-5">
+      <dl className="grid grid-cols-2 [&>div]:min-w-0 gap-x-4 gap-y-5">
         <div>
           <dt className="text-sm text-ink-2">{r.fixedCosts}</dt>
           <dd>
-            <Money cents={out} className="text-2xl font-semibold tracking-tight" />
+            <Money cents={out} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
           </dd>
           <dd className="text-xs text-ink-2">
             {r.billCount(payments.filter((p) => p.type === "expense").length)}
@@ -393,7 +414,7 @@ function Commitments({ payments }: { payments: RecurringPayment[] }) {
         <div>
           <dt className="text-sm text-ink-2">{r.recurringIncome}</dt>
           <dd>
-            <Money cents={inflow} className="text-2xl font-semibold tracking-tight text-income" />
+            <Money cents={inflow} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
           </dd>
         </div>
       </dl>
@@ -505,8 +526,21 @@ export function StatusPill({ forecast }: { forecast: Forecast }) {
   );
 }
 
-function PaymentRow({ payment, today, onEdit }: { payment: RecurringPayment; today: string; onEdit: () => void }) {
+function PaymentRow({
+  payment,
+  today,
+  editable,
+  onEdit,
+}: {
+  payment: RecurringPayment;
+  today: string;
+  // Your role on its account lets you change it (owner/admin)
+  editable: boolean;
+  onEdit: () => void;
+}) {
   const toast = useToast();
+  const viewer = useViewer();
+  const Main = editable ? "button" : "div";
   const { t, locale } = useI18n();
   const r = t.recurring;
   const [pending, startTransition] = useTransition();
@@ -522,10 +556,12 @@ function PaymentRow({ payment, today, onEdit }: { payment: RecurringPayment; tod
 
   return (
     <div className={cn("flex items-center gap-1 py-1 pr-2 pl-1 transition-opacity", pending && "opacity-60")}>
-      <button
-        type="button"
-        onClick={onEdit}
-        className="flex min-w-0 flex-1 items-center gap-3.5 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-surface-2 sm:gap-4"
+      <Main
+        {...(editable ? { type: "button" as const, onClick: onEdit } : {})}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-3.5 rounded-2xl px-3 py-2.5 text-left sm:gap-4",
+          editable && "transition-colors hover:bg-surface-2",
+        )}
       >
         <TypeBadge type={payment.type} paused={!payment.isActive} />
         <span className="min-w-0 flex-1">
@@ -533,6 +569,9 @@ function PaymentRow({ payment, today, onEdit }: { payment: RecurringPayment; tod
           <span className="mt-0.5 block truncate text-sm text-ink-2">
             {scheduleLabel(payment, r, locale)}
             <span className="text-ink-3"> · {payment.account.name}</span>
+            {!editable && payment.createdBy && payment.createdBy.id !== viewer.id ? (
+              <span className="text-ink-3"> · {t.sharing.setUpBy(payment.createdBy.name ?? t.audit.someone)}</span>
+            ) : null}
           </span>
         </span>
         <span className="flex shrink-0 flex-col items-end gap-1">
@@ -553,7 +592,7 @@ function PaymentRow({ payment, today, onEdit }: { payment: RecurringPayment; tod
             )}
           </span>
         </span>
-      </button>
+      </Main>
 
       {payment.isActive && payment.next ? (
         <span className="hidden w-36 shrink-0 justify-end md:flex">
@@ -561,7 +600,9 @@ function PaymentRow({ payment, today, onEdit }: { payment: RecurringPayment; tod
         </span>
       ) : null}
 
-      {payment.isActive ? (
+      {!editable ? (
+        <ViewOnlyTag className="mr-2 hidden sm:inline-flex" />
+      ) : payment.isActive ? (
         <Menu
           label={r.actionsFor(payment.name)}
           trigger={() => (
@@ -641,7 +682,8 @@ function RecurringForm({
   );
   const account = activeAccounts.find((a) => a.id === accountId);
 
-  const usable = categories.filter((c) => !isSystemCategory(c.name));
+  // Personal categories plus the chosen account's shared ones
+  const usable = categories.filter((c) => !isSystemCategory(c.name) && (c.accountId === null || c.accountId === accountId));
   const topLevel = usable.filter((c) => !c.parentId);
 
   const [deleting, startDelete] = useTransition();

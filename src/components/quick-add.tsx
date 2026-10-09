@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowsLeftRight, ArrowUp, Trash } from "@phosphor-icons/react";
+import { ArrowDown, ArrowsLeftRight, ArrowUp, Check, Trash, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import {
   createContext,
@@ -15,16 +15,25 @@ import {
   type ReactNode,
 } from "react";
 
-import { createTransfer, deleteTransaction, restoreTransaction, saveTransaction, undoCreate } from "@/actions/transactions";
+import {
+  createTransfer,
+  deleteTransaction,
+  restoreTransaction,
+  reviewTransaction,
+  saveTransaction,
+  undoCreate,
+} from "@/actions/transactions";
 import { useI18n } from "@/i18n/client";
 import { toLocalInputValue } from "@/lib/dates";
-import { isSystemCategory } from "@/lib/insights";
+import { categoryLabel, isSystemCategory } from "@/lib/insights";
 import { currencySymbol } from "@/lib/money";
+import { canAddTransactions, canDeleteTransaction, canEditTransaction, canReview } from "@/lib/permissions";
 import type { Account, ActionState, Category, Transaction, TransactionType } from "@/lib/types";
 
 import { AccountIcon } from "./account-icon";
 import { ChipGroup, Segmented } from "./chips";
-import { usePreferences } from "./preferences";
+import { Avatar, displayName, RoleBadge, TxStatusPill, useViewer } from "./people-ui";
+import { Money, usePreferences } from "./preferences";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
 import { submitWith } from "./use-form-action";
@@ -145,6 +154,27 @@ function EntryForms({
   const categories = use(categoriesPromise);
   const [mode, setMode] = useState<Mode>(options.transaction?.type ?? options.mode ?? "expense");
   const { t } = useI18n();
+  const viewer = useViewer();
+  const tx = options.transaction;
+
+  // An entry you can't change opens as a read-only view (with approve /
+  // reject or delete when your role allows)
+  if (tx) {
+    const role = accounts.find((a) => a.id === tx.accountId)?.myRole;
+    if (!canEditTransaction(role, tx, viewer.id)) {
+      return <TransactionDetails tx={tx} accounts={accounts} onDone={onDone} />;
+    }
+  }
+
+  // New entries go only to accounts your role can add to; moving an entry
+  // needs owner, admin or member on the destination
+  const writable = accounts.filter((a) =>
+    a.isActive && (tx ? ["owner", "admin", "member"].includes(a.myRole) : canAddTransactions(a.myRole)),
+  );
+
+  if (accounts.length > 0 && writable.length === 0) {
+    return <p className="rounded-2xl bg-surface-2 p-4 pb-4 text-sm text-ink-2">{t.quickAdd.noWritable}</p>;
+  }
 
   if (accounts.length === 0) {
     return (
@@ -173,14 +203,14 @@ function EntryForms({
         />
       ) : null}
       {mode === "transfer" ? (
-        <TransferForm accounts={accounts} onDone={onDone} />
+        <TransferForm accounts={writable} onDone={onDone} />
       ) : (
         <TransactionForm
           key={mode}
           type={mode}
           transaction={options.transaction}
           defaultAccountId={options.accountId}
-          accounts={accounts}
+          accounts={writable}
           categories={categories}
           onDone={onDone}
         />
@@ -278,11 +308,26 @@ function TransactionForm({
     return activeAccounts[0]?.id ?? "";
   });
 
-  const usable = categories.filter((c) => !isSystemCategory(c.name));
+  // Your personal categories plus the chosen account's shared ones
+  const usableOn = (id: string) => categories.filter((c) => !isSystemCategory(c.name) && (c.accountId === null || c.accountId === id));
+  const usable = usableOn(accountId);
   const topLevel = usable.filter((c) => !c.parentId);
   const initialCategory = usable.find((c) => c.id === transaction?.categoryId);
   const [parentId, setParentId] = useState(initialCategory?.parentId ?? initialCategory?.id ?? "");
   const [childId, setChildId] = useState(initialCategory?.parentId ? initialCategory.id : "");
+  const selected = activeAccounts.find((a) => a.id === accountId);
+  const viewer = useViewer();
+  const review = transaction ? canReview(selected?.myRole, transaction) : false;
+
+  // Another account's shared categories don't apply here: drop the choice
+  const chooseAccount = (id: string) => {
+    setAccountId(id);
+    const valid = new Set(usableOn(id).map((c) => c.id));
+    if (parentId && !valid.has(parentId)) {
+      setParentId("");
+      setChildId("");
+    }
+  };
   const children = usable.filter((c) => c.parentId === parentId);
   const categoryId = childId || parentId;
 
@@ -326,7 +371,13 @@ function TransactionForm({
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="categoryId" value={categoryId} />
 
+      {transaction && transaction.status !== "approved" ? (
+        <StatusNote tx={transaction} canReviewIt={review} onDone={onDone} />
+      ) : null}
+
       <AmountInput defaultValue={transaction?.amount} error={errors.amount} result={state} tone={type} />
+
+      {transaction?.createdBy && transaction.createdBy.id !== viewer.id ? <AddedBy person={transaction.createdBy} /> : null}
 
       <fieldset className="space-y-3">
         <legend className="mb-3 text-sm font-medium text-ink">{type === "income" ? t.quickAdd.into : t.quickAdd.paidWith}</legend>
@@ -334,7 +385,7 @@ function TransactionForm({
           label={t.common.account}
           name="accountId"
           value={accountId}
-          onChange={setAccountId}
+          onChange={chooseAccount}
           invalid={Boolean(errors.accountId)}
           options={activeAccounts.map((account) => ({
             value: account.id,
@@ -346,6 +397,8 @@ function TransactionForm({
           <p role="alert" className="text-sm text-expense">
             {errors.accountId}
           </p>
+        ) : selected?.myRole === "dependent" && !transaction ? (
+          <p className="text-sm text-ink-2">{t.approvals.dependentHint}</p>
         ) : null}
       </fieldset>
 
@@ -582,5 +635,103 @@ function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () =>
         {pending ? t.common.saving : t.quickAdd.recordTransfer}
       </Button>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared accounts: who added an entry, approvals, read-only view
+// ---------------------------------------------------------------------------
+
+function AddedBy({ person }: { person: { name: string | null; imageUrl: string | null } }) {
+  const { t } = useI18n();
+  return (
+    <p className="flex items-center justify-center gap-2 text-sm text-ink-2">
+      <Avatar person={person} size={22} />
+      {t.approvals.addedBy(displayName(person, t.audit.someone))}
+    </p>
+  );
+}
+
+// Pending / rejected explanation, with Approve and Reject for owners/admins
+function StatusNote({ tx, canReviewIt, onDone }: { tx: Transaction; canReviewIt: boolean; onDone: () => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const [pending, setPending] = useState<"approve" | "reject" | null>(null);
+  const pendingTx = tx.status === "pending";
+
+  const decide = async (approve: boolean) => {
+    setPending(approve ? "approve" : "reject");
+    const result = await reviewTransaction(tx.id, approve);
+    setPending(null);
+    toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
+    if (result.ok) onDone();
+  };
+
+  return (
+    <div className={cn("rounded-3xl border px-4 py-3", pendingTx ? "border-warn/25 bg-warn-soft" : "border-expense/20 bg-expense-soft")}>
+      <div className="flex items-start gap-3">
+        <TxStatusPill status={tx.status} className="mt-0.5 bg-surface" />
+        <p className="flex-1 text-sm leading-relaxed text-ink-2">{pendingTx ? t.approvals.reviewHint : t.approvals.rejectedHint}</p>
+      </div>
+      {canReviewIt ? (
+        <div className="mt-3 flex gap-2">
+          <Button type="button" size="sm" className="flex-1" disabled={pending !== null} onClick={() => decide(true)}>
+            <Check size={16} weight="bold" /> {pending === "approve" ? t.common.saving : t.approvals.approve}
+          </Button>
+          <Button type="button" size="sm" variant="secondary" className="flex-1" disabled={pending !== null} onClick={() => decide(false)}>
+            <X size={16} weight="bold" /> {pending === "reject" ? t.common.saving : t.approvals.reject}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// For entries your role can't edit: what it is, who added it, and the
+// actions you do have (review as owner/admin, delete your own pending entry
+// as a dependent)
+function TransactionDetails({ tx, accounts, onDone }: { tx: Transaction; accounts: Account[]; onDone: () => void }) {
+  const { t, locale } = useI18n();
+  const { timeZone } = usePreferences();
+  const viewer = useViewer();
+  const role = accounts.find((a) => a.id === tx.accountId)?.myRole;
+  const when = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(tx.date));
+  const income = tx.type === "income";
+  const rows: [string, React.ReactNode][] = [
+    [t.common.account, tx.account.name],
+    [t.common.category, tx.category ? categoryLabel(tx.category.name, t) : t.common.none],
+    [t.common.when, when],
+    ...(tx.description ? ([[t.common.note, tx.description]] as [string, React.ReactNode][]) : []),
+  ];
+
+  return (
+    <div className="space-y-5 pb-2">
+      {tx.status !== "approved" ? <StatusNote tx={tx} canReviewIt={canReview(role, tx)} onDone={onDone} /> : null}
+      <div className={cn("rounded-3xl px-4 py-5 text-center", income ? "bg-income-soft" : "bg-expense-soft")}>
+        <Money
+          value={income ? tx.amount : -Number(tx.amount)}
+          sign
+          className={cn("text-5xl font-semibold tracking-tight", income ? "text-income" : "text-ink")}
+        />
+      </div>
+      {tx.createdBy ? <AddedBy person={tx.createdBy} /> : null}
+      <dl className="divide-y divide-line rounded-3xl border border-line">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-4 px-4 py-3">
+            <dt className="text-sm text-ink-2">{label}</dt>
+            <dd className="min-w-0 truncate text-right text-[15px]">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="flex items-center gap-2 text-sm text-ink-2">
+        {role ? <RoleBadge role={role} /> : null}
+        {t.approvals.viewOnly}
+      </p>
+      {canDeleteTransaction(role, tx, viewer.id) ? (
+        <div className="flex">
+          <DeleteButton id={tx.id} onDone={onDone} />
+        </div>
+      ) : null}
+    </div>
   );
 }

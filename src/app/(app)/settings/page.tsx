@@ -34,7 +34,9 @@ async function Settings() {
   const { timeZone } = await getPreferences();
   const { t, locale } = await getI18n();
   const choice = (await cookies()).get(LOCALE_CHOICE_COOKIE)?.value;
-  const [user, keys] = await Promise.all([getCurrentUser(), getApiKeys()]);
+  const user = await getCurrentUser();
+  // Family profiles can't manage API keys (their guardian does)
+  const keys = user.isManaged ? null : await getApiKeys();
   const since = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone }).format(new Date(user.createdAt));
 
   return (
@@ -55,7 +57,7 @@ async function Settings() {
         </form>
       </Card>
       <AppearancePanel language={isLanguage(choice) ? choice : "auto"} />
-      <ApiKeysPanel keys={keys} timeZone={timeZone} />
+      {keys ? <ApiKeysPanel keys={keys} timeZone={timeZone} /> : null}
       <DangerZone />
     </>
   );

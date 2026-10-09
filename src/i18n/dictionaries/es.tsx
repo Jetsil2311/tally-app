@@ -55,11 +55,12 @@ export const es: Dictionary = {
 
   nav: {
     home: "Inicio",
-    activity: "Movimientos",
+    activity: "Actividad",
     accounts: "Cuentas",
     insights: "Análisis",
     recurring: "Recurrentes",
     categories: "Categorías",
+    people: "Personas",
     settings: "Ajustes",
     signOut: "Cerrar sesión",
     primary: "Principal",
@@ -188,6 +189,7 @@ export const es: Dictionary = {
     transferNotePlaceholder: "Pago de tarjeta…",
     transferNotCounted: "Las transferencias no cuentan como gasto ni ingreso en tus reportes.",
     recordTransfer: "Registrar transferencia",
+    noWritable: "Ninguna de tus cuentas te permite agregar movimientos. Un propietario puede cambiar tu rol.",
   },
 
   transactionRow: {
@@ -223,6 +225,9 @@ export const es: Dictionary = {
   accounts: {
     newAccount: "Nueva cuenta",
     editAccount: "Editar cuenta",
+    yours: "Tus cuentas",
+    sharedWithYou: "Compartidas contigo",
+    sharedWithYouHint: "Cuentas de otras personas a las que te agregaron.",
     emptyTitle: "¿Dónde está tu dinero?",
     emptyBody: "Agrega una cartera de efectivo, una tarjeta de débito o una de crédito. Cada una lleva su propio saldo.",
     addFirst: "Agrega tu primera cuenta",
@@ -522,7 +527,7 @@ export const es: Dictionary = {
     revoked: "Revocada",
     dangerTitle: "Eliminar todo",
     dangerBody:
-      "Elimina para siempre tu perfil, cuentas, categorías, cada movimiento y cada clave de API. No se puede deshacer.",
+      "Elimina para siempre tu perfil, tus perfiles familiares y cada cuenta que nadie más usa. Las cuentas compartidas se quedan con sus demás miembros. No se puede deshacer.",
     typeDelete: "Escribe DELETE para confirmar",
     deleteMyData: "Eliminar mis datos",
     keyNameRequired: "Ponle nombre a la clave, como “Atajos del iPhone”.",
@@ -537,6 +542,11 @@ export const es: Dictionary = {
     headline: "Sabe a dónde va cada centavo.",
     body: "Efectivo, débito y crédito en un solo lugar tranquilo. Registra una compra en dos toques y mira cada mes y cada año de un vistazo.",
     continueWithGoogle: "Continuar con Google",
+    haveCode: "Tengo un código de mi madre, padre o tutor",
+    codeLabel: "Tu código de acceso",
+    codePlaceholder: "K7QM-X2PD",
+    codeHint: "Solo se necesita la primera vez. Después, continúa con Google.",
+    codeInvalid: "Escribe el código de 8 caracteres, como K7QM-X2PD.",
     secureCookie: "Tu sesión se guarda en una cookie segura httpOnly.",
     example: "Ejemplo del panel",
     exampleData: "Datos de ejemplo",
@@ -548,7 +558,243 @@ export const es: Dictionary = {
       api: "Tu cuenta de Google se verificó, pero el servicio de finanzas rechazó el inicio de sesión. Revisa su GOOGLE_CLIENT_ID.",
       unreachable: "No se puede conectar con el servicio de finanzas. Asegúrate de que esté en marcha e inténtalo de nuevo.",
       expired: "Tu sesión terminó. Vuelve a iniciar sesión para seguir donde te quedaste.",
+      profileCode: "Ese código no funcionó. Puede que haya vencido o ya se haya usado. Pide uno nuevo.",
     },
+  },
+
+  roles: {
+    owner: { label: "Propietario", hint: "Control total, incluidos roles y archivar" },
+    admin: { label: "Administrador", hint: "Gestiona movimientos, categorías, recurrentes e invitaciones" },
+    member: { label: "Miembro", hint: "Agrega movimientos y edita los suyos" },
+    viewer: { label: "Lector", hint: "Ve todo, no cambia nada" },
+    dependent: { label: "Dependiente", hint: "Agrega movimientos; algunos pueden requerir aprobación" },
+  },
+
+  people: {
+    intro: "Conéctate con las personas con las que compartes dinero. Solo puedes invitar a tus conexiones a tus cuentas.",
+    addTitle: "Agregar una conexión",
+    emailLabel: "Su correo",
+    emailPlaceholder: "nombre@ejemplo.com",
+    emailHint: "Necesita una cuenta de Tally. Verá tu solicitud y podrá aceptarla.",
+    send: "Enviar solicitud",
+    sending: "Enviando…",
+    emailInvalid: "Escribe un correo válido.",
+    requestSent: "Solicitud enviada",
+    connectedNow: "Ya están conectados",
+    invitations: "Invitaciones",
+    invitedYou: (inviter: ReactNode, account: ReactNode, role: string) => (
+      <>
+        {inviter} te invitó a {account} como {role}.
+      </>
+    ),
+    someone: "Alguien",
+    limitNote: (amount: ReactNode) => <>Límite de gasto mensual: {amount}.</>,
+    approvalNote: "Tus movimientos necesitarán aprobación.",
+    accept: "Aceptar",
+    decline: "Rechazar",
+    invitationAccepted: "Te uniste a la cuenta",
+    invitationDeclined: "Invitación rechazada",
+    requests: "Solicitudes",
+    wantsToConnect: "Quiere conectarse",
+    connections: "Conexiones",
+    noConnections: "Aún no tienes conexiones",
+    noConnectionsHint: "Agrega a alguien por correo. Cuando acepte, podrás invitarle a una cuenta.",
+    sent: "Enviadas",
+    awaiting: "Esperando a que acepte",
+    cancelRequest: "Cancelar",
+    blocked: "Bloqueadas",
+    blockedHint: "No pueden enviarte solicitudes. No saben que los bloqueaste.",
+    unblock: "Desbloquear",
+    remove: "Quitar conexión",
+    block: "Bloquear",
+    tapAgain: "Toca otra vez para confirmar",
+    actionsFor: (name: string) => `Acciones de ${name}`,
+    connectedSince: (date: string) => `Conectados desde ${date}`,
+    removeHint: "Quitar una conexión no la saca de las cuentas compartidas.",
+    connectionDone: { accept: "Conectados", reject: "Solicitud rechazada", block: "Bloqueado", remove: "Quitado" },
+    managedNote: (name: string) =>
+      `Tu perfil lo administra ${name}. Esa persona te agrega a las cuentas, así que aquí no hay conexiones ni invitaciones.`,
+  },
+
+  attention: {
+    title: "Requiere tu atención",
+    invitations: (n: number) => `${n} ${plural(n, "invitación", "invitaciones")} a una cuenta compartida`,
+    requests: (n: number) => `${n} ${plural(n, "solicitud", "solicitudes")} de conexión`,
+    approvals: (n: number) => `${n} ${plural(n, "movimiento espera", "movimientos esperan")} tu aprobación`,
+    yourPending: (n: number) => `${n} de tus movimientos ${plural(n, "espera", "esperan")} aprobación`,
+  },
+
+  profiles: {
+    title: "Perfiles familiares",
+    intro:
+      "Perfiles para las personas que cuidas, como tus hijos. No necesitan correo: agrégalos a una cuenta como dependientes y dales acceso cuando estén listos.",
+    add: "Agregar perfil",
+    newProfile: "Nuevo perfil familiar",
+    editProfile: "Editar perfil",
+    namePlaceholder: "Sofía",
+    nameRequired: "Ponle nombre al perfil.",
+    created: "Perfil creado",
+    updated: "Perfil actualizado",
+    deleted: "Perfil eliminado",
+    deleteWarning: "Lo quita de todas las cuentas. Sus movimientos se conservan.",
+    hasLogin: "Tiene acceso",
+    noLogin: "Sin acceso",
+    accounts: (names: string) => names || "Aún no está en ninguna cuenta",
+    howToAdd: "Para agregar un perfil a una cuenta, abre la cuenta y elige Invitar.",
+    actionsFor: (name: string) => `Acciones de ${name}`,
+    rename: "Renombrar",
+    loginCode: "Código de acceso",
+    loginCodeTitle: (name: string) => `Código de acceso de ${name}`,
+    loginCodeBody: (date: string) =>
+      `La primera vez que inicie sesión, elige “Tengo un código” y lo escribe. Funciona una sola vez y vence el ${date}.`,
+    loginCodeHint: "Vincula su cuenta de Google con el perfil. Después solo inicia sesión con Google.",
+    makeCode: "Crear código",
+    making: "Creando…",
+    newCode: "Crear un código nuevo",
+    codeCopied: "Código copiado",
+    keys: "Claves para Atajos",
+    keysTitle: (name: string) => `Claves de ${name}`,
+    keysBody: "Una clave actúa como este perfil, así que aplican su rol y su límite de gasto. Úsala en un Atajo de su dispositivo.",
+    noKeys: "Aún no hay claves.",
+  },
+
+  members: {
+    title: "Miembros",
+    invite: "Invitar",
+    inviteTo: (account: string) => `Invitar a ${account}`,
+    inviteDescription: "Tus conexiones reciben una invitación para aceptar. Los perfiles familiares se agregan al momento.",
+    person: "Quién",
+    noOne: "Aún no hay a quién invitar",
+    noOneHint: "Solo puedes agregar a tus conexiones y perfiles familiares.",
+    findPeople: "Buscar personas",
+    role: "Rol",
+    pickPerson: "Elige a quién invitar.",
+    pickRole: "Elige un rol.",
+    dependentSettings: "Límites para un dependiente",
+    spendingLimit: "Límite de gasto mensual",
+    spendingLimitHint: "Los gastos que lo superen esperan aprobación. Déjalo vacío para no tener límite.",
+    limitInvalid: "Escribe un monto positivo, o déjalo vacío.",
+    requiresApproval: "Aprobar cada movimiento",
+    requiresApprovalHint: "Cada movimiento espera a que un propietario o administrador lo apruebe.",
+    sendInvite: "Enviar invitación",
+    addProfile: "Agregar a la cuenta",
+    invited: "Invitación enviada",
+    added: "Agregado a la cuenta",
+    updated: "Miembro actualizado",
+    removed: "Miembro quitado",
+    invitationCancelled: "Invitación cancelada",
+    invitationPending: "Invitación enviada",
+    invitedBy: (name: string) => `Invitado por ${name}`,
+    editMember: (name: string) => `Editar a ${name}`,
+    removeMember: "Quitar de la cuenta",
+    cancelInvitation: "Cancelar invitación",
+    tapAgain: "Toca otra vez para confirmar",
+    limitSummary: (amount: string) => `Límite de ${amount} al mes`,
+    approvalSummary: "Cada movimiento requiere aprobación",
+    familyProfile: "Perfil familiar",
+    leave: "Salir de la cuenta",
+    leaveConfirm: "Toca otra vez para salir",
+    leaveHint: "Dejarás de ver esta cuenta. Su historial se queda con los demás miembros.",
+    onlyOwnersRoles: "Solo los propietarios pueden cambiar roles.",
+    managedRoles: "Los perfiles familiares no pueden ser propietarios ni administradores.",
+  },
+
+  accountDetail: {
+    back: "Cuentas",
+    movements: "Movimientos",
+    noMovements: "Aún no hay movimientos",
+    noMovementsHint: "Los movimientos de esta cuenta aparecerán aquí.",
+    seeAllMovements: "Ver todos",
+    yourRole: "Tu rol",
+    sharedWith: (n: number) => (n <= 1 ? "Solo tú" : `La comparten ${n} personas`),
+    history: "Historial",
+    historyHint: "Cada cambio en esta cuenta, del más reciente al más antiguo.",
+    noHistory: "Aún no hay nada registrado.",
+    showOlder: "Ver anteriores",
+    loading: "Cargando…",
+    shared: (n: number) => `Compartida · ${n}`,
+    open: (name: string) => `Abrir ${name}`,
+  },
+
+  audit: {
+    system: "Tally",
+    someone: "Alguien",
+    describe: (a: {
+      action: string;
+      who: string;
+      subject: string;
+      role: string;
+      amount: string;
+      kind: "income" | "expense";
+      name: string;
+    }) => {
+      const what = `${a.kind === "income" ? "un ingreso" : "un gasto"}${a.amount ? ` de ${a.amount}` : ""}`;
+      const named = a.name ? ` “${a.name}”` : "";
+      switch (a.action) {
+        case "account.created": return `${a.who} creó la cuenta`;
+        case "account.updated": return `${a.who} editó la cuenta`;
+        case "account.deleted": return `${a.who} archivó la cuenta`;
+        case "category.created": return `${a.who} agregó la categoría${named}`;
+        case "category.updated": return `${a.who} editó una categoría${named}`;
+        case "category.deleted": return `${a.who} eliminó la categoría${named}`;
+        case "member.invited": return `${a.who} invitó a ${a.subject} como ${a.role}`;
+        case "member.added": return `${a.who} agregó a ${a.subject} como ${a.role}`;
+        case "member.joined": return `${a.who} se unió como ${a.role}`;
+        case "member.declined": return `${a.who} rechazó la invitación`;
+        case "member.left": return `${a.who} salió de la cuenta`;
+        case "member.removed": return `${a.who} quitó a ${a.subject}`;
+        case "member.role_changed": return `${a.who} cambió el rol de ${a.subject} a ${a.role}`;
+        case "member.updated": return `${a.who} cambió los límites de ${a.subject}`;
+        case "member.invitation_cancelled": return `${a.who} canceló la invitación de ${a.subject}`;
+        case "transaction.created": return `${a.who} agregó ${what}${named}`;
+        case "transaction.updated": return `${a.who} editó un movimiento`;
+        case "transaction.deleted": return `${a.who} eliminó ${what}${named}`;
+        case "transaction.moved_in": return `${a.who} movió un movimiento a esta cuenta`;
+        case "transaction.approved": return `${a.who} aprobó un movimiento${a.amount ? ` de ${a.amount}` : ""}`;
+        case "transaction.rejected": return `${a.who} rechazó un movimiento${a.amount ? ` de ${a.amount}` : ""}`;
+        case "recurring_payment.created": return `${a.who} configuró${named || " un pago recurrente"}`;
+        case "recurring_payment.updated": return `${a.who} editó un pago recurrente`;
+        case "recurring_payment.deleted": return `${a.who} eliminó${named || " un pago recurrente"}`;
+        case "recurring_payment.paid": return `${a.name || "Un pago recurrente"} se pagó automáticamente`;
+        case "recurring_payment.skipped": return `${a.who} saltó un pago recurrente`;
+        default: return `${a.who}: ${a.action}`;
+      }
+    },
+  },
+
+  approvals: {
+    title: "Esperando aprobación",
+    hint: "No cuentan en los saldos hasta que se aprueban.",
+    approve: "Aprobar",
+    reject: "Rechazar",
+    approved: "Aprobado",
+    rejected: "Rechazado",
+    pendingLimit: "Guardado. Supera tu límite mensual, así que necesita aprobación.",
+    pendingApproval: "Guardado. Contará cuando se apruebe.",
+    status: { approved: "Aprobado", pending: "Pendiente", rejected: "Rechazado" },
+    dependentHint: "Los movimientos en esta cuenta pueden necesitar aprobación antes de contar.",
+    addedBy: (name: string) => `Agregado por ${name}`,
+    allStatuses: "Cualquier estado",
+    onlyPending: "Esperando aprobación",
+    onlyRejected: "Rechazados",
+    anyone: "Cualquiera",
+    reviewHint: "Este movimiento no cuenta en los saldos hasta que se apruebe.",
+    rejectedHint: "Este movimiento fue rechazado. Nunca cuenta en los saldos.",
+    viewTitle: "Detalle del movimiento",
+    viewOnly: "No puedes cambiar este movimiento.",
+  },
+
+  sharing: {
+    viewOnly: "Solo lectura",
+    you: "Tú",
+    recurringViewOnly: "Solo propietarios y administradores pueden cambiar los recurrentes de esta cuenta.",
+    setUpBy: (name: string) => `Configurado por ${name}`,
+    personal: "Personales",
+    personalHint: "Solo tú las ves. Úsalas en cualquier cuenta.",
+    sharedOn: (name: string) => `Compartidas en ${name}`,
+    sharedHint: "Todos en esta cuenta las ven. Propietarios y administradores las gestionan.",
+    scope: "Dónde",
+    scopePersonal: "Personal (solo tú)",
   },
 
   errors: {

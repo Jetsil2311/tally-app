@@ -18,9 +18,11 @@ import {
   getCurrentUser,
   getMonthSeries,
   getSummary,
+  getAttention,
   getTransactionPage,
   getUpcoming,
 } from "@/lib/data";
+import { NeedsAttention } from "@/components/approvals";
 import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { ApiError } from "@/lib/api";
@@ -53,27 +55,43 @@ async function Home() {
   const range = monthRange(monthKey, timeZone);
   const prevRange = monthRange(shiftMonth(monthKey, -1), timeZone);
 
-  const [user, accounts, categories, summary, prevSummary, series, month, recent, upcoming] = await Promise.all([
+  const [user, accounts, categories, summary, prevSummary, series, month, recent, upcoming, attention] = await Promise.all([
     getCurrentUser(),
     getAccounts(),
     getCategories(),
     getSummary(range.from, range.to),
     getSummary(prevRange.from, prevRange.to),
     getMonthSeries(monthKey, 6, timeZone),
-    getAllTransactions({ from: range.from, to: range.to }),
+    // Approved only: pending and rejected entries never count
+    getAllTransactions({ from: range.from, to: range.to, status: "approved" }),
     getTransactionPage({ limit: 6 }),
     // Optional on Home: an API error here shouldn't take the whole page down
     getUpcoming(14).catch((error) => {
       if (error instanceof ApiError) return null;
       throw error;
     }),
+    getAttention(),
   ]);
+  const attentionStack = (
+    <NeedsAttention
+      invitations={attention.invitations.length}
+      requests={attention.requests.length}
+      pending={attention.pending}
+      accounts={accounts}
+    />
+  );
 
   const firstName = user.name?.split(" ")[0];
   const greeting = t.home.greeting(todayParts(timeZone, now).hour, firstName);
 
   if (accounts.length === 0) {
-    return <Welcome name={firstName} hasCategories={categories.length > 0} t={t} />;
+    // Someone invited to a shared account sees that first
+    return (
+      <div className="space-y-5">
+        {attentionStack}
+        <Welcome name={firstName} hasCategories={categories.length > 0} t={t} />
+      </div>
+    );
   }
 
   const totals = totalsFromSummary(summary);
@@ -126,18 +144,18 @@ async function Home() {
             <h2 id="net-title" className="text-sm text-white/75">
               {t.home.netAcross(accounts.length)}
             </h2>
-            <Money cents={netWorth} className="mt-2 block text-[44px] leading-none font-semibold tracking-tighter sm:text-[56px]" />
-            <dl className="mt-6 grid grid-cols-2 gap-4 sm:max-w-md lg:mt-auto lg:pt-6">
+            <Money cents={netWorth} className="mt-2 block truncate text-[clamp(2rem,11vw,2.75rem)] leading-none font-semibold tracking-tighter sm:text-[56px]" />
+            <dl className="mt-6 grid grid-cols-2 [&>div]:min-w-0 gap-4 sm:max-w-md lg:mt-auto lg:pt-6">
               <div>
                 <dt className="text-sm text-white/70">{t.home.cashAndDebit}</dt>
                 <dd>
-                  <Money cents={available} className="text-lg font-medium" />
+                  <Money cents={available} className="block truncate text-lg font-medium" />
                 </dd>
               </div>
               <div>
                 <dt className="text-sm text-white/70">{t.home.creditOwed}</dt>
                 <dd>
-                  <Money cents={Math.abs(owed)} className="text-lg font-medium" />
+                  <Money cents={Math.abs(owed)} className="block truncate text-lg font-medium" />
                 </dd>
               </div>
             </dl>
@@ -157,17 +175,17 @@ async function Home() {
               {t.common.details}
             </Link>
           </div>
-          <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
+          <dl className="mt-5 grid grid-cols-2 [&>div]:min-w-0 gap-x-4 gap-y-5">
             <div>
               <dt className="text-sm text-ink-2">{t.home.moneyIn}</dt>
               <dd>
-                <Money cents={totals.income} className="text-2xl font-semibold tracking-tight text-income" />
+                <Money cents={totals.income} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
               </dd>
             </div>
             <div>
               <dt className="text-sm text-ink-2">{t.home.moneyOut}</dt>
               <dd>
-                <Money cents={totals.expense} className="text-2xl font-semibold tracking-tight" />
+                <Money cents={totals.expense} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
               </dd>
               {expenseChange !== null ? (
                 <dd className="mt-0.5 text-xs text-ink-2">
@@ -196,6 +214,8 @@ async function Home() {
           </p>
         </Card>
       </div>
+
+      {attentionStack}
 
       {uncategorized.length > 0 ? (
         <Link
@@ -226,7 +246,7 @@ async function Home() {
         <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
           {accounts.map((account) => (
             <div key={account.id} className="w-[78%] shrink-0 snap-start sm:w-72">
-              <AccountCard account={account} href={`/activity?account=${account.id}`} />
+              <AccountCard account={account} href={`/accounts/${account.id}`} />
             </div>
           ))}
           <Link

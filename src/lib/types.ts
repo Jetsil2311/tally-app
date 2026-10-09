@@ -3,6 +3,9 @@
 
 export type AccountType = "cash" | "debit" | "creditCard";
 export type TransactionType = "income" | "expense";
+// approved counts toward balances; pending waits for an owner/admin; rejected never counts
+export type TransactionStatus = "approved" | "pending" | "rejected";
+export type MemberRole = "owner" | "admin" | "member" | "viewer" | "dependent";
 
 export interface User {
   id: string;
@@ -10,6 +13,18 @@ export interface User {
   email: string;
   imageUrl: string | null;
   createdAt: string;
+  // A managed profile (e.g. a child) created by a guardian
+  isManaged: boolean;
+  managedById: string | null;
+  managedBy: { id: string; name: string | null; email: string } | null;
+}
+
+// Another user as the API shows them to you
+export interface Person {
+  id: string;
+  name: string | null;
+  email?: string | null;
+  imageUrl: string | null;
 }
 
 export interface Account {
@@ -18,12 +33,79 @@ export interface Account {
   type: AccountType;
   isActive: boolean;
   balance: string;
+  // Your role on it; accounts are shared between members
+  myRole: MemberRole;
+  memberCount: number;
+}
+
+export interface Member {
+  id: string;
+  accountId: string;
+  userId: string;
+  role: MemberRole;
+  // invited = hasn't accepted yet
+  status: "active" | "invited";
+  spendingLimit: string | null;
+  requiresApproval: boolean;
+  joinedAt: string | null;
+  createdAt: string;
+  user: Person & { managedById: string | null };
+  invitedBy: { id: string; name: string | null } | null;
+}
+
+// An invitation you received to join someone's account
+export interface Invitation {
+  id: string;
+  accountId: string;
+  role: MemberRole;
+  spendingLimit: string | null;
+  requiresApproval: boolean;
+  createdAt: string;
+  account: { id: string; name: string; type: AccountType };
+  invitedBy: Person | null;
+}
+
+export interface Connection {
+  id: string;
+  status: "pending" | "accepted" | "blocked";
+  // outgoing = you sent the request
+  direction: "incoming" | "outgoing";
+  user: Person;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export interface ManagedProfile {
+  id: string;
+  name: string | null;
+  email: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+  hasLogin: boolean;
+  loginCodeExpiresAt: string | null;
+  memberships: { role: MemberRole; status: "active" | "invited"; account: { id: string; name: string } }[];
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  payload: Record<string, unknown> | null;
+  // null = done by the system, e.g. a recurring payment
+  user: { id: string; name: string | null } | null;
+  createdAt: string;
+}
+
+export interface AuditPage {
+  data: AuditEntry[];
+  nextCursor: string | null;
 }
 
 export interface Category {
   id: string;
   name: string;
   parentId: string | null;
+  // Set = shared by that account's members; null = personal (only yours)
+  accountId: string | null;
 }
 
 export interface Transaction {
@@ -33,11 +115,14 @@ export interface Transaction {
   date: string;
   description: string | null;
   source: string;
+  status: TransactionStatus;
   createdAt: string;
   accountId: string;
   categoryId: string | null;
   account: { id: string; name: string };
   category: { id: string; name: string } | null;
+  // null when the creator deleted their user
+  createdBy: { id: string; name: string | null; imageUrl: string | null } | null;
 }
 
 export interface TransactionPage {
@@ -98,6 +183,7 @@ export interface RecurringPayment {
   categoryId: string | null;
   account: { id: string; name: string; type: AccountType; isActive: boolean };
   category: { id: string; name: string } | null;
+  createdBy: { id: string; name: string | null } | null;
   next: Forecast | null;
 }
 

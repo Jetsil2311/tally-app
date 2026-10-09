@@ -37,7 +37,9 @@ export async function saveAccount(_prev: ActionState, formData: FormData): Promi
       if (opening) {
         const categories = await api<Category[]>("/categories");
         const category =
-          categories.find((c) => !c.parentId && isSystemCategory(c.name) && c.name.toLowerCase() === OPENING_CATEGORY.toLowerCase()) ??
+          categories.find(
+            (c) => !c.parentId && c.accountId === null && isSystemCategory(c.name) && c.name.toLowerCase() === OPENING_CATEGORY.toLowerCase(),
+          ) ??
           (await api<Category>("/categories", { method: "POST", body: { name: OPENING_CATEGORY } }));
         await api("/transactions", {
           method: "POST",

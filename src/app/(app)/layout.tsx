@@ -4,7 +4,8 @@ import { PreferencesProvider } from "@/components/preferences";
 import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
-import { getAccounts, getCategories, getCurrentUser } from "@/lib/data";
+import { ViewerProvider } from "@/components/people-ui";
+import { getAccounts, getAttention, getCategories, getCurrentUser } from "@/lib/data";
 import { I18nProvider } from "@/i18n/client";
 import { getI18n } from "@/i18n/server";
 import { getPreferences } from "@/lib/session";
@@ -22,13 +23,17 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 async function Shell({ children }: { children: React.ReactNode }) {
   const { currency, timeZone } = await getPreferences();
   const { locale, t } = await getI18n();
+  // Who's signed in: needed by every screen for "You" and permissions
+  const me = await getCurrentUser();
   // Started here, awaited only where needed (user menu, the add sheet)
-  const user = getCurrentUser();
+  const user = Promise.resolve(me);
   const accounts = getAccounts();
   const categories = getCategories();
+  const attention = getAttention().then(({ invitations, requests }) => invitations.length + requests.length);
 
   return (
     <I18nProvider locale={locale}>
+    <ViewerProvider viewer={{ id: me.id, name: me.name, isManaged: me.isManaged }}>
     <PreferencesProvider currency={currency} timeZone={timeZone}>
       <ToastProvider>
         <QuickAddProvider accounts={accounts} categories={categories}>
@@ -38,7 +43,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
           >
             {t.nav.skipToContent}
           </a>
-          <TopBar user={user} />
+          <TopBar user={user} attention={attention} />
           <main id="main" className="mx-auto w-full max-w-6xl px-4 pt-2 pb-36 sm:px-6 sm:pb-32">
             {children}
           </main>
@@ -46,6 +51,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
         </QuickAddProvider>
       </ToastProvider>
     </PreferencesProvider>
+    </ViewerProvider>
     </I18nProvider>
   );
 }

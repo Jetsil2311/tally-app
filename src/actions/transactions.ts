@@ -43,8 +43,8 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
 
   try {
     const saved = id
-      ? await api<Transaction>(`/transactions/${id}`, { method: "PATCH", body })
-      : await api<Transaction>("/transactions", {
+      ? await api<Transaction & { approvalReason?: ApprovalReason }>(`/transactions/${id}`, { method: "PATCH", body })
+      : await api<Transaction & { approvalReason?: ApprovalReason }>("/transactions", {
           method: "POST",
           // POST doesn't accept nulls: leave empty fields out
           body: {
@@ -55,11 +55,19 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
           },
         });
     refresh();
-    return {
-      ok: true,
-      message: id ? t.transactions.saved : type === "income" ? t.transactions.incomeAdded : t.transactions.expenseAdded,
-      data: { id: saved.id },
-    };
+    // A dependent's entry can come back pending: say why, so they aren't
+    // surprised it doesn't show in the balance yet
+    const message =
+      !id && saved.status === "pending"
+        ? saved.approvalReason === "spendingLimit"
+          ? t.approvals.pendingLimit
+          : t.approvals.pendingApproval
+        : id
+          ? t.transactions.saved
+          : type === "income"
+            ? t.transactions.incomeAdded
+            : t.transactions.expenseAdded;
+    return { ok: true, message, data: { id: saved.id, status: saved.status } };
   } catch (error) {
     return toActionState(error);
   }
@@ -83,6 +91,21 @@ export async function deleteTransaction(id: string): Promise<ActionState> {
         date: tx.date,
       },
     };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
+type ApprovalReason = "spendingLimit" | "requiresApproval" | null;
+
+// Owners and admins decide on a dependent's pending entry. A rejected entry
+// is kept (status "rejected") but never counts.
+export async function reviewTransaction(id: string, approve: boolean): Promise<ActionState> {
+  const { t } = await getI18n();
+  try {
+    await api(`/transactions/${id}/${approve ? "approve" : "reject"}`, { method: "POST" });
+    refresh();
+    return { ok: true, message: approve ? t.approvals.approved : t.approvals.rejected };
   } catch (error) {
     return toActionState(error);
   }
@@ -145,7 +168,7 @@ export async function createTransfer(_prev: ActionState, formData: FormData): Pr
   try {
     const categories = await api<Category[]>("/categories");
     const transfer =
-      categories.find((c) => isTransferCategory(c.name) && !c.parentId) ??
+      categories.find((c) => isTransferCategory(c.name) && !c.parentId && c.accountId === null) ??
       (await api<Category>("/categories", { method: "POST", body: { name: TRANSFER_CATEGORY } }));
 
     const accounts = await api<{ id: string; name: string }[]>("/accounts");

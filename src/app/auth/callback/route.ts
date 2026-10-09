@@ -2,7 +2,14 @@ import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 
 import { env } from "@/lib/env";
-import { exchangeCode, OAUTH_NEXT_COOKIE, OAUTH_STATE_COOKIE, OAUTH_VERIFIER_COOKIE, safeNext } from "@/lib/oauth";
+import {
+  exchangeCode,
+  OAUTH_NEXT_COOKIE,
+  OAUTH_PROFILE_COOKIE,
+  OAUTH_STATE_COOKIE,
+  OAUTH_VERIFIER_COOKIE,
+  safeNext,
+} from "@/lib/oauth";
 import { SESSION_COOKIE } from "@/lib/session";
 
 // Google redirects here with ?code&state. We check the state, trade the
@@ -14,7 +21,8 @@ export async function GET(request: NextRequest) {
   const expectedState = store.get(OAUTH_STATE_COOKIE)?.value;
   const verifier = store.get(OAUTH_VERIFIER_COOKIE)?.value;
   const next = safeNext(store.get(OAUTH_NEXT_COOKIE)?.value);
-  for (const name of [OAUTH_STATE_COOKIE, OAUTH_VERIFIER_COOKIE, OAUTH_NEXT_COOKIE]) {
+  const profileCode = store.get(OAUTH_PROFILE_COOKIE)?.value;
+  for (const name of [OAUTH_STATE_COOKIE, OAUTH_VERIFIER_COOKIE, OAUTH_NEXT_COOKIE, OAUTH_PROFILE_COOKIE]) {
     store.delete({ name, path: "/auth" });
   }
 
@@ -42,9 +50,10 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`${env.apiUrl}/auth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken }),
+      // profileCode links this Google login to a family profile (first sign-in only)
+      body: JSON.stringify(profileCode ? { idToken, profileCode } : { idToken }),
     });
-    if (!response.ok) return fail("api");
+    if (!response.ok) return fail(profileCode && response.status === 400 ? "profileCode" : "api");
     session = await response.json();
   } catch {
     return fail("unreachable");

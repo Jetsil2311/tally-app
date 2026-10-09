@@ -88,10 +88,10 @@ function Kpi({
 }) {
   const good = delta == null ? null : invert ? delta < 0 : delta > 0;
   return (
-    <Card className="rise p-5" style={{ "--i": index } as React.CSSProperties}>
+    <Card className="rise min-w-0 p-4 sm:p-5" style={{ "--i": index } as React.CSSProperties}>
       <p className="text-sm text-ink-2">{label}</p>
       {cents !== undefined ? (
-        <Money cents={cents} sign={sign} className={cn("mt-1 block text-[26px] leading-tight font-semibold tracking-tight", tone)} />
+        <Money cents={cents} sign={sign} className={cn("mt-1 block truncate text-xl leading-tight font-semibold tracking-tight sm:text-[26px]", tone)} />
       ) : null}
       {note ? <div className="mt-1">{note}</div> : null}
       {delta != null ? (
@@ -126,7 +126,8 @@ async function MonthView({
     getSummary(range.from, range.to),
     getSummary(prevRange.from, prevRange.to),
     getCategories(),
-    getAllTransactions({ from: range.from, to: range.to }),
+    // Approved only: pending and rejected entries never count
+    getAllTransactions({ from: range.from, to: range.to, status: "approved" }),
   ]);
   const totals = totalsFromSummary(summary);
   const prev = totalsFromSummary(prevSummary);
@@ -166,7 +167,7 @@ async function MonthView({
           index={3}
           label={t.insights.savingsRate}
           note={
-            <p className="text-[26px] leading-tight font-semibold tracking-tight">{rate === null ? "–" : percent(rate, locale)}</p>
+            <p className="text-xl leading-tight font-semibold tracking-tight sm:text-[26px]">{rate === null ? "–" : percent(rate, locale)}</p>
           }
           delta={rate !== null && prevRate !== null ? rate - prevRate : null}
         />

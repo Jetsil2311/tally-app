@@ -49,7 +49,7 @@ export function InsightsHeader({
           <Link href={prevHref} scroll={false} aria-label={t.insights.previousPeriod} className={pill}>
             <CaretLeft size={18} />
           </Link>
-          <span className="min-w-36 text-center text-[15px] font-semibold" aria-live="polite">
+          <span className="min-w-28 text-center text-[15px] font-semibold sm:min-w-36" aria-live="polite">
             {label}
           </span>
           {nextHref ? (

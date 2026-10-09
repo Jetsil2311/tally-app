@@ -61,6 +61,7 @@ export const en = {
     insights: "Insights",
     recurring: "Recurring",
     categories: "Categories",
+    people: "People",
     settings: "Settings",
     signOut: "Sign out",
     primary: "Primary",
@@ -188,6 +189,7 @@ export const en = {
     transferNotePlaceholder: "Card payment…",
     transferNotCounted: "Transfers don't count as spending or income in your reports.",
     recordTransfer: "Record transfer",
+    noWritable: "None of your accounts let you add entries. An owner can change your role.",
   },
 
   transactionRow: {
@@ -223,6 +225,9 @@ export const en = {
   accounts: {
     newAccount: "New account",
     editAccount: "Edit account",
+    yours: "Your accounts",
+    sharedWithYou: "Shared with you",
+    sharedWithYouHint: "Accounts other people own and added you to.",
     emptyTitle: "Where does your money live?",
     emptyBody: "Add a cash wallet, a debit card, or a credit card. Each one tracks its own balance.",
     addFirst: "Add your first account",
@@ -528,7 +533,7 @@ export const en = {
     revoked: "Revoked",
     dangerTitle: "Delete everything",
     dangerBody:
-      "Permanently deletes your profile, accounts, categories, every transaction and every API key. This can't be undone.",
+      "Permanently deletes your profile, your family profiles and every account nobody else uses. Shared accounts stay with their other members. This can't be undone.",
     typeDelete: "Type DELETE to confirm",
     deleteMyData: "Delete my data",
     // Server action messages
@@ -544,6 +549,11 @@ export const en = {
     headline: "Know where every cent goes.",
     body: "Cash, debit and credit in one calm place. Log a purchase in two taps and see each month and year at a glance.",
     continueWithGoogle: "Continue with Google",
+    haveCode: "I have a code from a parent or guardian",
+    codeLabel: "Your login code",
+    codePlaceholder: "K7QM-X2PD",
+    codeHint: "Only needed the first time. After that, just continue with Google.",
+    codeInvalid: "Enter the 8-character code, like K7QM-X2PD.",
     secureCookie: "Your session stays in a secure, httpOnly cookie.",
     example: "Example of the dashboard",
     exampleData: "Example data",
@@ -555,7 +565,243 @@ export const en = {
       api: "Your Google account was verified, but the finance service refused the sign-in. Check its GOOGLE_CLIENT_ID.",
       unreachable: "Can't reach the finance service right now. Make sure it's running, then try again.",
       expired: "Your session ended. Sign in again to pick up where you left off.",
+      profileCode: "That code didn't work. It may have expired or been used already. Ask for a new one.",
     } as Record<string, string>,
+  },
+
+  roles: {
+    owner: { label: "Owner", hint: "Full control, including roles and archiving" },
+    admin: { label: "Admin", hint: "Manages entries, categories, recurring payments and invites" },
+    member: { label: "Member", hint: "Adds entries and edits their own" },
+    viewer: { label: "Viewer", hint: "Sees everything, changes nothing" },
+    dependent: { label: "Dependent", hint: "Adds entries; some may need approval" },
+  },
+
+  people: {
+    intro: "Connect with the people you share money with. Only connections can be invited to your accounts.",
+    addTitle: "Add a connection",
+    emailLabel: "Their email",
+    emailPlaceholder: "name@example.com",
+    emailHint: "They need a Tally account. They'll see your request and can accept it.",
+    send: "Send request",
+    sending: "Sending…",
+    emailInvalid: "Enter a valid email address.",
+    requestSent: "Request sent",
+    connectedNow: "You're connected now",
+    invitations: "Invitations",
+    invitedYou: (inviter: ReactNode, account: ReactNode, role: string) => (
+      <>
+        {inviter} invited you to {account} as {role}.
+      </>
+    ),
+    someone: "Someone",
+    limitNote: (amount: ReactNode) => <>Monthly spending limit: {amount}.</>,
+    approvalNote: "Your entries will need approval.",
+    accept: "Accept",
+    decline: "Decline",
+    invitationAccepted: "You joined the account",
+    invitationDeclined: "Invitation declined",
+    requests: "Requests",
+    wantsToConnect: "Wants to connect",
+    connections: "Connections",
+    noConnections: "No connections yet",
+    noConnectionsHint: "Add someone by email. Once they accept, you can invite them to an account.",
+    sent: "Sent",
+    awaiting: "Waiting for them to accept",
+    cancelRequest: "Cancel",
+    blocked: "Blocked",
+    blockedHint: "They can't send you requests. They don't know you blocked them.",
+    unblock: "Unblock",
+    remove: "Remove connection",
+    block: "Block",
+    tapAgain: "Tap again to confirm",
+    actionsFor: (name: string) => `Actions for ${name}`,
+    connectedSince: (date: string) => `Connected since ${date}`,
+    removeHint: "Removing a connection doesn't take them off shared accounts.",
+    connectionDone: { accept: "Connected", reject: "Request declined", block: "Blocked", remove: "Removed" },
+    managedNote: (name: string) =>
+      `Your profile is managed by ${name}. They add you to accounts, so connections and invitations aren't available here.`,
+  },
+
+  attention: {
+    title: "Needs your attention",
+    invitations: (n: number) => `${n} ${plural(n, "invitation", "invitations")} to a shared account`,
+    requests: (n: number) => `${n} connection ${plural(n, "request", "requests")}`,
+    approvals: (n: number) => `${n} ${plural(n, "entry", "entries")} waiting for your approval`,
+    yourPending: (n: number) => `${n} of your ${plural(n, "entry is", "entries are")} waiting for approval`,
+  },
+
+  profiles: {
+    title: "Family profiles",
+    intro:
+      "Profiles for people you look after, like your kids. They don't need an email: add one to an account as a dependent, and give it a login if they're ready.",
+    add: "Add profile",
+    newProfile: "New family profile",
+    editProfile: "Edit profile",
+    namePlaceholder: "Sofía",
+    nameRequired: "Give the profile a name.",
+    created: "Profile created",
+    updated: "Profile updated",
+    deleted: "Profile deleted",
+    deleteWarning: "Removes it from every account. Entries it made stay.",
+    hasLogin: "Has a login",
+    noLogin: "No login",
+    accounts: (names: string) => names || "Not on any account yet",
+    howToAdd: "To add a profile to an account, open the account and choose Invite.",
+    actionsFor: (name: string) => `Actions for ${name}`,
+    rename: "Rename",
+    loginCode: "Login code",
+    loginCodeTitle: (name: string) => `Login code for ${name}`,
+    loginCodeBody: (date: string) =>
+      `On their first sign-in they choose “I have a code” and type it. It works once and expires on ${date}.`,
+    loginCodeHint: "This links their Google account to the profile. After that they just sign in with Google.",
+    makeCode: "Make a code",
+    making: "Making…",
+    newCode: "Make a new code",
+    codeCopied: "Code copied",
+    keys: "Shortcut keys",
+    keysTitle: (name: string) => `Keys for ${name}`,
+    keysBody: "A key acts as this profile, so its role and spending limit apply. Use one for a Shortcut on their device.",
+    noKeys: "No keys yet.",
+  },
+
+  members: {
+    title: "Members",
+    invite: "Invite",
+    inviteTo: (account: string) => `Invite to ${account}`,
+    inviteDescription: "Connections get an invitation to accept. Family profiles are added right away.",
+    person: "Who",
+    noOne: "Nobody to invite yet",
+    noOneHint: "Only your connections and family profiles can be added.",
+    findPeople: "Find people",
+    role: "Role",
+    pickPerson: "Choose who to invite.",
+    pickRole: "Choose a role.",
+    dependentSettings: "Limits for a dependent",
+    spendingLimit: "Monthly spending limit",
+    spendingLimitHint: "Expenses that go over it wait for approval. Leave empty for no limit.",
+    limitInvalid: "Enter a positive amount, or leave it empty.",
+    requiresApproval: "Approve every entry",
+    requiresApprovalHint: "Each entry waits until an owner or admin approves it.",
+    sendInvite: "Send invitation",
+    addProfile: "Add to account",
+    invited: "Invitation sent",
+    added: "Added to the account",
+    updated: "Member updated",
+    removed: "Member removed",
+    invitationCancelled: "Invitation cancelled",
+    invitationPending: "Invitation sent",
+    invitedBy: (name: string) => `Invited by ${name}`,
+    editMember: (name: string) => `Edit ${name}`,
+    removeMember: "Remove from account",
+    cancelInvitation: "Cancel invitation",
+    tapAgain: "Tap again to confirm",
+    limitSummary: (amount: string) => `Limit ${amount} a month`,
+    approvalSummary: "Every entry needs approval",
+    familyProfile: "Family profile",
+    leave: "Leave account",
+    leaveConfirm: "Tap again to leave",
+    leaveHint: "You'll stop seeing this account. Its history stays with the other members.",
+    onlyOwnersRoles: "Only owners can change roles.",
+    managedRoles: "Family profiles can't be owners or admins.",
+  },
+
+  accountDetail: {
+    back: "Accounts",
+    movements: "Movements",
+    noMovements: "No movements yet",
+    noMovementsHint: "Entries on this account will show up here.",
+    seeAllMovements: "See all",
+    yourRole: "Your role",
+    sharedWith: (n: number) => (n <= 1 ? "Only you" : `Shared by ${n} people`),
+    history: "History",
+    historyHint: "Every change on this account, newest first.",
+    noHistory: "Nothing recorded yet.",
+    showOlder: "Show older",
+    loading: "Loading…",
+    shared: (n: number) => `Shared · ${n}`,
+    open: (name: string) => `Open ${name}`,
+  },
+
+  audit: {
+    system: "Tally",
+    someone: "Someone",
+    describe: (a: {
+      action: string;
+      who: string;
+      subject: string;
+      role: string;
+      amount: string;
+      kind: "income" | "expense";
+      name: string;
+    }) => {
+      const what = `${a.kind === "income" ? "an income" : "an expense"}${a.amount ? ` of ${a.amount}` : ""}`;
+      const named = a.name ? ` “${a.name}”` : "";
+      switch (a.action) {
+        case "account.created": return `${a.who} created the account`;
+        case "account.updated": return `${a.who} edited the account`;
+        case "account.deleted": return `${a.who} archived the account`;
+        case "category.created": return `${a.who} added the category${named}`;
+        case "category.updated": return `${a.who} edited a category${named}`;
+        case "category.deleted": return `${a.who} deleted the category${named}`;
+        case "member.invited": return `${a.who} invited ${a.subject} as ${a.role}`;
+        case "member.added": return `${a.who} added ${a.subject} as ${a.role}`;
+        case "member.joined": return `${a.who} joined as ${a.role}`;
+        case "member.declined": return `${a.who} declined the invitation`;
+        case "member.left": return `${a.who} left the account`;
+        case "member.removed": return `${a.who} removed ${a.subject}`;
+        case "member.role_changed": return `${a.who} made ${a.subject} ${a.role}`;
+        case "member.updated": return `${a.who} changed ${a.subject}'s limits`;
+        case "member.invitation_cancelled": return `${a.who} cancelled ${a.subject}'s invitation`;
+        case "transaction.created": return `${a.who} added ${what}${named}`;
+        case "transaction.updated": return `${a.who} edited an entry`;
+        case "transaction.deleted": return `${a.who} deleted ${what}${named}`;
+        case "transaction.moved_in": return `${a.who} moved an entry to this account`;
+        case "transaction.approved": return `${a.who} approved an entry${a.amount ? ` of ${a.amount}` : ""}`;
+        case "transaction.rejected": return `${a.who} rejected an entry${a.amount ? ` of ${a.amount}` : ""}`;
+        case "recurring_payment.created": return `${a.who} set up${named || " a recurring payment"}`;
+        case "recurring_payment.updated": return `${a.who} edited a recurring payment`;
+        case "recurring_payment.deleted": return `${a.who} deleted${named || " a recurring payment"}`;
+        case "recurring_payment.paid": return `${a.name || "A recurring payment"} was paid automatically`;
+        case "recurring_payment.skipped": return `${a.who} skipped a recurring payment`;
+        default: return `${a.who}: ${a.action}`;
+      }
+    },
+  },
+
+  approvals: {
+    title: "Waiting for approval",
+    hint: "These don't count toward balances until they're approved.",
+    approve: "Approve",
+    reject: "Reject",
+    approved: "Approved",
+    rejected: "Rejected",
+    pendingLimit: "Saved. It goes over your monthly limit, so it needs approval.",
+    pendingApproval: "Saved. It'll count once it's approved.",
+    status: { approved: "Approved", pending: "Pending", rejected: "Rejected" },
+    dependentHint: "Entries on this account may need approval before they count.",
+    addedBy: (name: string) => `Added by ${name}`,
+    allStatuses: "Any status",
+    onlyPending: "Waiting for approval",
+    onlyRejected: "Rejected",
+    anyone: "Anyone",
+    reviewHint: "This entry doesn't count toward balances until it's approved.",
+    rejectedHint: "This entry was rejected. It never counts toward balances.",
+    viewTitle: "Entry details",
+    viewOnly: "You can't change this entry.",
+  },
+
+  sharing: {
+    viewOnly: "View only",
+    you: "You",
+    recurringViewOnly: "Only owners and admins can change recurring payments on this account.",
+    setUpBy: (name: string) => `Set up by ${name}`,
+    personal: "Personal",
+    personalHint: "Only you see these. Use them on any account.",
+    sharedOn: (name: string) => `Shared on ${name}`,
+    sharedHint: "Everyone on this account sees these. Owners and admins manage them.",
+    scope: "Where",
+    scopePersonal: "Personal (only you)",
   },
 
   errors: {

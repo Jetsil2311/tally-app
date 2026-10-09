@@ -12,6 +12,9 @@ export async function saveCategory(_prev: ActionState, formData: FormData): Prom
   const id = text(formData, "id");
   const name = text(formData, "name");
   const parentId = text(formData, "parentId");
+  // Empty = a personal category; an account id = shared on that account
+  // (owners and admins). The scope is fixed once created.
+  const accountId = text(formData, "accountId");
   const { t } = await getI18n();
 
   if (!name) {
@@ -22,7 +25,10 @@ export async function saveCategory(_prev: ActionState, formData: FormData): Prom
     if (id) {
       await api(`/categories/${id}`, { method: "PATCH", body: { name, parentId: parentId || null } });
     } else {
-      await api("/categories", { method: "POST", body: { name, parentId: parentId || undefined } });
+      await api("/categories", {
+        method: "POST",
+        body: { name, parentId: parentId || undefined, accountId: accountId || undefined },
+      });
     }
     refresh();
     return { ok: true, message: id ? t.categories.updated : t.categories.created };
@@ -48,7 +54,8 @@ export async function createStarterCategories(): Promise<ActionState> {
   const { t } = await getI18n();
   const STARTER = t.categories.starter;
   try {
-    const existing = await api<Category[]>("/categories");
+    // The starter set is personal: compare against personal categories only
+    const existing = (await api<Category[]>("/categories")).filter((c) => c.accountId === null);
     const names = new Set(existing.map((c) => c.name.toLowerCase()));
     for (const group of STARTER) {
       let parent = existing.find((c) => c.name.toLowerCase() === group.name.toLowerCase() && !c.parentId);

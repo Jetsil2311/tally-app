@@ -6,6 +6,10 @@ export interface ActivityQuery {
   account?: string;
   category?: string;
   filter?: "uncategorized";
+  // Approval state; omitted = every status
+  status?: "pending" | "rejected";
+  // Who added the entries (a user id)
+  by?: string;
 }
 
 export function activityHref(query: ActivityQuery) {

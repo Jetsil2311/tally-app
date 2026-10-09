@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 //    shell is prerendered once for everyone, so it can't know it up front.
 //    Anything other than "es" stays "en", which is what lets the browser
 //    offer Google Translate for every other language.
-const bootScript = `(function(){try{var l=document.cookie.match(/(?:^|; )ft_locale=([a-z]{2})/);document.documentElement.lang=l&&l[1]==="es"?"es":"en"}catch(e){}try{try{var t=localStorage.getItem("theme")||"system";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light")}catch(e){}try{var z=Intl.DateTimeFormat().resolvedOptions().timeZone;if(z&&document.cookie.indexOf("ft_tz="+encodeURIComponent(z))<0)document.cookie="ft_tz="+encodeURIComponent(z)+"; path=/; max-age=31536000; SameSite=Lax"}catch(e){}})()`;
+const bootScript = `(function(){try{var l=document.cookie.match(/(?:^|; )ft_locale=([a-z]{2})/);document.documentElement.lang=l&&l[1]==="es"?"es":"en"}catch(e){}try{var t=localStorage.getItem("theme")||"system";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light")}catch(e){}try{var z=Intl.DateTimeFormat().resolvedOptions().timeZone;if(z&&document.cookie.indexOf("ft_tz="+encodeURIComponent(z))<0)document.cookie="ft_tz="+encodeURIComponent(z)+"; path=/; max-age=31536000; SameSite=Lax"}catch(e){}})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

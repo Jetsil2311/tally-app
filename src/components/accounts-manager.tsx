@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowCounterClockwise, Archive, PencilSimple, Plus, Receipt, Wallet } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Archive, PencilSimple, Plus, Receipt, UsersThree, Wallet } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
@@ -8,10 +8,12 @@ import { useActionState, useState, useTransition } from "react";
 import { saveAccount, setAccountActive } from "@/actions/accounts";
 import { useI18n } from "@/i18n/client";
 import { currencySymbol } from "@/lib/money";
+import { canAddTransactions, canManage, isOwner } from "@/lib/permissions";
 import type { Account, AccountType, ActionState } from "@/lib/types";
 
 import { AccountCard } from "./account-card";
 import { ACCOUNT_TYPES, AccountIcon } from "./account-icon";
+import { RoleBadge, useViewer } from "./people-ui";
 import { Money, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
 import { Sheet } from "./sheet";
@@ -36,10 +38,14 @@ export function AccountsManager({
 }) {
   const router = useRouter();
   const { t } = useI18n();
+  const viewer = useViewer();
   const [editing, setEditing] = useState<{ account?: Account; session: number } | null>(openNew ? { session: 0 } : null);
   const [open, setOpen] = useState(openNew);
   const active = accounts.filter((a) => a.isActive);
   const archived = accounts.filter((a) => !a.isActive);
+  // Accounts you own vs. ones someone else added you to
+  const mine = active.filter((a) => a.myRole === "owner");
+  const shared = active.filter((a) => a.myRole !== "owner");
 
   const start = (account?: Account) => {
     setEditing({ account, session: (editing?.session ?? 0) + 1 });
@@ -64,9 +70,12 @@ export function AccountsManager({
     <>
       <div className="flex items-center justify-between gap-3 pt-2">
         <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.accounts}</h1>
-        <Button onClick={() => start()}>
-          <Plus size={18} weight="bold" /> {t.accounts.newAccount}
-        </Button>
+        {/* Managed profiles can't create accounts */}
+        {!viewer.isManaged ? (
+          <Button onClick={() => start()}>
+            <Plus size={18} weight="bold" /> {t.accounts.newAccount}
+          </Button>
+        ) : null}
       </div>
 
       {active.length === 0 ? (
@@ -74,17 +83,41 @@ export function AccountsManager({
           <EmptyState
             icon={<Wallet size={24} />}
             title={t.accounts.emptyTitle}
-            action={<Button onClick={() => start()}>{t.accounts.addFirst}</Button>}
+            action={!viewer.isManaged ? <Button onClick={() => start()}>{t.accounts.addFirst}</Button> : undefined}
           >
             {t.accounts.emptyBody}
           </EmptyState>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {active.map((account, i) => (
-            <AccountTile key={account.id} account={account} stats={stats[account.id]} index={i} onEdit={() => start(account)} />
-          ))}
-        </div>
+        <>
+          {mine.length > 0 ? (
+            <section aria-labelledby="mine-title">
+              {shared.length > 0 ? (
+                <h2 id="mine-title" className="mb-3 text-[17px] font-semibold tracking-tight">
+                  {t.accounts.yours}
+                </h2>
+              ) : null}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {mine.map((account, i) => (
+                  <AccountTile key={account.id} account={account} stats={stats[account.id]} index={i} onEdit={() => start(account)} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+          {shared.length > 0 ? (
+            <section aria-labelledby="shared-title" className={mine.length ? "pt-4" : undefined}>
+              <h2 id="shared-title" className="text-[17px] font-semibold tracking-tight">
+                {t.accounts.sharedWithYou}
+              </h2>
+              <p className="mt-1 mb-3 text-sm text-ink-2">{t.accounts.sharedWithYouHint}</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {shared.map((account, i) => (
+                  <AccountTile key={account.id} account={account} stats={stats[account.id]} index={i} onEdit={() => start(account)} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
       )}
 
       {archived.length > 0 ? (
@@ -123,10 +156,17 @@ function AccountTile({
   const { t } = useI18n();
   return (
     <div className="rise flex flex-col gap-3" style={{ "--i": index } as React.CSSProperties}>
-      <AccountCard account={account} href={`/activity?account=${account.id}`} />
+      <AccountCard account={account} href={`/accounts/${account.id}`} />
       <Card className="flex items-center gap-2 p-2 pl-4">
         <div className="min-w-0 flex-1 text-sm">
-          <p className="text-ink-2">{t.accounts.thisMonth}</p>
+          <p className="flex items-center gap-2 text-ink-2">
+            {t.accounts.thisMonth}
+            {account.memberCount > 1 ? (
+              <span className="inline-flex items-center gap-1 text-xs text-ink-3">
+                <UsersThree size={13} aria-hidden /> {t.accountDetail.shared(account.memberCount)}
+              </span>
+            ) : null}
+          </p>
           <p className="truncate">
             {t.accounts.inOut(
               <Money cents={stats?.income ?? 0} className="font-medium text-income" />,
@@ -135,12 +175,17 @@ function AccountTile({
             )}
           </p>
         </div>
-        <IconButton label={t.accounts.addEntryTo(account.name)} onClick={() => open({ mode: "expense", accountId: account.id })}>
-          <Plus size={18} />
-        </IconButton>
-        <IconButton label={t.accounts.edit(account.name)} onClick={onEdit}>
-          <PencilSimple size={18} />
-        </IconButton>
+        {account.myRole !== "owner" ? <RoleBadge role={account.myRole} /> : null}
+        {canAddTransactions(account.myRole) ? (
+          <IconButton label={t.accounts.addEntryTo(account.name)} onClick={() => open({ mode: "expense", accountId: account.id })}>
+            <Plus size={18} />
+          </IconButton>
+        ) : null}
+        {canManage(account.myRole) ? (
+          <IconButton label={t.accounts.edit(account.name)} onClick={onEdit}>
+            <PencilSimple size={18} />
+          </IconButton>
+        ) : null}
       </Card>
     </div>
   );
@@ -161,27 +206,32 @@ function ArchivedRow({ account }: { account: Account }) {
           {t.accounts.balance(<Money value={account.balance} />)}
         </p>
       </div>
-      <Link href={`/activity?account=${account.id}&month=all`} className={cn(buttonClass("ghost", "sm"), "hidden sm:inline-flex")}>
+      <Link href={`/accounts/${account.id}`} className={cn(buttonClass("ghost", "sm"), "hidden sm:inline-flex")}>
         <Receipt size={16} /> {t.accounts.history}
       </Link>
-      <Button
-        variant="secondary"
-        size="sm"
-        disabled={pending}
-        onClick={() =>
-          startTransition(async () => {
-            const result = await setAccountActive(account.id, true);
-            toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
-          })
-        }
-      >
-        <ArrowCounterClockwise size={16} /> {t.accounts.restore}
-      </Button>
+      {/* Only owners restore */}
+      {isOwner(account.myRole) ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await setAccountActive(account.id, true);
+              toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
+            })
+          }
+        >
+          <ArrowCounterClockwise size={16} /> {t.accounts.restore}
+        </Button>
+      ) : (
+        <RoleBadge role={account.myRole} />
+      )}
     </div>
   );
 }
 
-function AccountForm({ account, onDone }: { account?: Account; onDone: () => void }) {
+export function AccountForm({ account, onDone }: { account?: Account; onDone: () => void }) {
   const toast = useToast();
   const { currency } = usePreferences();
   const { t, locale } = useI18n();
@@ -269,7 +319,8 @@ function AccountForm({ account, onDone }: { account?: Account; onDone: () => voi
       ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row">
-        {account ? (
+        {/* Archiving is for owners only */}
+        {account && isOwner(account.myRole) ? (
           <Button
             type="button"
             variant={confirmArchive ? "danger" : "ghost"}

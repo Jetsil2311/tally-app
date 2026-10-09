@@ -2,16 +2,22 @@ import "server-only";
 import { cache } from "react";
 import { cacheLife } from "next/cache";
 
-import { api } from "./api";
+import { api, ApiError } from "./api";
 import { monthKeyOf, monthRange } from "./dates";
 import type {
   Account,
   ApiKey,
+  AuditPage,
   Category,
+  Connection,
+  Invitation,
+  ManagedProfile,
+  Member,
   RecurringPayment,
   Summary,
   Transaction,
   TransactionPage,
+  TransactionStatus,
   TransactionType,
   Upcoming,
   User,
@@ -41,8 +47,10 @@ export interface TransactionFilters {
   from?: string;
   to?: string;
   type?: TransactionType;
+  status?: TransactionStatus;
   accountId?: string;
   categoryId?: string;
+  createdById?: string;
   search?: string;
 }
 
@@ -101,4 +109,76 @@ export const getRecurringPayments = cache(async (includeInactive = false) => {
 // Every occurrence in the next `days` days, plus each account's projected balance
 export const getUpcoming = cache(async (days = 30) => {
   return api<Upcoming>("/recurring-payments/upcoming", { query: { days } });
+});
+
+// ---------------------------------------------------------------------------
+// Sharing
+// ---------------------------------------------------------------------------
+
+// Connections in every state you can see: incoming/outgoing requests,
+// accepted, and people you blocked
+export const getConnections = cache(async () => {
+  return api<Connection[]>("/connections");
+});
+
+// Invitations to join other people's accounts
+export const getInvitations = cache(async () => {
+  return api<Invitation[]>("/invitations");
+});
+
+// Members and pending invitations of one account
+export const getMembers = cache(async (accountId: string) => {
+  return api<Member[]>(`/accounts/${accountId}/members`);
+});
+
+export const getAccount = cache(async (accountId: string) => {
+  return api<Account>(`/accounts/${accountId}`);
+});
+
+// Who did what on the account, newest first (owners and admins)
+export async function getAuditLog(accountId: string, cursor?: string, limit = 30) {
+  return api<AuditPage>(`/accounts/${accountId}/audit-log`, { query: { limit, cursor } });
+}
+
+export const getManagedProfiles = cache(async () => {
+  return api<ManagedProfile[]>("/managed-profiles");
+});
+
+export async function getManagedProfileKeys(profileId: string) {
+  return api<ApiKey[]>(`/managed-profiles/${profileId}/api-keys`);
+}
+
+// Pending entries across your accounts: the ones you can approve, and your
+// own that are waiting
+export const getPending = cache(async () => {
+  return api<TransactionPage>("/transactions", { query: { status: "pending", limit: 100 } });
+});
+
+// Things waiting on you, for the badge in the user menu and Home.
+// Managed profiles can't use connections or invitations (403): they count 0.
+export const getAttention = cache(async () => {
+  const optional = <T,>(promise: Promise<T>, empty: T) =>
+    promise.catch((error) => {
+      if (error instanceof ApiError) return empty;
+      throw error;
+    });
+  const [invitations, connections, pending] = await Promise.all([
+    optional(getInvitations(), []),
+    optional(getConnections(), []),
+    optional(getPending(), { data: [], nextCursor: null }),
+  ]);
+  const requests = connections.filter((c) => c.status === "pending" && c.direction === "incoming");
+  return { invitations, requests, pending: pending.data };
+});
+
+// Everyone on your shared accounts (active members), for "added by" filters
+export const getSharedPeople = cache(async () => {
+  const accounts = await getAccounts(true);
+  const shared = accounts.filter((a) => a.memberCount > 1);
+  const lists = await Promise.all(shared.map((a) => getMembers(a.id).catch(() => [])));
+  const people = new Map<string, Member["user"]>();
+  for (const member of lists.flat()) {
+    if (member.status === "active") people.set(member.userId, member.user);
+  }
+  return [...people.values()];
 });

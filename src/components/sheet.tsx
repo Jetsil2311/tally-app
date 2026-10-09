@@ -61,7 +61,9 @@ export function Sheet({
               <X size={20} />
             </IconButton>
           </header>
-          <div className="overflow-y-auto px-6 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">{children}</div>
+          <div className="overflow-x-hidden overflow-y-auto overscroll-contain px-6 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          {children}
+        </div>
         </div>
     </dialog>
   );

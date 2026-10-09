@@ -6,8 +6,10 @@ import { useActionState, useState, useTransition } from "react";
 import { createStarterCategories, deleteCategory, saveCategory } from "@/actions/categories";
 import { useI18n } from "@/i18n/client";
 import { categoryLabel, isSystemCategory, isTransferCategory } from "@/lib/insights";
-import type { ActionState, Category } from "@/lib/types";
+import { canManage } from "@/lib/permissions";
+import type { Account, ActionState, Category } from "@/lib/types";
 
+import { ViewOnlyTag } from "./people-ui";
 import { Money } from "./preferences";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
@@ -16,12 +18,25 @@ import { submitWith } from "./use-form-action";
 
 type Editing = { category?: Category; parentId?: string; session: number };
 
+// Categories live in a scope: personal (only yours, usable on any account)
+// or one account (shared by its members, managed by owners and admins)
+interface Scope {
+  key: string;
+  accountId: string | null;
+  title: string;
+  hint: string;
+  editable: boolean;
+  categories: Category[];
+}
+
 export function CategoriesManager({
   categories,
   spent,
+  accounts,
 }: {
   categories: Category[];
   spent: Record<string, number>; // category id -> cents spent this month
+  accounts: Account[];
 }) {
   const toast = useToast();
   const { t } = useI18n();
@@ -30,6 +45,28 @@ export function CategoriesManager({
   const [seeding, startSeeding] = useTransition();
   const topLevel = categories.filter((c) => !c.parentId);
   const childrenOf = (id: string) => categories.filter((c) => c.parentId === id);
+
+  const manageable = accounts.filter((a) => a.isActive && canManage(a.myRole));
+  const scopes: Scope[] = [
+    {
+      key: "personal",
+      accountId: null,
+      title: t.sharing.personal,
+      hint: t.sharing.personalHint,
+      editable: true,
+      categories: topLevel.filter((c) => c.accountId === null),
+    },
+    ...accounts
+      .map((account) => ({
+        key: account.id,
+        accountId: account.id,
+        title: t.sharing.sharedOn(account.name),
+        hint: t.sharing.sharedHint,
+        editable: canManage(account.myRole),
+        categories: topLevel.filter((c) => c.accountId === account.id),
+      }))
+      .filter((scope) => scope.categories.length > 0),
+  ];
 
   const edit = (value: Omit<Editing, "session">) => {
     setEditing({ ...value, session: Date.now() });
@@ -49,7 +86,9 @@ export function CategoriesManager({
           <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.categories}</h1>
           <p className="mt-1 max-w-[56ch] text-ink-2">{t.categories.intro}</p>
         </div>
-        <div className="flex gap-2">
+        {/* Wraps, and on phones the two buttons share the row: in Spanish
+            they're wider than the screen side by side */}
+        <div className="flex flex-wrap gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
           {topLevel.length > 0 ? (
             <Button variant="secondary" onClick={seed} disabled={seeding}>
               <Sparkle size={18} /> {seeding ? t.categories.adding : t.categories.addStarter}
@@ -81,63 +120,91 @@ export function CategoriesManager({
           </EmptyState>
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {topLevel.map((parent, i) => {
-            const kids = childrenOf(parent.id);
-            const transfer = isSystemCategory(parent.name);
-            const isMove = isTransferCategory(parent.name);
-            const total = (spent[parent.id] ?? 0) + kids.reduce((sum, k) => sum + (spent[k.id] ?? 0), 0);
-            return (
-              <Card key={parent.id} className="rise p-2" style={{ "--i": Math.min(i, 10) } as React.CSSProperties}>
-                <div className="flex items-center gap-3 py-1 pr-1 pl-3">
-                  <span
-                    className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-full",
-                      transfer ? "bg-accent-soft text-accent" : "bg-surface-3 text-ink-2",
-                    )}
-                  >
-                    {isMove ? <ArrowsLeftRight size={18} /> : <Tag size={18} />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{categoryLabel(parent.name, t)}</p>
-                    <p className="text-sm text-ink-2">
-                      {transfer
-                        ? isMove
-                          ? t.categories.transferNote
-                          : t.categories.openingNote
-                        : total
-                          ? t.categories.spentThisMonth(<Money cents={total} />)
-                          : t.categories.nothingSpent}
-                    </p>
+        scopes
+          .filter((scope) => scope.categories.length > 0 || scope.accountId === null)
+          .map((scope) => (
+            <section key={scope.key} aria-labelledby={`scope-${scope.key}`} className="space-y-3">
+              {scopes.length > 1 ? (
+                <div className="flex flex-wrap items-end justify-between gap-2 pt-2">
+                  <div>
+                    <h2 id={`scope-${scope.key}`} className="text-[17px] font-semibold tracking-tight">
+                      {scope.title}
+                    </h2>
+                    <p className="mt-0.5 text-sm text-ink-2">{scope.hint}</p>
                   </div>
-                  <IconButton label={t.categories.addSubcategory(parent.name)} onClick={() => edit({ parentId: parent.id })}>
-                    <Plus size={18} />
-                  </IconButton>
-                  <IconButton label={t.categories.edit(parent.name)} onClick={() => edit({ category: parent })}>
-                    <PencilSimple size={18} />
-                  </IconButton>
+                  {!scope.editable ? <ViewOnlyTag /> : null}
                 </div>
-                {kids.length ? (
-                  <ul className="mt-1 ml-8 border-l border-line pl-2">
-                    {kids.map((kid) => (
-                      <li key={kid.id}>
-                        <button
-                          type="button"
-                          onClick={() => edit({ category: kid })}
-                          className="flex min-h-11 w-full items-center gap-2 rounded-2xl px-3 text-left text-[15px] transition-colors hover:bg-surface-2"
+              ) : null}
+              <div className="grid gap-2 sm:gap-3 md:grid-cols-2">
+                {scope.categories.map((parent, i) => {
+                  const kids = childrenOf(parent.id);
+                  const transfer = isSystemCategory(parent.name);
+                  const isMove = isTransferCategory(parent.name);
+                  const total = (spent[parent.id] ?? 0) + kids.reduce((sum, k) => sum + (spent[k.id] ?? 0), 0);
+                  return (
+                    <Card key={parent.id} className="rise p-1 sm:p-2" style={{ "--i": Math.min(i, 10) } as React.CSSProperties}>
+                      <div className="flex items-center gap-2.5 py-0.5 pl-2 sm:gap-3 sm:py-1 sm:pr-1 sm:pl-3">
+                        <span
+                          className={cn(
+                            "flex size-9 shrink-0 items-center justify-center rounded-full sm:size-10",
+                            transfer ? "bg-accent-soft text-accent" : "bg-surface-3 text-ink-2",
+                          )}
                         >
-                          <span className="flex-1 truncate">{kid.name}</span>
-                          {spent[kid.id] ? <Money cents={spent[kid.id]} className="text-sm text-ink-2" /> : null}
-                          <CaretRight size={14} className="text-ink-3" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </Card>
-            );
-          })}
-        </div>
+                          {isMove ? <ArrowsLeftRight size={18} /> : <Tag size={18} />}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{categoryLabel(parent.name, t)}</p>
+                          <p className="text-sm text-ink-2">
+                            {transfer
+                              ? isMove
+                                ? t.categories.transferNote
+                                : t.categories.openingNote
+                              : total
+                                ? t.categories.spentThisMonth(<Money cents={total} />)
+                                : t.categories.nothingSpent}
+                          </p>
+                        </div>
+                        {scope.editable ? (
+                          <>
+                            <IconButton label={t.categories.addSubcategory(parent.name)} onClick={() => edit({ parentId: parent.id })}>
+                              <Plus size={18} />
+                            </IconButton>
+                            <IconButton label={t.categories.edit(parent.name)} onClick={() => edit({ category: parent })}>
+                              <PencilSimple size={18} />
+                            </IconButton>
+                          </>
+                        ) : null}
+                      </div>
+                      {kids.length ? (
+                        <ul className="ml-[1.375rem] border-l border-line pl-1 sm:mt-1 sm:ml-8 sm:pl-2">
+                          {kids.map((kid) => (
+                            <li key={kid.id}>
+                              {scope.editable ? (
+                                <button
+                                  type="button"
+                                  onClick={() => edit({ category: kid })}
+                                  className="flex min-h-11 w-full items-center gap-2 rounded-2xl px-2.5 text-left text-[15px] transition-colors hover:bg-surface-2 sm:px-3"
+                                >
+                                  <span className="flex-1 truncate">{kid.name}</span>
+                                  {spent[kid.id] ? <Money cents={spent[kid.id]} className="text-sm text-ink-2" /> : null}
+                                  <CaretRight size={14} className="text-ink-3" />
+                                </button>
+                              ) : (
+                                <p className="flex min-h-11 items-center gap-2 px-2.5 text-[15px] sm:px-3">
+                                  <span className="flex-1 truncate">{kid.name}</span>
+                                  {spent[kid.id] ? <Money cents={spent[kid.id]} className="text-sm text-ink-2" /> : null}
+                                </p>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          ))
       )}
 
       <Sheet
@@ -150,7 +217,22 @@ export function CategoriesManager({
             key={editing.session}
             category={editing.category}
             parentId={editing.parentId}
-            parents={topLevel}
+            // A category stays in its scope; parents must come from the same one
+            parents={topLevel.filter((p) =>
+              editing.category
+                ? p.accountId === editing.category.accountId
+                : editing.parentId
+                  ? p.id === editing.parentId
+                  : true,
+            )}
+            scopes={manageable}
+            fixedScope={
+              editing.category
+                ? (editing.category.accountId ?? "")
+                : editing.parentId
+                  ? (categories.find((c) => c.id === editing.parentId)?.accountId ?? "")
+                  : undefined
+            }
             hasChildren={editing.category ? childrenOf(editing.category.id).length > 0 : false}
             onDone={() => setOpen(false)}
           />
@@ -164,15 +246,22 @@ function CategoryForm({
   category,
   parentId,
   parents,
+  scopes,
+  fixedScope,
   hasChildren,
   onDone,
 }: {
   category?: Category;
   parentId?: string;
   parents: Category[];
+  // Accounts you can add shared categories to
+  scopes: Account[];
+  // Set when editing or adding a subcategory: the scope can't change
+  fixedScope?: string;
   hasChildren: boolean;
   onDone: () => void;
 }) {
+  const [scope, setScope] = useState(fixedScope ?? "");
   const toast = useToast();
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
@@ -191,6 +280,19 @@ function CategoryForm({
   return (
     <form onSubmit={submitWith(formAction)} className="space-y-6" noValidate>
       {category ? <input type="hidden" name="id" value={category.id} /> : null}
+      <input type="hidden" name="accountId" value={scope} />
+      {fixedScope === undefined && scopes.length > 0 ? (
+        <Field label={t.sharing.scope} htmlFor="category-scope">
+          <Select id="category-scope" value={scope} onChange={(e) => setScope(e.target.value)}>
+            <option value="">{t.sharing.scopePersonal}</option>
+            {scopes.map((account) => (
+              <option key={account.id} value={account.id}>
+                {t.sharing.sharedOn(account.name)}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      ) : null}
       <Field label={t.common.name} htmlFor="category-name" error={errors.name}>
         <Input
           id="category-name"
@@ -207,7 +309,7 @@ function CategoryForm({
           <Select id="category-parent" name="parentId" defaultValue={currentParent}>
             <option value="">{t.categories.topLevel}</option>
             {parents
-              .filter((p) => p.id !== category?.id)
+              .filter((p) => p.id !== category?.id && (p.accountId ?? "") === scope)
               .map((p) => (
                 <option key={p.id} value={p.id}>
                   {categoryLabel(p.name, t)}

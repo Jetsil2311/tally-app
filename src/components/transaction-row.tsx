@@ -6,6 +6,7 @@ import { useI18n } from "@/i18n/client";
 import { categoryLabel, isSystemCategory, isTransferCategory } from "@/lib/insights";
 import type { Transaction } from "@/lib/types";
 
+import { Avatar, displayName, TxStatusPill, useViewer } from "./people-ui";
 import { Money, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
 import { cn } from "./ui";
@@ -15,6 +16,10 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
   const { open } = useQuickAdd();
   const { timeZone } = usePreferences();
   const { t, locale } = useI18n();
+  const viewer = useViewer();
+  // On shared accounts, show who added entries that aren't yours
+  const byOther = tx.createdBy && tx.createdBy.id !== viewer.id ? tx.createdBy : null;
+  const counts = tx.status === "approved";
   const transfer = isSystemCategory(tx.category?.name);
   const isMove = isTransferCategory(tx.category?.name);
   const missingCategory = !tx.category && tx.source !== "opening";
@@ -33,14 +38,19 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
       onClick={() => open({ transaction: tx })}
       className="group flex w-full items-center gap-3.5 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-surface-2 sm:gap-4"
     >
-      <span
-        className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-full",
-          transfer ? "bg-accent-soft text-accent" : tx.type === "income" ? "bg-income-soft text-income" : "bg-surface-3 text-ink-2",
-        )}
-        aria-hidden
-      >
-        <Icon size={18} weight="bold" />
+      <span className="relative shrink-0">
+        <span
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-full",
+            transfer ? "bg-accent-soft text-accent" : tx.type === "income" ? "bg-income-soft text-income" : "bg-surface-3 text-ink-2",
+          )}
+          aria-hidden
+        >
+          <Icon size={18} weight="bold" />
+        </span>
+        {byOther ? (
+          <Avatar person={byOther} size={20} className="absolute -right-1 -bottom-1 ring-2 ring-surface" />
+        ) : null}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5 text-[15px] font-medium text-ink">
@@ -50,7 +60,8 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
           ) : null}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-ink-2">
-          {missingCategory ? (
+          {tx.status !== "approved" ? <TxStatusPill status={tx.status} /> : null}
+          {missingCategory && counts ? (
             <span className="shrink-0 rounded-full bg-warn-soft px-2 py-px text-xs font-medium text-warn">{t.transactionRow.noCategory}</span>
           ) : tx.description && tx.category ? (
             <span className="shrink-0">{categoryName}</span>
@@ -58,6 +69,7 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
           <span className="min-w-0 truncate text-ink-3">
             {missingCategory || (tx.description && tx.category) ? "· " : ""}
             {tx.account.name}
+            {byOther ? ` · ${displayName(byOther, t.audit.someone)}` : ""}
             <span className={showDate ? "" : "hidden sm:inline"}> · {when}</span>
           </span>
         </span>
@@ -66,7 +78,13 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
         <Money
           value={tx.type === "income" ? tx.amount : -Number(tx.amount)}
           sign
-          className={cn("text-[15px] font-semibold", transfer ? "text-ink-2" : tx.type === "income" ? "text-income" : "text-ink")}
+          className={cn(
+            "text-[15px] font-semibold",
+            // Pending and rejected entries don't count: shown struck/dimmed
+            !counts && "text-ink-3",
+            tx.status === "rejected" && "line-through",
+            counts && (transfer ? "text-ink-2" : tx.type === "income" ? "text-income" : "text-ink"),
+          )}
         />
       </span>
     </button>

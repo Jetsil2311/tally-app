@@ -60,7 +60,8 @@ export function Menu({
         <div
           id={id}
           className={cn(
-            "menu-panel absolute top-[calc(100%+8px)] z-50 min-w-56",
+            // Never wider than the screen, whatever the panel asks for
+            "menu-panel absolute top-[calc(100%+8px)] z-50 max-w-[calc(100vw-2rem)] min-w-56",
             align === "end" ? "right-0" : "left-0 origin-top-left",
             panelClassName,
           )}
@@ -99,5 +100,30 @@ export function MenuItem({
       {icon ? <span className="text-ink-2">{icon}</span> : null}
       <span className="flex-1">{children}</span>
     </button>
+  );
+}
+
+// A destructive item that asks for a second tap before acting. The confirm
+// state lives in the item, so closing the menu resets it.
+export function ConfirmMenuItem({
+  children,
+  confirmLabel,
+  icon,
+  onConfirm,
+}: {
+  children: ReactNode;
+  confirmLabel: ReactNode;
+  icon?: ReactNode;
+  onConfirm: () => void;
+}) {
+  const [armed, setArmed] = useState(false);
+  return (
+    <MenuItem
+      icon={icon}
+      className={cn("text-expense hover:bg-expense-soft [&>span:first-child]:text-expense", armed && "bg-expense-soft font-medium")}
+      onClick={() => (armed ? onConfirm() : setArmed(true))}
+    >
+      {armed ? confirmLabel : children}
+    </MenuItem>
   );
 }

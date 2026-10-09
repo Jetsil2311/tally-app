@@ -95,11 +95,21 @@
 /* z-index scale: content 0, sticky header 30, dock 40, sheet 50, toast 60 */
 
 html {
+  /* Mobile browsers widen the page to fit anything too wide, which makes
+     every fixed element (dock, sheets) look shifted. Hidden on the root
+     applies to the viewport itself, so it stops that without breaking the
+     sticky header. Overflow is still fixed at its source; this is the net. */
+  overflow-x: hidden;
   background: var(--bg);
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
+  /* Last line of defence against sideways page scroll on phones. "clip"
+     (not "hidden") doesn't create a scroll container, so the sticky header
+     keeps working. Real overflow is fixed at the source; this only stops a
+     stray pixel from making the whole page wobble. */
+  overflow-x: clip;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -130,6 +140,23 @@ select,
 
 ::selection {
   background: var(--accent-soft);
+}
+
+/* A fieldset is min-width: min-content by default, so a horizontally
+   scrolling chip row inside one (categories, people) would stretch the
+   whole form, and the sheet with it, instead of scrolling itself. */
+fieldset {
+  min-width: 0;
+}
+
+/* iOS gives native date inputs an intrinsic width that ignores width:100%
+   and pushes them out of narrow grids */
+input[type="date"],
+input[type="datetime-local"] {
+  min-width: 0;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .tabular {
