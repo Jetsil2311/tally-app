@@ -454,7 +454,7 @@ function TransactionForm({
         )}
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t.common.note} htmlFor="description" optional error={errors.description}>
           <Input
             id="description"
@@ -619,7 +619,7 @@ function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () =>
         <ChipGroup label={t.quickAdd.toAccount} name="toAccountId" value={to} onChange={setTo} options={options.filter((o) => o.value !== from)} invalid={Boolean(errors.toAccountId)} />
         {errors.toAccountId ? <p role="alert" className="mt-2 text-sm text-expense">{errors.toAccountId}</p> : null}
       </fieldset>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t.common.note} htmlFor="transfer-note" optional>
           <Input id="transfer-note" name="description" placeholder={t.quickAdd.transferNotePlaceholder} autoComplete="off" />
         </Field>

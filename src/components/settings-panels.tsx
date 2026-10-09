@@ -36,7 +36,7 @@ export function AppearancePanel({ language }: { language: "auto" | "en" | "es" }
   return (
     <Card className="p-6">
       <h2 className="text-[17px] font-semibold tracking-tight">{t.settings.appearance}</h2>
-      <div className="mt-5 grid gap-6 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
           <p className="mb-3 text-sm font-medium">{t.settings.theme}</p>
           <Segmented

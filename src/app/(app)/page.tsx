@@ -131,7 +131,7 @@ async function Home() {
         <QuickActions className="hidden sm:flex" />
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         {/* Net balance: the one number that matters most */}
         <section
           className="rise relative overflow-hidden rounded-3xl bg-[linear-gradient(150deg,#2b48e8_0%,#1e33b8_55%,#16257f_100%)] p-6 text-white shadow-soft sm:p-7 lg:col-span-7"
@@ -259,7 +259,7 @@ async function Home() {
         </div>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <Card className="rise p-6 lg:col-span-7" style={{ "--i": 4 } as React.CSSProperties} aria-labelledby="flow-title">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h2 id="flow-title" className="text-[17px] font-semibold tracking-tight">
@@ -295,7 +295,7 @@ async function Home() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <div className="flex flex-col gap-4 lg:col-span-5 lg:gap-5">
           {upcoming ? <ComingUp upcoming={upcoming} today={today} t={t} locale={locale} /> : null}
           <Card className="rise p-6" style={{ "--i": 6 } as React.CSSProperties}>
@@ -420,7 +420,7 @@ function Welcome({ name, hasCategories, t }: { name?: string; hasCategories: boo
     { done: false, ...s.log, href: null, cta: null },
   ];
   return (
-    <div className="grid gap-6 pt-4 lg:grid-cols-[1.1fr_1fr] lg:gap-10 lg:pt-10">
+    <div className="grid grid-cols-1 gap-6 pt-4 lg:grid-cols-[1.1fr_1fr] lg:gap-10 lg:pt-10">
       <div className="rise">
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-tight sm:text-5xl">
           {t.home.welcome(name)}
@@ -467,7 +467,7 @@ function HomeSkeleton() {
         <Skeleton className="h-4 w-28" />
         <Skeleton className="h-9 w-64" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <Skeleton className="h-64 rounded-3xl lg:col-span-7" />
         <Skeleton className="h-64 rounded-3xl lg:col-span-5" />
       </div>
@@ -476,7 +476,7 @@ function HomeSkeleton() {
         <Skeleton className="h-40 w-72 shrink-0 rounded-3xl" />
         <Skeleton className="h-40 w-72 shrink-0 rounded-3xl" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <Skeleton className="h-72 rounded-3xl lg:col-span-7" />
         <Skeleton className="h-72 rounded-3xl lg:col-span-5" />
       </div>

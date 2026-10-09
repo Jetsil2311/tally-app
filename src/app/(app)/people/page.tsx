@@ -40,7 +40,7 @@ function PeopleSkeleton() {
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-4 w-96 max-w-full" />
       </div>
-      <div className="grid gap-5 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <Skeleton className="h-72 rounded-3xl lg:col-span-7" />
         <div className="flex flex-col gap-5 lg:col-span-5">
           <Skeleton className="h-52 rounded-3xl" />

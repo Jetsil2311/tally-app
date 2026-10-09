@@ -135,7 +135,7 @@ export function CategoriesManager({
                   {!scope.editable ? <ViewOnlyTag /> : null}
                 </div>
               ) : null}
-              <div className="grid gap-2 sm:gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
                 {scope.categories.map((parent, i) => {
                   const kids = childrenOf(parent.id);
                   const transfer = isSystemCategory(parent.name);

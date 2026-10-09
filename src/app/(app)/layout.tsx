@@ -62,7 +62,7 @@ function ShellFallback() {
       <TopBarSkeleton />
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-6 sm:px-6">
         <div className="skeleton h-9 w-56" />
-        <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr]">
           <div className="skeleton h-56 rounded-3xl" />
           <div className="skeleton h-56 rounded-3xl" />
         </div>

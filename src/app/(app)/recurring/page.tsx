@@ -55,7 +55,7 @@ function RecurringSkeleton() {
         </div>
         <Skeleton className="hidden h-11 w-40 rounded-full sm:block" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <Skeleton className="h-96 rounded-3xl lg:col-span-7" />
         <div className="flex flex-col gap-4 lg:col-span-5 lg:gap-5">
           <Skeleton className="h-44 rounded-3xl" />

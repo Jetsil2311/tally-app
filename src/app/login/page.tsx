@@ -40,7 +40,7 @@ function Brand() {
 
 function LoginSkeleton() {
   return (
-    <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" aria-busy>
+    <main className="grid grid-cols-1 min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" aria-busy>
       <section className="flex flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-8 sm:px-12 lg:px-16">
         <Brand />
         <div className="my-auto w-full max-w-md space-y-5 py-16">
@@ -58,7 +58,7 @@ async function Login({ searchParams }: { searchParams: PageProps<"/login">["sear
   const { t, locale } = await getI18n();
   return (
     <I18nProvider locale={locale}>
-    <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+    <main className="grid grid-cols-1 min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <section className="flex flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-8 sm:px-12 lg:px-16">
         <Brand />
 

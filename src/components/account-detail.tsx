@@ -125,7 +125,7 @@ export function AccountDetail({
 
       {/* Card and people on the left; what happened on the account (its
           movements, then its history) is the main column */}
-      <div className="grid gap-5 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <div className="flex flex-col gap-5 lg:col-span-5">
           <div className="rise" style={{ "--i": 1 } as React.CSSProperties}>
             <AccountCard account={account} />

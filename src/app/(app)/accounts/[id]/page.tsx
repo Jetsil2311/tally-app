@@ -77,7 +77,7 @@ function AccountSkeleton() {
     <Busy className="space-y-5 pt-2">
       <Skeleton className="h-5 w-24" />
       <Skeleton className="h-9 w-64" />
-      <div className="grid gap-5 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <Skeleton className="h-48 rounded-3xl lg:col-span-5" />
         <div className="flex flex-col gap-5 lg:col-span-7">
           <Skeleton className="h-64 rounded-3xl" />

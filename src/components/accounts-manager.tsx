@@ -97,7 +97,7 @@ export function AccountsManager({
                   {t.accounts.yours}
                 </h2>
               ) : null}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {mine.map((account, i) => (
                   <AccountTile key={account.id} account={account} stats={stats[account.id]} index={i} onEdit={() => start(account)} />
                 ))}
@@ -110,7 +110,7 @@ export function AccountsManager({
                 {t.accounts.sharedWithYou}
               </h2>
               <p className="mt-1 mb-3 text-sm text-ink-2">{t.accounts.sharedWithYouHint}</p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {shared.map((account, i) => (
                   <AccountTile key={account.id} account={account} stats={stats[account.id]} index={i} onEdit={() => start(account)} />
                 ))}
@@ -256,7 +256,7 @@ export function AccountForm({ account, onDone }: { account?: Account; onDone: ()
 
       <fieldset>
         <legend className="mb-3 text-sm font-medium">{t.common.type}</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {ACCOUNT_TYPES.map((value) => {
             const option = { value, ...t.accountTypes[value] };
             const checked = type === option.value;

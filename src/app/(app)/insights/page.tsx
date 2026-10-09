@@ -176,7 +176,7 @@ async function MonthView({
         {t.insights.comparedWith(monthLabel(prevKey, "long", false, locale))}
       </p>
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
         <Card className="rise p-6" style={{ "--i": 4 } as React.CSSProperties}>
           <SectionTitle>{t.insights.spendingByCategory}</SectionTitle>
           {spending.length ? (
@@ -195,7 +195,7 @@ async function MonthView({
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <Card className="rise p-6 lg:col-span-5" style={{ "--i": 6 } as React.CSSProperties}>
           <SectionTitle>{t.insights.dayByDay}</SectionTitle>
           <SpendingCalendar monthKey={month} days={days} today={month === current ? dayKey(now, timeZone) : undefined} />
@@ -303,7 +303,7 @@ async function YearView({
       </Card>
 
       {best || priciest ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {best ? (
             <Card className="rise flex items-center gap-4 p-5" style={{ "--i": 5 } as React.CSSProperties}>
               <span className="flex size-11 items-center justify-center rounded-full bg-income-soft text-income">
@@ -331,7 +331,7 @@ async function YearView({
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
         <Card className="rise p-6" style={{ "--i": 7 } as React.CSSProperties}>
           <SectionTitle>{t.insights.whereYearWent(year)}</SectionTitle>
           {spending.length ? (

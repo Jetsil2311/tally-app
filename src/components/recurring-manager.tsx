@@ -153,7 +153,7 @@ export function RecurringManager({
         <>
           <OverdueBanner upcoming={upcoming} canCharge={manageable.length > 0} />
 
-          <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
             <Card className="rise p-3 sm:p-4 lg:col-span-7" style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="next-title">
               <div className="px-3 pt-2">
                 <SectionTitle id="next-title">{r.next30}</SectionTitle>
@@ -789,7 +789,7 @@ function RecurringForm({
         </p>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={payment ? r.firstDueDate : r.nextDueDate} htmlFor="recurring-start" error={errors.startDate}>
           <input
             id="recurring-start"
@@ -877,7 +877,7 @@ function RecurringForm({
         ) : null}
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t.common.category} htmlFor="recurring-category" optional error={errors.categoryId}>
           <Select id="recurring-category" name="categoryId" defaultValue={payment?.categoryId ?? ""}>
             <option value="">{t.common.none}</option>

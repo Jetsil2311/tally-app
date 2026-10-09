@@ -71,7 +71,7 @@ export function PeopleManager({
       {invitations.length > 0 ? (
         <section aria-labelledby="invitations-title" className="rise" style={{ "--i": 1 } as React.CSSProperties}>
           <SectionTitle id="invitations-title">{t.people.invitations}</SectionTitle>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {invitations.map((invitation) => (
               <InvitationCard key={invitation.id} invitation={invitation} />
             ))}
@@ -90,7 +90,7 @@ export function PeopleManager({
         </section>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <div className="flex flex-col gap-5 lg:col-span-7">
           <section aria-labelledby="connections-title" className="rise" style={{ "--i": 3 } as React.CSSProperties}>
             <SectionTitle id="connections-title">{t.people.connections}</SectionTitle>
