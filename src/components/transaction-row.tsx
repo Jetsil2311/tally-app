@@ -7,7 +7,7 @@ import { categoryLabel, isSystemCategory, isTransferCategory } from "@/lib/insig
 import type { Transaction } from "@/lib/types";
 
 import { Avatar, displayName, TxStatusPill, useViewer } from "./people-ui";
-import { Money, usePreferences } from "./preferences";
+import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
 import { cn } from "./ui";
 
@@ -17,6 +17,8 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
   const { timeZone } = usePreferences();
   const { t, locale } = useI18n();
   const viewer = useViewer();
+  // Amounts are in the account's currency
+  const currency = useAccountCurrency(tx.accountId);
   // On shared accounts, show who added entries that aren't yours
   const byOther = tx.createdBy && tx.createdBy.id !== viewer.id ? tx.createdBy : null;
   const counts = tx.status === "approved";
@@ -74,9 +76,10 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
           </span>
         </span>
       </span>
-      <span className="shrink-0 text-right">
+      <span className="flex shrink-0 flex-col items-end">
         <Money
           value={tx.type === "income" ? tx.amount : -Number(tx.amount)}
+          currency={currency}
           sign
           className={cn(
             "text-[15px] font-semibold",
@@ -86,6 +89,10 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
             counts && (transfer ? "text-ink-2" : tx.type === "income" ? "text-income" : "text-ink"),
           )}
         />
+        {/* Charged in another currency: what was actually paid */}
+        {tx.originalAmount && tx.originalCurrency ? (
+          <Money value={tx.originalAmount} currency={tx.originalCurrency} className="text-xs text-ink-3" />
+        ) : null}
       </span>
     </button>
   );

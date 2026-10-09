@@ -7,7 +7,7 @@ import { useActionState, useState, useTransition } from "react";
 
 import { saveAccount, setAccountActive } from "@/actions/accounts";
 import { useI18n } from "@/i18n/client";
-import { currencySymbol } from "@/lib/money";
+import { currencyName, currencySymbol } from "@/lib/money";
 import { canAddTransactions, canManage, isOwner } from "@/lib/permissions";
 import type { Account, AccountType, ActionState } from "@/lib/types";
 
@@ -18,7 +18,7 @@ import { Money, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
-import { Button, buttonClass, Card, cn, EmptyState, Field, IconButton, Input } from "./ui";
+import { Button, buttonClass, Card, cn, EmptyState, Field, IconButton, Input, Select } from "./ui";
 import { submitWith } from "./use-form-action";
 
 export interface AccountStats {
@@ -169,8 +169,8 @@ function AccountTile({
           </p>
           <p className="truncate">
             {t.accounts.inOut(
-              <Money cents={stats?.income ?? 0} className="font-medium text-income" />,
-              <Money cents={stats?.expense ?? 0} className="font-medium" />,
+              <Money cents={stats?.income ?? 0} currency={account.currency} className="font-medium text-income" />,
+              <Money cents={stats?.expense ?? 0} currency={account.currency} className="font-medium" />,
               (text) => <span className="text-ink-3">{text}</span>,
             )}
           </p>
@@ -203,7 +203,7 @@ function ArchivedRow({ account }: { account: Account }) {
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{account.name}</p>
         <p className="text-sm text-ink-2">
-          {t.accounts.balance(<Money value={account.balance} />)}
+          {t.accounts.balance(<Money value={account.balance} currency={account.currency} />)}
         </p>
       </div>
       <Link href={`/accounts/${account.id}`} className={cn(buttonClass("ghost", "sm"), "hidden sm:inline-flex")}>
@@ -233,9 +233,14 @@ function ArchivedRow({ account }: { account: Account }) {
 
 export function AccountForm({ account, onDone }: { account?: Account; onDone: () => void }) {
   const toast = useToast();
-  const { currency } = usePreferences();
+  const { currency: preferred, currencies } = usePreferences();
   const { t, locale } = useI18n();
   const [type, setType] = useState<AccountType>(account?.type ?? "debit");
+  // New accounts start in the preferred currency. Changing an existing
+  // account's currency corrects it (owners only); amounts aren't converted.
+  const [currency, setCurrency] = useState(account?.currency ?? preferred);
+  const canChangeCurrency = !account || isOwner(account.myRole);
+  const currencyOptions = currencies.includes(currency) ? currencies : [currency, ...currencies];
   const [archiving, startArchive] = useTransition();
   const [confirmArchive, setConfirmArchive] = useState(false);
 
@@ -295,6 +300,34 @@ export function AccountForm({ account, onDone }: { account?: Account; onDone: ()
           autoFocus
           aria-invalid={Boolean(errors.name)}
         />
+      </Field>
+
+      <Field
+        label={t.money.accountCurrency}
+        htmlFor="account-currency"
+        error={errors.currency}
+        hint={
+          account && currency !== account.currency
+            ? t.money.changeCurrencyWarning
+            : canChangeCurrency
+              ? t.money.accountCurrencyHint
+              : t.money.ownersOnlyCurrency
+        }
+      >
+        <Select
+          id="account-currency"
+          name="currency"
+          value={currency}
+          disabled={!canChangeCurrency}
+          onChange={(e) => setCurrency(e.target.value)}
+          translate="no"
+        >
+          {currencyOptions.map((code) => (
+            <option key={code} value={code}>
+              {code} · {currencyName(code, locale)}
+            </option>
+          ))}
+        </Select>
       </Field>
 
       {!account ? (

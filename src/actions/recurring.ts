@@ -27,6 +27,9 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
   const accountId = text(formData, "accountId");
   const categoryId = text(formData, "categoryId");
   const description = text(formData, "description");
+  // The currency it's charged in; on edit only sent when it changed
+  const currency = text(formData, "currency");
+  const originalCurrency = text(formData, "originalCurrency");
   const { t } = await getI18n();
   const r = t.recurring;
 
@@ -65,6 +68,7 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
           ...(interval !== original.interval ? { interval } : {}),
           ...(startDate !== original.startDate ? { startDate } : {}),
           ...(endDate !== original.endDate ? { endDate: endDate || null } : {}),
+          ...(currency && currency !== originalCurrency ? { currency } : {}),
         },
       });
     } else {
@@ -78,6 +82,7 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
           interval,
           startDate,
           accountId,
+          ...(currency ? { currency } : {}),
           ...(endDate ? { endDate } : {}),
           ...(categoryId ? { categoryId } : {}),
           ...(description ? { description } : {}),

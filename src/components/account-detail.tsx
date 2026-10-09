@@ -37,7 +37,7 @@ import { AccountCard } from "./account-card";
 import { AccountForm } from "./accounts-manager";
 import { ConfirmMenuItem, Menu, MenuItem } from "./menu";
 import { Avatar, displayName, RoleBadge, RoleIcon, useViewer } from "./people-ui";
-import { usePreferences } from "./preferences";
+import { useAccountCurrency } from "./preferences";
 import { useQuickAdd } from "./quick-add";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
@@ -196,7 +196,8 @@ export function AccountDetail({
 
 function MemberRow({ member, myRole, isMe, onEdit }: { member: Member; myRole: MemberRole; isMe: boolean; onEdit: () => void }) {
   const { t, locale } = useI18n();
-  const { currency } = usePreferences();
+  // A dependent's spending limit is in the account's currency
+  const currency = useAccountCurrency(member.accountId);
   const toast = useToast();
   const [pending, startTransition] = useTransition();
   const name = displayName(member.user, t.people.someone);
@@ -316,13 +317,15 @@ function DependentSettings({
   limit,
   requiresApproval,
   error,
+  currency,
 }: {
   limit?: string | null;
   requiresApproval?: boolean;
   error?: string;
+  // The account's currency: limits are in it
+  currency: string;
 }) {
   const { t, locale } = useI18n();
-  const { currency } = usePreferences();
   return (
     <fieldset className="space-y-4 rounded-3xl border border-line p-4">
       <legend className="px-1 text-sm font-medium">{t.members.dependentSettings}</legend>
@@ -443,7 +446,7 @@ function InviteForm({ account, candidates, onDone }: { account: Account; candida
         {candidate?.managed ? <p className="mt-2 text-sm text-ink-2">{t.members.managedRoles}</p> : null}
       </fieldset>
 
-      {effectiveRole === "dependent" ? <DependentSettings error={errors.spendingLimit} /> : null}
+      {effectiveRole === "dependent" ? <DependentSettings error={errors.spendingLimit} currency={account.currency} /> : null}
 
       {state.message && !state.ok && !Object.keys(errors).length ? (
         <p role="alert" className="rounded-2xl bg-expense-soft px-4 py-3 text-sm text-expense">
@@ -502,7 +505,12 @@ function MemberForm({ account, member, onDone }: { account: Account; member: Mem
       </fieldset>
 
       {role === "dependent" ? (
-        <DependentSettings limit={member.spendingLimit} requiresApproval={member.requiresApproval} error={errors.spendingLimit} />
+        <DependentSettings
+          limit={member.spendingLimit}
+          requiresApproval={member.requiresApproval}
+          error={errors.spendingLimit}
+          currency={account.currency}
+        />
       ) : null}
 
       {state.message && !state.ok && !Object.keys(errors).length ? (
@@ -617,7 +625,8 @@ function Movements({ account, page }: { account: Account; page: TransactionPage 
 function History({ accountId, first, members, now }: { accountId: string; first: AuditPage; members: Member[]; now: string }) {
   const { t, locale } = useI18n();
   const viewer = useViewer();
-  const { currency } = usePreferences();
+  // Amounts in the log are in the account's currency
+  const currency = useAccountCurrency(accountId);
   const [entries, setEntries] = useState<AuditEntry[]>(first.data);
   const [cursor, setCursor] = useState(first.nextCursor);
   const [pending, startTransition] = useTransition();

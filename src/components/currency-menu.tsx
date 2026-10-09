@@ -4,20 +4,21 @@ import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { useI18n } from "@/i18n/client";
-import { CURRENCIES, currencyName, currencySymbol } from "@/lib/money";
+import { currencyName, currencySymbol } from "@/lib/money";
 
 import { Menu } from "./menu";
 import { usePreferences } from "./preferences";
 import { cn } from "./ui";
 
-// Display currency. Amounts aren't converted: it's the symbol and format
-// your numbers are shown in.
+// The preferred currency: totals across accounts are converted to it (on
+// the API), and new accounts start in it. Each account keeps its own.
 export function CurrencyMenu() {
-  const { currency, setCurrency } = usePreferences();
+  const { currency, setCurrency, currencies } = usePreferences();
   const { t, locale } = useI18n();
   const [query, setQuery] = useState("");
   const q = query.trim().toLocaleLowerCase();
-  const list = CURRENCIES.map((c) => ({ code: c.code, name: currencyName(c.code, locale) })).filter(
+  // The currencies the API can convert
+  const list = currencies.map((code) => ({ code, name: currencyName(code, locale) })).filter(
     (c) => !q || c.code.toLowerCase().includes(q) || c.name.toLocaleLowerCase().includes(q),
   );
 

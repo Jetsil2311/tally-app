@@ -83,3 +83,39 @@ export function percent(value: number, locale = "en-US", digits = 0) {
     maximumFractionDigits: digits,
   }).format(value);
 }
+
+// ---------------------------------------------------------------------------
+// Converting between currencies
+// ---------------------------------------------------------------------------
+
+// Multipliers into one target currency, from GET /exchange-rates:
+// { USD: 18.2 } means 1 USD = 18.2 of the target. The target itself is 1.
+export type Rates = Record<string, number>;
+
+// Cents (minor units) of `from` in the target currency; null when there's no rate
+export function convertCents(cents: number, from: string, rates: Rates) {
+  const rate = rates[from];
+  return rate === undefined ? null : Math.round(cents * rate);
+}
+
+// Adds amounts that may be in different currencies. `approximate` is true
+// when anything was converted (today's rate), `missing` counts amounts that
+// couldn't be converted and were left out.
+export function sumConverted(items: { cents: number; currency: string }[], target: string, rates: Rates) {
+  let cents = 0;
+  let approximate = false;
+  let missing = 0;
+  for (const item of items) {
+    if (item.currency === target) {
+      cents += item.cents;
+      continue;
+    }
+    const converted = convertCents(item.cents, item.currency, rates);
+    if (converted === null) missing += 1;
+    else {
+      cents += converted;
+      approximate = true;
+    }
+  }
+  return { cents, approximate, missing };
+}

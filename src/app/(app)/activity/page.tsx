@@ -13,10 +13,10 @@ import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { activityHref, type ActivityQuery } from "@/lib/activity-query";
 import { ApprovalQueue } from "@/components/approvals";
-import { getAccounts, getAllTransactions, getCategories, getPending, getSharedPeople } from "@/lib/data";
+import { txCents } from "@/lib/convert";
+import { getAccounts, getAllTransactions, getCategories, getCurrentUser, getPending, getRatesTo, getSharedPeople } from "@/lib/data";
 import { currentMonthKey, dayKey, monthLabel, monthRange, parseMonthKey, shiftMonth, type MonthKey } from "@/lib/dates";
 import { isTransfer } from "@/lib/insights";
-import { toCents } from "@/lib/money";
 import { getPreferences, requestTime } from "@/lib/session";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Transaction } from "@/lib/types";
@@ -83,17 +83,35 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   let rows = result.rows;
   if (query.filter === "uncategorized") rows = rows.filter((tx) => !tx.category && tx.source !== "opening");
 
-  // Totals for what's on screen. Transfers between your own accounts are left out.
+  // Totals for what's on screen. Rows are in their account's currency: when
+  // they all share one (or one account is selected) totals stay in it;
+  // otherwise they're converted to the preferred currency at today's rate.
+  const user = await getCurrentUser();
+  const currencyOf = Object.fromEntries(accounts.map((a) => [a.id, a.currency]));
+  const rowCurrencies = [...new Set(rows.map((tx) => currencyOf[tx.accountId] ?? user.preferredCurrency))];
+  const target =
+    (query.account && currencyOf[query.account]) || (rowCurrencies.length === 1 ? rowCurrencies[0] : user.preferredCurrency);
+  const rates = await getRatesTo(rowCurrencies, target);
+  const approximate = rowCurrencies.some((c) => c !== target);
+  const inTarget = (tx: Transaction) => txCents(tx, currencyOf, target, rates);
+
+  // Transfers between your own accounts, and pending/rejected entries, don't
+  // count (same as the API)
   let income = 0;
   let expense = 0;
+  let missing = 0;
   for (const tx of rows) {
-    // Pending and rejected entries don't count toward totals (same as the API)
     if (isTransfer(tx) || tx.status !== "approved") continue;
-    if (tx.type === "income") income += toCents(tx.amount);
-    else expense += toCents(tx.amount);
+    const cents = inTarget(tx);
+    if (cents === null) {
+      missing += 1;
+      continue;
+    }
+    if (tx.type === "income") income += cents;
+    else expense += cents;
   }
 
-  const groups = groupByDay(rows, timeZone);
+  const groups = groupByDay(rows, timeZone, inTarget);
   const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   const today = dayKey(now, timeZone);
   const yesterday = dayKey(new Date(now.getTime() - 86_400_000), timeZone);
@@ -119,11 +137,17 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
           <div key={item.label} className="min-w-0 rounded-3xl border border-line bg-surface px-3.5 py-3 sm:px-5 sm:py-3.5">
             <dt className="text-sm text-ink-2">{item.label}</dt>
             <dd>
-              <Money cents={item.cents} sign={item.sign} className={cn("block truncate text-[15px] font-semibold tracking-tight sm:text-xl", item.tone)} />
+              <Money cents={item.cents} sign={item.sign} currency={target} approximate={approximate} className={cn("block truncate text-[15px] font-semibold tracking-tight sm:text-xl", item.tone)} />
             </dd>
           </div>
         ))}
       </dl>
+
+      {approximate || missing ? (
+        <p className="-mt-2 text-xs text-ink-3">
+          {approximate ? t.money.approximateTotal : null} {missing ? t.money.missingRates(missing) : null}
+        </p>
+      ) : null}
 
       {result.truncated ? (
         <p className="rounded-2xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
@@ -167,7 +191,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
                 <div className="flex items-baseline justify-between px-2 pb-1.5">
                   <h2 className="text-sm font-medium text-ink-2">{label}</h2>
                   {group.spent ? (
-                    <p className="text-sm text-ink-3">{t.activity.spent(<Money cents={group.spent} />)}</p>
+                    <p className="text-sm text-ink-3">{t.activity.spent(<Money cents={group.spent} currency={target} approximate={approximate} />)}</p>
                   ) : null}
                 </div>
                 <Card className="p-1.5 sm:p-2">
@@ -184,7 +208,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   );
 }
 
-function groupByDay(rows: Transaction[], timeZone: string) {
+function groupByDay(rows: Transaction[], timeZone: string, inTarget: (tx: Transaction) => number | null) {
   const groups: { day: string; rows: Transaction[]; spent: number }[] = [];
   for (const tx of rows) {
     const day = dayKey(tx.date, timeZone);
@@ -194,7 +218,7 @@ function groupByDay(rows: Transaction[], timeZone: string) {
       groups.push(group);
     }
     group.rows.push(tx);
-    if (tx.type === "expense" && !isTransfer(tx) && tx.status === "approved") group.spent += toCents(tx.amount);
+    if (tx.type === "expense" && !isTransfer(tx) && tx.status === "approved") group.spent += inTarget(tx) ?? 0;
   }
   return groups;
 }

@@ -17,6 +17,8 @@ export async function saveAccount(_prev: ActionState, formData: FormData): Promi
   const type = text(formData, "type") as AccountType;
   const openingRaw = text(formData, "opening");
   const opening = openingRaw ? parseAmount(openingRaw) : null;
+  // ISO 4217. Disabled selects aren't submitted, so empty = unchanged.
+  const currency = text(formData, "currency").toUpperCase();
   const { t } = await getI18n();
 
   const fieldErrors: Record<string, string> = {};
@@ -29,9 +31,9 @@ export async function saveAccount(_prev: ActionState, formData: FormData): Promi
 
   try {
     if (id) {
-      await api(`/accounts/${id}`, { method: "PATCH", body: { name, type } });
+      await api(`/accounts/${id}`, { method: "PATCH", body: { name, type, ...(currency ? { currency } : {}) } });
     } else {
-      const account = await api<Account>("/accounts", { method: "POST", body: { name, type } });
+      const account = await api<Account>("/accounts", { method: "POST", body: { name, type, ...(currency ? { currency } : {}) } });
       // What's already there today, so the balance starts out right.
       // On a credit card it's what you owe, so it counts as an expense.
       if (opening) {

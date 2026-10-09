@@ -19,6 +19,11 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
   const accountId = text(formData, "accountId");
   const categoryId = text(formData, "categoryId");
   const description = text(formData, "description");
+  // The currency the amount is in. On edit, only sent when it changed:
+  // without it the API keeps an amount in its original currency and the
+  // rate it was recorded with (fixing a 10 USD charge to 12 USD)
+  const currency = text(formData, "currency");
+  const originalCurrency = text(formData, "originalCurrency");
   const { timeZone } = await getPreferences();
   const date = fromLocalInputValue(text(formData, "date"), timeZone);
   const { t } = await getI18n();
@@ -39,6 +44,7 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
     date: date!.toISOString(),
     categoryId: categoryId || null,
     description: description || null,
+    ...(currency && (!id || currency !== originalCurrency) ? { currency } : {}),
   };
 
   try {
@@ -171,9 +177,14 @@ export async function createTransfer(_prev: ActionState, formData: FormData): Pr
       categories.find((c) => isTransferCategory(c.name) && !c.parentId && c.accountId === null) ??
       (await api<Category>("/categories", { method: "POST", body: { name: TRANSFER_CATEGORY } }));
 
-    const accounts = await api<{ id: string; name: string }[]>("/accounts");
+    const accounts = await api<{ id: string; name: string; currency: string }[]>("/accounts");
     const nameOf = (id: string) => accounts.find((a) => a.id === id)?.name ?? t.transactions.someAccount;
     const shared = { amount, categoryId: transfer.id, date: date!.toISOString(), source: "transfer" };
+    // The amount is in the source account's currency. If the destination
+    // uses another one, the API converts the incoming side at today's rate.
+    const fromCurrency = accounts.find((a) => a.id === fromAccountId)?.currency;
+    const toCurrency = accounts.find((a) => a.id === toAccountId)?.currency;
+    const incomingCurrency = fromCurrency && toCurrency && fromCurrency !== toCurrency ? { currency: fromCurrency } : {};
 
     await api("/transactions", {
       method: "POST",
@@ -181,7 +192,13 @@ export async function createTransfer(_prev: ActionState, formData: FormData): Pr
     });
     await api("/transactions", {
       method: "POST",
-      body: { ...shared, type: "income", accountId: toAccountId, description: note || t.transactions.fromAccount(nameOf(fromAccountId)) },
+      body: {
+        ...shared,
+        ...incomingCurrency,
+        type: "income",
+        accountId: toAccountId,
+        description: note || t.transactions.fromAccount(nameOf(fromAccountId)),
+      },
     });
     refresh();
     return { ok: true, message: t.transactions.transferRecorded };

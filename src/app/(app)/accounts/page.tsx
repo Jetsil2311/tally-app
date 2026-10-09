@@ -36,7 +36,8 @@ async function Accounts({ searchParams }: { searchParams: PageProps<"/accounts">
     accounts
       .filter((a) => a.isActive)
       .map(async (account) => {
-        const totals = totalsFromSummary(await getSummary(range.from, range.to, account.id));
+        // In the account's own currency, not converted
+        const totals = totalsFromSummary(await getSummary(range.from, range.to, account.id, account.currency));
         stats[account.id] = { income: totals.income, expense: totals.expense, count: totals.count };
       }),
   );

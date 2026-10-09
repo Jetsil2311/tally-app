@@ -12,7 +12,8 @@ import { Card, cn, EmptyState, SectionTitle, Skeleton } from "@/components/ui";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
-import { getAllTransactions, getCategories, getSummary, getYearSeries } from "@/lib/data";
+import { txCents } from "@/lib/convert";
+import { getAccounts, getAllTransactions, getCategories, getCurrentUser, getRatesTo, getSummary, getYearSeries } from "@/lib/data";
 import {
   currentMonthKey,
   dayKey,
@@ -26,8 +27,9 @@ import {
   type MonthKey,
 } from "@/lib/dates";
 import { change, isTransfer, rollUpCategories, savingsRate, totalsFromSummary } from "@/lib/insights";
-import { percent, toCents } from "@/lib/money";
+import { percent } from "@/lib/money";
 import { getPreferences, requestTime } from "@/lib/session";
+import type { Transaction } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -122,10 +124,12 @@ async function MonthView({
   const range = monthRange(month, timeZone);
   const prevKey = shiftMonth(month, -1);
   const prevRange = monthRange(prevKey, timeZone);
-  const [summary, prevSummary, categories, txs] = await Promise.all([
+  const [summary, prevSummary, categories, accounts, user, txs] = await Promise.all([
     getSummary(range.from, range.to),
     getSummary(prevRange.from, prevRange.to),
     getCategories(),
+    getAccounts(true),
+    getCurrentUser(),
     // Approved only: pending and rejected entries never count
     getAllTransactions({ from: range.from, to: range.to, status: "approved" }),
   ]);
@@ -136,13 +140,22 @@ async function MonthView({
   const spending = rollUpCategories(totals.byCategory, categories, "expense");
   const earning = rollUpCategories(totals.byCategory, categories, "income");
 
-  const days: Record<string, number> = {};
+  // Rows are in each account's currency: converted to the preferred one
+  // (today's rate) before adding up days or ranking the biggest
+  const preferred = user.preferredCurrency;
+  const currencyOf = Object.fromEntries(accounts.map((a) => [a.id, a.currency]));
   const expenses = txs.rows.filter((tx) => tx.type === "expense" && !isTransfer(tx));
+  const rates = await getRatesTo(
+    expenses.map((tx) => currencyOf[tx.accountId] ?? preferred),
+    preferred,
+  );
+  const inPreferred = (tx: Transaction) => txCents(tx, currencyOf, preferred, rates) ?? 0;
+  const days: Record<string, number> = {};
   for (const tx of expenses) {
     const key = dayKey(tx.date, timeZone);
-    days[key] = (days[key] ?? 0) + toCents(tx.amount);
+    days[key] = (days[key] ?? 0) + inPreferred(tx);
   }
-  const biggest = [...expenses].sort((a, b) => toCents(b.amount) - toCents(a.amount)).slice(0, 5);
+  const biggest = [...expenses].sort((a, b) => inPreferred(b) - inPreferred(a)).slice(0, 5);
   const spendDays = Object.keys(days).length;
   const elapsedDays = month === current ? todayParts(timeZone, now).day : daysInMonth(month);
   const label = capitalize(monthLabel(month, "long", true, locale));

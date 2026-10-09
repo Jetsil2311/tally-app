@@ -1,9 +1,9 @@
 import "server-only";
 import { cache } from "react";
-import { cacheLife } from "next/cache";
 
 import { api, ApiError } from "./api";
 import { monthKeyOf, monthRange } from "./dates";
+import type { Rates } from "./money";
 import type {
   Account,
   ApiKey,
@@ -28,11 +28,12 @@ import type {
 // and never shared between users. A finance view must show fresh numbers
 // right after a change, so only the profile gets a client-side lifetime.
 
-export async function getCurrentUser(): Promise<User> {
-  "use cache: private";
-  cacheLife({ stale: 300 });
-  return api<User>("/me");
-}
+// Per request: the preferred currency can change and every total depends on it
+export const getCurrentUser = cache(async () => {
+  const user = await api<User>("/me");
+  // An API without the currency system yet: don't crash every page over it
+  return { ...user, preferredCurrency: user.preferredCurrency ?? "USD" };
+});
 
 export const getAccounts = cache(async (includeInactive = false) => {
   return api<Account[]>("/accounts", { query: { includeInactive: includeInactive || undefined } });
@@ -70,8 +71,9 @@ export async function getAllTransactions(filters: TransactionFilters, max = 1000
   return { rows, truncated: Boolean(cursor) };
 }
 
-export const getSummary = cache(async (from?: string, to?: string, accountId?: string) => {
-  return api<Summary>("/summary", { query: { from, to, accountId } });
+// Totals are in `currency`, default: the user's preferred currency
+export const getSummary = cache(async (from?: string, to?: string, accountId?: string, currency?: string) => {
+  return api<Summary>("/summary", { query: { from, to, accountId, currency } });
 });
 
 // One summary per month of the year, fetched in parallel
@@ -181,4 +183,33 @@ export const getSharedPeople = cache(async () => {
     if (member.status === "active") people.set(member.userId, member.user);
   }
   return [...people.values()];
+});
+
+// ---------------------------------------------------------------------------
+// Currencies
+// ---------------------------------------------------------------------------
+
+// Currencies the API can convert (null when the rate provider is down)
+export const getCurrencies = cache(async () => {
+  const { codes } = await api<{ provider: string; codes: string[] | null }>("/currencies");
+  return codes;
+});
+
+// Today's rate from each currency into `to`, for adding up amounts that
+// are in different currencies. Currencies without a rate are left out.
+export const getRatesTo = cache(async (codes: string[], to: string) => {
+  const rates: Rates = { [to]: 1 };
+  await Promise.all(
+    [...new Set(codes)]
+      .filter((code) => code !== to)
+      .map(async (from) => {
+        try {
+          const { rate } = await api<{ rate: string }>("/exchange-rates", { query: { from, to } });
+          rates[from] = Number(rate);
+        } catch (error) {
+          if (!(error instanceof ApiError)) throw error;
+        }
+      }),
+  );
+  return rates;
 });

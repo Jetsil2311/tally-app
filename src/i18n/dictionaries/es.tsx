@@ -80,11 +80,11 @@ export const es: Dictionary = {
   },
 
   currency: {
-    label: (code: string) => `Moneda de visualización: ${code}`,
+    label: (code: string) => `Moneda preferida: ${code}`,
     search: "Buscar moneda",
     list: "Monedas",
     noMatch: (query: string) => `Nada coincide con “${query}”.`,
-    hint: "Cambia cómo se muestran los montos. Los valores no se convierten.",
+    hint: "Los totales entre cuentas se muestran en ella. Cada cuenta conserva su propia moneda.",
   },
 
   accountTypes: {
@@ -403,6 +403,7 @@ export const es: Dictionary = {
       income: "Entrante",
       noCheck: "A crédito",
       accountInactive: "Cuenta archivada",
+      rateUnavailable: "Sin tipo de cambio",
     },
     short: (amount: ReactNode, overdue: boolean) => (
       <>
@@ -499,7 +500,6 @@ export const es: Dictionary = {
     signedInSince: (date: string) => `Sesión con Google · registrando desde ${date}`,
     appearance: "Apariencia",
     theme: "Tema",
-    displayCurrency: "Moneda de visualización",
     language: "Idioma",
     languageAuto: "Automático (por región)",
     languageHint: "Otros idiomas se muestran en inglés; tu navegador puede traducir la página.",
@@ -795,6 +795,31 @@ export const es: Dictionary = {
     sharedHint: "Todos en esta cuenta las ven. Propietarios y administradores las gestionan.",
     scope: "Dónde",
     scopePersonal: "Personal (solo tú)",
+  },
+
+  money: {
+    currency: "Moneda",
+    preferred: "Moneda preferida",
+    preferredHint: "Los totales entre cuentas se convierten a ella al tipo de cambio de hoy. Cada cuenta conserva su propia moneda.",
+    accountCurrency: "Moneda de la cuenta",
+    accountCurrencyHint: "Su saldo y todos sus movimientos están en esta moneda.",
+    changeCurrencyWarning: "Esto corrige la moneda de la cuenta. Los montos no se convierten.",
+    ownersOnlyCurrency: "Solo los propietarios pueden cambiar la moneda.",
+    convertsTo: (amount: ReactNode, rate: string, date: string) => (
+      <>
+        ≈ {amount} a {rate} ({date})
+      </>
+    ),
+    converting: "Consultando el tipo de cambio de hoy…",
+    noRate: "No hay tipo de cambio disponible ahora. Inténtalo en un momento.",
+    staleRate: "Se usa el último tipo de cambio conocido.",
+    charged: (amount: ReactNode) => <>Cobrado {amount}</>,
+    rateNote: (from: string, to: string, rate: string) => `1 ${from} = ${rate} ${to}`,
+    estimated: "Estimado: se convierte al cobrarse",
+    rateUnavailable: "Sin tipo de cambio",
+    approximateTotal: "Convertido a los tipos de cambio de hoy.",
+    missingRates: (n: number) => `${n} ${plural(n, "monto quedó fuera", "montos quedaron fuera")}: no hay tipo de cambio ahora.`,
+    inCurrency: (code: string) => `en ${code}`,
   },
 
   errors: {

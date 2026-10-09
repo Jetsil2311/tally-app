@@ -46,6 +46,18 @@ export async function setLanguage(choice: string): Promise<ActionState> {
   return { ok: true, message: dictionaries[languageOf(locale)].settings.languageSaved, data: { lang: languageOf(locale) } };
 }
 
+// Totals across accounts are shown in this currency, and new accounts
+// default to it. Existing accounts and amounts aren't touched.
+export async function setPreferredCurrency(code: string): Promise<ActionState> {
+  try {
+    await api("/me", { method: "PATCH", body: { preferredCurrency: code } });
+    refresh();
+    return { ok: true };
+  } catch (error) {
+    return toActionState(error);
+  }
+}
+
 export async function createApiKey(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const name = text(formData, "name");
   const { t } = await getI18n();

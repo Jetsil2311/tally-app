@@ -183,11 +183,11 @@ function Preview({ t }: { t: Dictionary }) {
           <div className="grid grid-cols-2 gap-4">
             <AccountCard
               className="rotate-[-2deg]"
-              account={{ id: "a", name: t.login.exampleAccounts.debit, type: "debit", isActive: true, balance: "2841.37", myRole: "owner", memberCount: 1 }}
+              account={{ id: "a", name: t.login.exampleAccounts.debit, type: "debit", isActive: true, balance: "2841.37", currency: "USD", preferredBalance: null, myRole: "owner", memberCount: 1 }}
             />
             <AccountCard
               className="translate-y-6 rotate-[2deg]"
-              account={{ id: "b", name: t.login.exampleAccounts.credit, type: "creditCard", isActive: true, balance: "-612.09", myRole: "owner", memberCount: 2 }}
+              account={{ id: "b", name: t.login.exampleAccounts.credit, type: "creditCard", isActive: true, balance: "-612.09", currency: "USD", preferredBalance: null, myRole: "owner", memberCount: 2 }}
             />
           </div>
           <div className="rounded-3xl border border-white/10 bg-surface/95 p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.6)]">

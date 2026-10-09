@@ -1,37 +1,59 @@
 "use client";
 
-import { createContext, use, useCallback, useMemo, useState, type ReactNode } from "react";
+import { createContext, use, useCallback, useMemo, useOptimistic, useTransition, type ReactNode } from "react";
 
+import { setPreferredCurrency } from "@/actions/settings";
 import { useI18n } from "@/i18n/client";
-import { formatMoney } from "@/lib/money";
+import { CURRENCIES, formatMoney } from "@/lib/money";
 
 interface Preferences {
+  // The user's preferred currency (stored on the API): totals across
+  // accounts are shown in it, and new accounts default to it
   currency: string;
   timeZone: string;
+  // Each account's own currency, for amounts that belong to one account
+  accountCurrencies: Record<string, string>;
+  // Currencies the API can convert
+  currencies: string[];
   setCurrency: (code: string) => void;
+  savingCurrency: boolean;
 }
 
 const PreferencesContext = createContext<Preferences | null>(null);
 
-// Display preferences for every client component under the app shell.
-// The server reads the same cookies, so the first render already matches.
 export function PreferencesProvider({
-  currency: initialCurrency,
+  currency,
   timeZone,
+  accountCurrencies = {},
+  currencies,
   children,
 }: {
   currency: string;
   timeZone: string;
+  accountCurrencies?: Record<string, string>;
+  currencies?: string[] | null;
   children: ReactNode;
 }) {
-  const [currency, setCurrencyState] = useState(initialCurrency);
+  // Shown right away; the server action saves it and refreshes the totals
+  const [optimistic, setOptimistic] = useOptimistic(currency);
+  const [savingCurrency, startTransition] = useTransition();
 
-  const setCurrency = useCallback((code: string) => {
-    setCurrencyState(code);
-    document.cookie = `ft_currency=${encodeURIComponent(code)}; path=/; max-age=31536000; SameSite=Lax`;
-  }, []);
+  const setCurrency = useCallback(
+    (code: string) =>
+      startTransition(async () => {
+        setOptimistic(code);
+        await setPreferredCurrency(code);
+      }),
+    [setOptimistic],
+  );
 
-  const value = useMemo(() => ({ currency, timeZone, setCurrency }), [currency, timeZone, setCurrency]);
+  // The provider's list, or a built-in one when it's unreachable
+  const list = useMemo(() => currencies ?? CURRENCIES.map((c) => c.code), [currencies]);
+
+  const value = useMemo(
+    () => ({ currency: optimistic, timeZone, accountCurrencies, currencies: list, setCurrency, savingCurrency }),
+    [optimistic, timeZone, accountCurrencies, list, setCurrency, savingCurrency],
+  );
   return <PreferencesContext value={value}>{children}</PreferencesContext>;
 }
 
@@ -41,29 +63,41 @@ export function usePreferences() {
   return value;
 }
 
+// The currency of an account's amounts, or the preferred one if unknown
+export function useAccountCurrency(accountId: string | undefined | null) {
+  const { accountCurrencies, currency } = usePreferences();
+  return (accountId && accountCurrencies[accountId]) || currency;
+}
+
+// Formats in `currency` (default: the preferred currency), in the user's locale
 export function useMoney() {
   const { currency } = usePreferences();
   const { locale } = useI18n();
   return useCallback(
-    (value: number | string, options?: { compact?: boolean; sign?: boolean }) =>
-      formatMoney(value, currency, { ...options, locale }),
+    (value: number | string, options?: { compact?: boolean; sign?: boolean; currency?: string }) =>
+      formatMoney(value, options?.currency ?? currency, { ...options, locale }),
     [currency, locale],
   );
 }
 
-// Formats an amount in the chosen display currency.
-// `cents` takes an integer amount of cents (what lib/insights returns).
+// An amount in a currency (default: the preferred one).
+// `cents` takes an integer amount of minor units (what lib/insights returns).
+// `approximate` prefixes "≈" for converted totals.
 export function Money({
   value,
   cents,
   sign,
   compact,
+  currency,
+  approximate,
   className,
 }: {
   value?: number | string;
   cents?: number;
   sign?: boolean;
   compact?: boolean;
+  currency?: string;
+  approximate?: boolean;
   className?: string;
 }) {
   const format = useMoney();
@@ -71,7 +105,8 @@ export function Money({
   // translate="no": the browser's page translation must never rewrite an amount
   return (
     <span translate="no" className={`tabular ${className ?? ""}`}>
-      {format(amount, { sign, compact })}
+      {approximate ? "≈ " : ""}
+      {format(amount, { sign, compact, currency })}
     </span>
   );
 }

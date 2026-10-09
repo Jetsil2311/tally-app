@@ -5,7 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 
 import { createApiKey, deleteMyAccount, revokeApiKey, setLanguage } from "@/actions/settings";
 import { useI18n } from "@/i18n/client";
-import { CURRENCIES, currencyName, currencySymbol } from "@/lib/money";
+import { currencyName, currencySymbol } from "@/lib/money";
 import type { ActionState, ApiKey } from "@/lib/types";
 
 import { Segmented } from "./chips";
@@ -18,7 +18,7 @@ import { submitWith } from "./use-form-action";
 // `language` is "auto" (detected by region) or a pinned "en" / "es"
 export function AppearancePanel({ language }: { language: "auto" | "en" | "es" }) {
   const theme = useTheme();
-  const { currency, setCurrency } = usePreferences();
+  const { currency, setCurrency, currencies, savingCurrency } = usePreferences();
   const { t, locale } = useI18n();
   const toast = useToast();
   const [choice, setChoice] = useState(language);
@@ -63,11 +63,11 @@ export function AppearancePanel({ language }: { language: "auto" | "en" | "es" }
             </option>
           </Select>
         </Field>
-        <Field label={t.settings.displayCurrency} htmlFor="currency" hint={t.currency.hint} className="sm:col-span-2">
-          <Select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {currencySymbol(c.code, locale)} {currencyName(c.code, locale)} ({c.code})
+        <Field label={t.money.preferred} htmlFor="currency" hint={t.money.preferredHint} className="sm:col-span-2">
+          <Select id="currency" value={currency} disabled={savingCurrency} onChange={(e) => setCurrency(e.target.value)}>
+            {currencies.map((code) => (
+              <option key={code} value={code}>
+                {currencySymbol(code, locale)} {currencyName(code, locale)} ({code})
               </option>
             ))}
           </Select>

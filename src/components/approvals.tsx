@@ -10,7 +10,7 @@ import { canReview } from "@/lib/permissions";
 import type { Account, Transaction } from "@/lib/types";
 
 import { Avatar, displayName, useViewer } from "./people-ui";
-import { Money, usePreferences } from "./preferences";
+import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
 import { useToast } from "./toast";
 import { Button, Card, cn, SectionTitle } from "./ui";
@@ -54,6 +54,7 @@ function ApprovalRow({ tx }: { tx: Transaction }) {
   const [pending, startTransition] = useTransition();
   const [decided, setDecided] = useState(false);
   const who = displayName(tx.createdBy, t.audit.someone);
+  const currency = useAccountCurrency(tx.accountId);
   const when = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone }).format(new Date(tx.date));
 
   const decide = (approve: boolean) =>
@@ -80,6 +81,7 @@ function ApprovalRow({ tx }: { tx: Transaction }) {
         </span>
         <Money
           value={tx.type === "income" ? tx.amount : -Number(tx.amount)}
+          currency={currency}
           sign
           className="shrink-0 text-[15px] font-semibold"
         />

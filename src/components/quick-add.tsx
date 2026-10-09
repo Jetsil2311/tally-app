@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowsLeftRight, ArrowUp, Check, Trash, X } from "@phosphor-icons/react";
+import { ArrowDown, ArrowsLeftRight, ArrowUp, CaretDown, Check, Trash, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import {
   createContext,
@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { quoteConversion, type Quote } from "@/actions/currency";
 import {
   createTransfer,
   deleteTransaction,
@@ -33,7 +34,7 @@ import type { Account, ActionState, Category, Transaction, TransactionType } fro
 import { AccountIcon } from "./account-icon";
 import { ChipGroup, Segmented } from "./chips";
 import { Avatar, displayName, RoleBadge, TxStatusPill, useViewer } from "./people-ui";
-import { Money, usePreferences } from "./preferences";
+import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
 import { submitWith } from "./use-form-action";
@@ -224,13 +225,25 @@ export function AmountInput({
   error,
   result,
   tone,
+  currency: currencyProp,
+  onCurrencyChange,
+  onValueChange,
+  footer,
 }: {
   defaultValue?: string;
   error?: string;
   result: ActionState; // the latest submission result; a new one re-shows the error
   tone: "income" | "expense" | "neutral";
+  // The currency the amount is typed in (default: the preferred one)
+  currency?: string;
+  // When set, a picker lets the amount be in another currency
+  onCurrencyChange?: (code: string) => void;
+  onValueChange?: (value: string) => void;
+  // Under the amount, e.g. the conversion preview
+  footer?: ReactNode;
 }) {
-  const { currency } = usePreferences();
+  const { currency: preferred, currencies } = usePreferences();
+  const currency = currencyProp ?? preferred;
   const { t, locale } = useI18n();
   // Hide a stale error as soon as the amount is edited
   const [shownError, setShownError] = useState(error);
@@ -239,6 +252,7 @@ export function AmountInput({
     setLastResult(result);
     setShownError(error);
   }
+  const options = currencies.includes(currency) ? currencies : [currency, ...currencies];
   return (
     <div>
       <label htmlFor="amount" className="sr-only">
@@ -246,26 +260,56 @@ export function AmountInput({
       </label>
       <div
         className={cn(
-          "flex items-baseline justify-center gap-1 rounded-3xl px-4 py-5 transition-colors",
+          "flex flex-col items-center gap-2 rounded-3xl px-4 py-5 transition-colors",
           tone === "income" ? "bg-income-soft" : tone === "expense" ? "bg-expense-soft" : "bg-accent-soft",
         )}
       >
-        <span className="text-3xl font-medium text-ink-2">{currencySymbol(currency, locale)}</span>
-        <input
-          id="amount"
-          name="amount"
-          inputMode="decimal"
-          autoComplete="off"
-          autoFocus
-          required
-          placeholder="0.00"
-          defaultValue={defaultValue}
-          aria-invalid={Boolean(shownError)}
-          aria-describedby={shownError ? "amount-message" : undefined}
-          onChange={() => setShownError(undefined)}
-          className="tabular max-w-[9ch] bg-transparent text-center text-5xl font-semibold tracking-tight text-ink placeholder:text-ink-3/60 focus:outline-none"
-          style={{ fieldSizing: "content", minWidth: "4ch" } as React.CSSProperties}
-        />
+        <div className="flex items-baseline justify-center gap-1">
+          <span className="text-3xl font-medium text-ink-2" translate="no">
+            {currencySymbol(currency, locale)}
+          </span>
+          <input
+            id="amount"
+            name="amount"
+            inputMode="decimal"
+            autoComplete="off"
+            autoFocus
+            required
+            placeholder="0.00"
+            defaultValue={defaultValue}
+            aria-invalid={Boolean(shownError)}
+            aria-describedby={shownError ? "amount-message" : undefined}
+            onChange={(e) => {
+              setShownError(undefined);
+              onValueChange?.(e.target.value);
+            }}
+            className="tabular max-w-[9ch] bg-transparent text-center text-5xl font-semibold tracking-tight text-ink placeholder:text-ink-3/60 focus:outline-none"
+            style={{ fieldSizing: "content", minWidth: "4ch" } as React.CSSProperties}
+          />
+        </div>
+        {onCurrencyChange ? (
+          // A native select: keyboard and screen readers work out of the box
+          <label className="relative inline-flex">
+            <span className="sr-only">{t.money.currency}</span>
+            <select
+              name="currency"
+              value={currency}
+              onChange={(e) => onCurrencyChange(e.target.value)}
+              translate="no"
+              className="h-9 cursor-pointer appearance-none rounded-full border border-line bg-surface/70 pr-8 pl-3.5 text-sm font-medium text-ink transition-colors hover:border-line-strong focus:border-accent focus:ring-4 focus:ring-accent-soft focus:outline-none"
+            >
+              {options.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+            <CaretDown aria-hidden size={14} className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-ink-2" />
+          </label>
+        ) : (
+          <input type="hidden" name="currency" value={currency} />
+        )}
+        {footer}
       </div>
       {shownError ? (
         <p id="amount-message" role="alert" className="mt-2 text-center text-sm text-expense">
@@ -273,6 +317,52 @@ export function AmountInput({
         </p>
       ) : null}
     </div>
+  );
+}
+
+// "≈ $182.00 at 18.2 (Oct 9)": what an amount in `from` becomes in `to` at
+// today's rate, the same one the API will use when it's saved. Waits for a
+// pause in typing before asking.
+export function ConversionPreview({ amount, from, to }: { amount: string; from: string; to: string }) {
+  const { t, locale } = useI18n();
+  const [state, setState] = useState<{ key: string; quote?: Quote; error?: string } | null>(null);
+  const key = `${from}:${to}:${amount}`;
+
+  useEffect(() => {
+    if (from === to) return;
+    let cancelled = false;
+    const id = setTimeout(async () => {
+      const result = await quoteConversion(from, to, amount || "1");
+      if (!cancelled) setState({ key, ...result });
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [from, to, amount, key]);
+
+  if (from === to) return null;
+  const current = state?.key === key ? state : null;
+  const date = current?.quote
+    ? new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(current.quote.rateDate))
+    : "";
+  return (
+    <p className="min-h-5 text-center text-sm text-ink-2" aria-live="polite">
+      {!current ? (
+        t.money.converting
+      ) : current.error ? (
+        <span className="text-expense">{current.error}</span>
+      ) : current.quote ? (
+        <>
+          {t.money.convertsTo(
+            <Money value={current.quote.converted} currency={to} className="font-medium text-ink" />,
+            Number(current.quote.rate).toLocaleString(locale, { maximumFractionDigits: 4 }),
+            date,
+          )}
+          {current.quote.stale ? <span className="block text-xs text-warn">{t.money.staleRate}</span> : null}
+        </>
+      ) : null}
+    </p>
   );
 }
 
@@ -317,10 +407,20 @@ function TransactionForm({
   const [childId, setChildId] = useState(initialCategory?.parentId ? initialCategory.id : "");
   const selected = activeAccounts.find((a) => a.id === accountId);
   const viewer = useViewer();
+
+  // The amount's currency. A converted entry is edited in the currency it
+  // was charged in (keeping its rate); new ones default to the account's.
+  const accountCurrency = selected?.currency ?? "USD";
+  const initialCurrency = transaction?.originalCurrency ?? accountCurrency;
+  const [currency, setCurrency] = useState(initialCurrency);
+  const [amountText, setAmountText] = useState(transaction ? (transaction.originalAmount ?? transaction.amount) : "");
   const review = transaction ? canReview(selected?.myRole, transaction) : false;
 
   // Another account's shared categories don't apply here: drop the choice
   const chooseAccount = (id: string) => {
+    // Follow the new account's currency, unless another one was picked on purpose
+    const next = activeAccounts.find((a) => a.id === id)?.currency;
+    if (next && currency === accountCurrency) setCurrency(next);
     setAccountId(id);
     const valid = new Set(usableOn(id).map((c) => c.id));
     if (parentId && !valid.has(parentId)) {
@@ -375,7 +475,39 @@ function TransactionForm({
         <StatusNote tx={transaction} canReviewIt={review} onDone={onDone} />
       ) : null}
 
-      <AmountInput defaultValue={transaction?.amount} error={errors.amount} result={state} tone={type} />
+      {transaction ? <input type="hidden" name="originalCurrency" value={initialCurrency} /> : null}
+      <AmountInput
+        defaultValue={transaction ? (transaction.originalAmount ?? transaction.amount) : undefined}
+        error={errors.amount}
+        result={state}
+        tone={type}
+        currency={currency}
+        onCurrencyChange={setCurrency}
+        onValueChange={setAmountText}
+        footer={
+          // An unchanged converted entry keeps its recorded rate: show that,
+          // not today's
+          transaction?.originalCurrency && currency === transaction.originalCurrency ? (
+            <p className="text-center text-sm text-ink-2">
+              {t.money.charged(
+                <Money
+                  // The recorded rate applies to the edited amount too
+                  value={
+                    transaction.exchangeRate && Number(amountText.replace(",", "."))
+                      ? Number(amountText.replace(",", ".")) * Number(transaction.exchangeRate)
+                      : transaction.amount
+                  }
+                  currency={accountCurrency}
+                  className="font-medium text-ink"
+                />,
+              )}{" "}
+              · {t.money.rateNote(transaction.originalCurrency, accountCurrency, transaction.exchangeRate ?? "")}
+            </p>
+          ) : (
+            <ConversionPreview amount={amountText} from={currency} to={accountCurrency} />
+          )
+        }
+      />
 
       {transaction?.createdBy && transaction.createdBy.id !== viewer.id ? <AddedBy person={transaction.createdBy} /> : null}
 
@@ -581,6 +713,9 @@ function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () =>
   const [from, setFrom] = useState(active.find((a) => a.type !== "creditCard")?.id ?? active[0]?.id ?? "");
   const [to, setTo] = useState(active.find((a) => a.id !== from && a.type === "creditCard")?.id ?? active.find((a) => a.id !== from)?.id ?? "");
   const [defaultDate] = useState(() => toLocalInputValue(new Date(), timeZone));
+  const [amountText, setAmountText] = useState("");
+  const fromCurrency = active.find((a) => a.id === from)?.currency ?? "USD";
+  const toCurrency = active.find((a) => a.id === to)?.currency ?? fromCurrency;
 
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await createTransfer(prev, formData);
@@ -608,7 +743,16 @@ function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () =>
 
   return (
     <form onSubmit={submitWith(formAction)} className="space-y-6" noValidate>
-      <AmountInput error={errors.amount} result={state} tone="neutral" />
+      {/* In the source account's currency; the receiving side is converted
+          when the two accounts use different currencies */}
+      <AmountInput
+        error={errors.amount}
+        result={state}
+        tone="neutral"
+        currency={fromCurrency}
+        onValueChange={setAmountText}
+        footer={<ConversionPreview amount={amountText} from={fromCurrency} to={toCurrency} />}
+      />
       <fieldset>
         <legend className="mb-3 text-sm font-medium">{t.quickAdd.from}</legend>
         <ChipGroup label={t.quickAdd.fromAccount} name="fromAccountId" value={from} onChange={setFrom} options={options} invalid={Boolean(errors.fromAccountId)} />
@@ -695,6 +839,7 @@ function TransactionDetails({ tx, accounts, onDone }: { tx: Transaction; account
   const { timeZone } = usePreferences();
   const viewer = useViewer();
   const role = accounts.find((a) => a.id === tx.accountId)?.myRole;
+  const accountCurrency = useAccountCurrency(tx.accountId);
   const when = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(tx.date));
   const income = tx.type === "income";
   const rows: [string, React.ReactNode][] = [
@@ -710,9 +855,16 @@ function TransactionDetails({ tx, accounts, onDone }: { tx: Transaction; account
       <div className={cn("rounded-3xl px-4 py-5 text-center", income ? "bg-income-soft" : "bg-expense-soft")}>
         <Money
           value={income ? tx.amount : -Number(tx.amount)}
+          currency={accountCurrency}
           sign
-          className={cn("text-5xl font-semibold tracking-tight", income ? "text-income" : "text-ink")}
+          className={cn("block truncate text-5xl font-semibold tracking-tight", income ? "text-income" : "text-ink")}
         />
+        {tx.originalAmount && tx.originalCurrency ? (
+          <p className="mt-2 text-sm text-ink-2">
+            <Money value={tx.originalAmount} currency={tx.originalCurrency} className="font-medium text-ink" /> ·{" "}
+            {t.money.rateNote(tx.originalCurrency, accountCurrency, tx.exchangeRate ?? "")}
+          </p>
+        ) : null}
       </div>
       {tx.createdBy ? <AddedBy person={tx.createdBy} /> : null}
       <dl className="divide-y divide-line rounded-3xl border border-line">

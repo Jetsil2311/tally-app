@@ -26,7 +26,6 @@ import type { ActionState, ApiKey, Connection, Invitation, ManagedProfile } from
 import { AccountIcon } from "./account-icon";
 import { ConfirmMenuItem, Menu, MenuItem } from "./menu";
 import { Avatar, displayName } from "./people-ui";
-import { Money } from "./preferences";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
 import { Button, Card, cn, EmptyState, Field, Input, SectionTitle } from "./ui";
@@ -173,7 +172,7 @@ export function ManagedNotice({ guardian }: { guardian: string }) {
 // ---------------------------------------------------------------------------
 
 function InvitationCard({ invitation }: { invitation: Invitation }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { pending, run } = useRun();
   const inviter = displayName(invitation.invitedBy, t.people.someone);
   return (
@@ -193,7 +192,15 @@ function InvitationCard({ invitation }: { invitation: Invitation }) {
           <p className="mt-1 text-sm text-ink-2">{t.roles[invitation.role].hint}.</p>
           {invitation.role === "dependent" && (invitation.spendingLimit || invitation.requiresApproval) ? (
             <p className="mt-1 text-sm text-ink-2">
-              {invitation.spendingLimit ? t.people.limitNote(<Money value={invitation.spendingLimit} />) : null}{" "}
+              {/* In the invited account's currency, which invitations don't
+                  include: a plain number instead of a possibly wrong symbol */}
+              {invitation.spendingLimit
+                ? t.people.limitNote(
+                    <span translate="no" className="tabular">
+                      {Number(invitation.spendingLimit).toLocaleString(locale, { minimumFractionDigits: 2 })}
+                    </span>,
+                  )
+                : null}{" "}
               {invitation.requiresApproval ? t.people.approvalNote : null}
             </p>
           ) : null}

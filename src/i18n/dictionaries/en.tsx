@@ -81,11 +81,11 @@ export const en = {
   },
 
   currency: {
-    label: (code: string) => `Display currency: ${code}`,
+    label: (code: string) => `Preferred currency: ${code}`,
     search: "Search currency",
     list: "Currencies",
     noMatch: (query: string) => `No match for “${query}”.`,
-    hint: "Changes how amounts are shown. Values aren't converted.",
+    hint: "Totals across accounts are shown in it. Each account keeps its own currency.",
   },
 
   accountTypes: {
@@ -406,6 +406,7 @@ export const en = {
       income: "Incoming",
       noCheck: "On credit",
       accountInactive: "Account archived",
+      rateUnavailable: "No rate",
     },
     short: (amount: ReactNode, overdue: boolean) => (
       <>
@@ -506,7 +507,6 @@ export const en = {
     signedInSince: (date: string) => `Signed in with Google · tracking since ${date}`,
     appearance: "Appearance",
     theme: "Theme",
-    displayCurrency: "Display currency",
     language: "Language",
     languageAuto: "Automatic (by region)",
     languageHint: "Other languages show in English; your browser can translate the page.",
@@ -802,6 +802,31 @@ export const en = {
     sharedHint: "Everyone on this account sees these. Owners and admins manage them.",
     scope: "Where",
     scopePersonal: "Personal (only you)",
+  },
+
+  money: {
+    currency: "Currency",
+    preferred: "Preferred currency",
+    preferredHint: "Totals across accounts are converted to it at today's rate. Each account keeps its own currency.",
+    accountCurrency: "Account currency",
+    accountCurrencyHint: "Its balance and every entry on it are in this currency.",
+    changeCurrencyWarning: "This corrects the account's currency. Amounts aren't converted.",
+    ownersOnlyCurrency: "Only owners can change the currency.",
+    convertsTo: (amount: ReactNode, rate: string, date: string) => (
+      <>
+        ≈ {amount} at {rate} ({date})
+      </>
+    ),
+    converting: "Checking today's rate…",
+    noRate: "No exchange rate available right now. Try again in a moment.",
+    staleRate: "Using the last known rate.",
+    charged: (amount: ReactNode) => <>Charged {amount}</>,
+    rateNote: (from: string, to: string, rate: string) => `1 ${from} = ${rate} ${to}`,
+    estimated: "Estimated: converted when it's charged",
+    rateUnavailable: "No rate",
+    approximateTotal: "Converted at today's rates.",
+    missingRates: (n: number) => `${n} ${plural(n, "amount", "amounts")} left out: no exchange rate right now.`,
+    inCurrency: (code: string) => `in ${code}`,
   },
 
   errors: {

@@ -5,7 +5,7 @@ import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
 import { ViewerProvider } from "@/components/people-ui";
-import { getAccounts, getAttention, getCategories, getCurrentUser } from "@/lib/data";
+import { getAccounts, getAttention, getCategories, getCurrencies, getCurrentUser } from "@/lib/data";
 import { I18nProvider } from "@/i18n/client";
 import { getI18n } from "@/i18n/server";
 import { getPreferences } from "@/lib/session";
@@ -21,10 +21,17 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 }
 
 async function Shell({ children }: { children: React.ReactNode }) {
-  const { currency, timeZone } = await getPreferences();
+  const { timeZone } = await getPreferences();
   const { locale, t } = await getI18n();
   // Who's signed in: needed by every screen for "You" and permissions
-  const me = await getCurrentUser();
+  // Plus every account's currency (amounts are formatted in it) and the
+  // currencies the API can convert
+  const [me, allAccounts, currencies] = await Promise.all([
+    getCurrentUser(),
+    getAccounts(true),
+    getCurrencies().catch(() => null),
+  ]);
+  const accountCurrencies = Object.fromEntries(allAccounts.map((a) => [a.id, a.currency]));
   // Started here, awaited only where needed (user menu, the add sheet)
   const user = Promise.resolve(me);
   const accounts = getAccounts();
@@ -34,7 +41,12 @@ async function Shell({ children }: { children: React.ReactNode }) {
   return (
     <I18nProvider locale={locale}>
     <ViewerProvider viewer={{ id: me.id, name: me.name, isManaged: me.isManaged }}>
-    <PreferencesProvider currency={currency} timeZone={timeZone}>
+    <PreferencesProvider
+      currency={me.preferredCurrency}
+      timeZone={timeZone}
+      accountCurrencies={accountCurrencies}
+      currencies={currencies}
+    >
       <ToastProvider>
         <QuickAddProvider accounts={accounts} categories={categories}>
           <a

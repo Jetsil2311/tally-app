@@ -27,7 +27,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { capitalize } from "@/i18n/format";
 import { isSystemCategory } from "@/lib/insights";
 import { canManage } from "@/lib/permissions";
-import { toCents } from "@/lib/money";
+import { sumConverted, toCents, type Rates } from "@/lib/money";
 import {
   FREQUENCIES,
   STATUS_TONE,
@@ -54,8 +54,8 @@ import { AccountIcon } from "./account-icon";
 import { ChipGroup, Segmented } from "./chips";
 import { Menu, MenuItem } from "./menu";
 import { useViewer, ViewOnlyTag } from "./people-ui";
-import { Money } from "./preferences";
-import { AmountInput } from "./quick-add";
+import { Money, usePreferences } from "./preferences";
+import { AmountInput, ConversionPreview } from "./quick-add";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
 import { Button, buttonClass, Card, cn, EmptyState, Field, Input, inputClass, SectionTitle, Select } from "./ui";
@@ -80,6 +80,7 @@ export function RecurringManager({
   accounts,
   categories,
   today,
+  rates,
 }: {
   payments: RecurringPayment[];
   upcoming: Upcoming;
@@ -87,6 +88,8 @@ export function RecurringManager({
   categories: Category[];
   // "2026-10-08" in the user's time zone
   today: string;
+  // Today's rates into the preferred currency, for totals across currencies
+  rates: Rates;
 }) {
   const { t } = useI18n();
   const r = t.recurring;
@@ -151,18 +154,18 @@ export function RecurringManager({
         </Card>
       ) : (
         <>
-          <OverdueBanner upcoming={upcoming} canCharge={manageable.length > 0} />
+          <OverdueBanner upcoming={upcoming} canCharge={manageable.length > 0} rates={rates} />
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
             <Card className="rise p-3 sm:p-4 lg:col-span-7" style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="next-title">
               <div className="px-3 pt-2">
                 <SectionTitle id="next-title">{r.next30}</SectionTitle>
               </div>
-              <Timeline upcoming={upcoming} payments={active.filter(editable)} today={today} onOpen={start} />
+              <Timeline upcoming={upcoming} payments={active.filter(editable)} today={today} onOpen={start} rates={rates} />
             </Card>
 
             <div className="flex flex-col gap-4 lg:col-span-5 lg:gap-5">
-              <Commitments payments={active} />
+              <Commitments payments={active} rates={rates} />
               <Balances upcoming={upcoming} accounts={accounts} />
             </div>
           </div>
@@ -230,13 +233,20 @@ export function RecurringManager({
 // Overview
 // ---------------------------------------------------------------------------
 
-function OverdueBanner({ upcoming, canCharge }: { upcoming: Upcoming; canCharge: boolean }) {
+function OverdueBanner({ upcoming, canCharge, rates }: { upcoming: Upcoming; canCharge: boolean; rates: Rates }) {
   const toast = useToast();
   const { t } = useI18n();
+  const { currency: preferred } = usePreferences();
   const [pending, startTransition] = useTransition();
   const overdue = upcoming.occurrences.filter((o) => o.overdue);
   if (overdue.length === 0) return null;
-  const missing = overdue.reduce((sum, o) => sum + toCents(o.shortfall), 0);
+  // Shortfalls are in each account's currency
+  const short = sumConverted(
+    overdue.map((o) => ({ cents: toCents(o.shortfall), currency: o.accountCurrency })),
+    preferred,
+    rates,
+  );
+  const missing = short.cents;
 
   return (
     <div
@@ -247,7 +257,7 @@ function OverdueBanner({ upcoming, canCharge }: { upcoming: Upcoming; canCharge:
       <p className="flex-1 text-[15px]">
         <span className="font-medium">{t.recurring.overdueTitle(overdue.length)}</span>{" "}
         <span className="text-ink-2">
-          {missing > 0 ? t.recurring.overdueNeed(<Money cents={missing} className="font-medium text-ink" />) : null}
+          {missing > 0 ? t.recurring.overdueNeed(<Money cents={missing} approximate={short.approximate} className="font-medium text-ink" />) : null}
           {t.recurring.overdueHint}
         </span>
       </p>
@@ -284,17 +294,30 @@ function Timeline({
   payments,
   today,
   onOpen,
+  rates,
 }: {
   upcoming: Upcoming;
   payments: RecurringPayment[];
   today: string;
   onOpen: (payment: RecurringPayment) => void;
+  rates: Rates;
 }) {
   const [showAll, setShowAll] = useState(false);
   const { t, locale } = useI18n();
+  const { currency: preferred } = usePreferences();
   const occurrences = upcoming.occurrences;
-  const out = occurrences.filter((o) => o.type === "expense").reduce((sum, o) => sum + toCents(o.amount), 0);
-  const inflow = occurrences.filter((o) => o.type === "income").reduce((sum, o) => sum + toCents(o.amount), 0);
+  // Each occurrence is in the currency it's charged in: converted to the
+  // preferred one at today's rate
+  const total = (type: "income" | "expense") =>
+    sumConverted(
+      occurrences.filter((o) => o.type === type).map((o) => ({ cents: toCents(o.amount), currency: o.currency })),
+      preferred,
+      rates,
+    );
+  const outSum = total("expense");
+  const inSum = total("income");
+  const out = outSum.cents;
+  const inflow = inSum.cents;
 
   if (occurrences.length === 0) {
     return (
@@ -323,13 +346,13 @@ function Timeline({
         <div>
           <dt className="text-sm text-ink-2">{t.recurring.goingOut}</dt>
           <dd>
-            <Money cents={out} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
+            <Money cents={out} approximate={outSum.approximate} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
           </dd>
         </div>
         <div>
           <dt className="text-sm text-ink-2">{t.recurring.comingIn}</dt>
           <dd>
-            <Money cents={inflow} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
+            <Money cents={inflow} approximate={inSum.approximate} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
           </dd>
         </div>
       </dl>
@@ -364,6 +387,7 @@ function Timeline({
 }
 
 function OccurrenceRow({ occurrence, onClick }: { occurrence: Occurrence; onClick?: () => void }) {
+  const { t } = useI18n();
   const income = occurrence.type === "income";
   const Row = onClick ? "button" : "div";
   return (
@@ -381,9 +405,16 @@ function OccurrenceRow({ occurrence, onClick }: { occurrence: Occurrence; onClic
       <span className="flex shrink-0 flex-col items-end gap-1">
         <Money
           value={income ? occurrence.amount : -Number(occurrence.amount)}
+          currency={occurrence.currency}
           sign
           className={cn("text-[15px] font-semibold", income ? "text-income" : "text-ink")}
         />
+        {/* Charged in another currency: roughly what leaves the account */}
+        {occurrence.estimated && occurrence.accountAmount ? (
+          <span className="text-xs text-ink-3" title={t.money.estimated}>
+            <Money value={occurrence.accountAmount} currency={occurrence.accountCurrency} approximate />
+          </span>
+        ) : null}
         <StatusPill forecast={occurrence} />
       </span>
     </Row>
@@ -391,11 +422,23 @@ function OccurrenceRow({ occurrence, onClick }: { occurrence: Occurrence; onClic
 }
 
 // Fixed costs vs. recurring income, normalised to a month
-function Commitments({ payments }: { payments: RecurringPayment[] }) {
+function Commitments({ payments, rates }: { payments: RecurringPayment[]; rates: Rates }) {
   const { t } = useI18n();
+  const { currency: preferred } = usePreferences();
   const r = t.recurring;
-  const out = payments.filter((p) => p.type === "expense").reduce((sum, p) => sum + monthlyCents(p), 0);
-  const inflow = payments.filter((p) => p.type === "income").reduce((sum, p) => sum + monthlyCents(p), 0);
+  // Each payment is in its own currency: a monthly average converted to
+  // the preferred one at today's rate
+  const total = (type: "income" | "expense") =>
+    sumConverted(
+      payments.filter((p) => p.type === type).map((p) => ({ cents: monthlyCents(p), currency: p.currency })),
+      preferred,
+      rates,
+    );
+  const outSum = total("expense");
+  const inSum = total("income");
+  const approximate = outSum.approximate || inSum.approximate;
+  const out = outSum.cents;
+  const inflow = inSum.cents;
   const left = inflow - out;
 
   return (
@@ -405,7 +448,7 @@ function Commitments({ payments }: { payments: RecurringPayment[] }) {
         <div>
           <dt className="text-sm text-ink-2">{r.fixedCosts}</dt>
           <dd>
-            <Money cents={out} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
+            <Money cents={out} approximate={approximate} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
           </dd>
           <dd className="text-xs text-ink-2">
             {r.billCount(payments.filter((p) => p.type === "expense").length)}
@@ -414,7 +457,7 @@ function Commitments({ payments }: { payments: RecurringPayment[] }) {
         <div>
           <dt className="text-sm text-ink-2">{r.recurringIncome}</dt>
           <dd>
-            <Money cents={inflow} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
+            <Money cents={inflow} approximate={approximate} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
           </dd>
         </div>
       </dl>
@@ -454,16 +497,16 @@ function Balances({ upcoming, accounts }: { upcoming: Upcoming; accounts: Accoun
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{row.name}</p>
-                <p className="text-sm text-ink-2">{r.now(<Money cents={now} />)}</p>
+                <p className="text-sm text-ink-2">{r.now(<Money cents={now} currency={row.currency} />)}</p>
                 {short > 0 ? (
                   <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-warn">
-                    <WarningCircle size={16} weight="fill" /> {r.needsMore(<Money cents={short} />)}
+                    <WarningCircle size={16} weight="fill" /> {r.needsMore(<Money cents={short} currency={row.currency} />)}
                   </p>
                 ) : null}
               </div>
               <div className="shrink-0 text-right">
-                <Money cents={later} className={cn("text-[15px] font-semibold", later < 0 && type !== "creditCard" ? "text-expense" : "text-ink")} />
-                <p className="text-xs text-ink-2">{r.after(<Money cents={later - now} sign />)}</p>
+                <Money cents={later} currency={row.currency} className={cn("text-[15px] font-semibold", later < 0 && type !== "creditCard" ? "text-expense" : "text-ink")} />
+                <p className="text-xs text-ink-2">{r.after(<Money cents={later - now} currency={row.currency} sign />)}</p>
               </div>
             </li>
           );
@@ -521,7 +564,7 @@ export function StatusPill({ forecast }: { forecast: Forecast }) {
       )}
     >
       {icon}
-      {short ? t.recurring.short(<Money value={forecast.shortfall} />, forecast.overdue) : t.recurring.status[forecast.status]}
+      {short ? t.recurring.short(<Money value={forecast.shortfall} currency={forecast.accountCurrency} />, forecast.overdue) : t.recurring.status[forecast.status]}
     </span>
   );
 }
@@ -577,6 +620,7 @@ function PaymentRow({
         <span className="flex shrink-0 flex-col items-end gap-1">
           <Money
             value={income ? payment.amount : -Number(payment.amount)}
+            currency={payment.currency}
             sign
             className={cn("text-[15px] font-semibold", !payment.isActive ? "text-ink-2" : income ? "text-income" : "text-ink")}
           />
@@ -681,6 +725,16 @@ function RecurringForm({
     payment?.accountId ?? activeAccounts.find((a) => a.type !== "creditCard")?.id ?? activeAccounts[0]?.id ?? "",
   );
   const account = activeAccounts.find((a) => a.id === accountId);
+  // The currency it's charged in (a subscription billed in USD on an MXN
+  // account): converted at each charge, so the preview is an estimate
+  const accountCurrency = account?.currency ?? "USD";
+  const [currency, setCurrency] = useState(payment?.currency ?? accountCurrency);
+  const [amountText, setAmountText] = useState(payment?.amount ?? "");
+  const chooseAccount = (id: string) => {
+    const next = activeAccounts.find((a) => a.id === id)?.currency;
+    if (next && currency === accountCurrency) setCurrency(next);
+    setAccountId(id);
+  };
 
   // Personal categories plus the chosen account's shared ones
   const usable = categories.filter((c) => !isSystemCategory(c.name) && (c.accountId === null || c.accountId === accountId));
@@ -742,7 +796,24 @@ function RecurringForm({
         ]}
       />
 
-      <AmountInput defaultValue={payment?.amount} error={errors.amount} result={state} tone={type} />
+      {payment ? <input type="hidden" name="originalCurrency" value={payment.currency} /> : null}
+      <AmountInput
+        defaultValue={payment?.amount}
+        error={errors.amount}
+        result={state}
+        tone={type}
+        currency={currency}
+        onCurrencyChange={setCurrency}
+        onValueChange={setAmountText}
+        footer={
+          currency !== accountCurrency ? (
+            <>
+              <ConversionPreview amount={amountText} from={currency} to={accountCurrency} />
+              <p className="text-center text-xs text-ink-3">{t.money.estimated}</p>
+            </>
+          ) : null
+        }
+      />
 
       <Field label={t.common.name} htmlFor="recurring-name" error={errors.name} hint={r.nameHint}>
         <Input
@@ -862,7 +933,7 @@ function RecurringForm({
           label={t.common.account}
           name="accountId"
           value={accountId}
-          onChange={setAccountId}
+          onChange={chooseAccount}
           invalid={Boolean(errors.accountId)}
           options={activeAccounts.map((a) => ({ value: a.id, label: a.name, icon: <AccountIcon type={a.type} size={18} /> }))}
         />

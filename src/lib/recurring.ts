@@ -70,4 +70,5 @@ export const STATUS_TONE: Record<FundingStatus, "ok" | "warn" | "income" | "mute
   income: "income",
   noCheck: "muted",
   accountInactive: "muted",
+  rateUnavailable: "warn",
 };

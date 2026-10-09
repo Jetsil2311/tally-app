@@ -19,6 +19,7 @@ import {
   getMonthSeries,
   getSummary,
   getAttention,
+  getRatesTo,
   getTransactionPage,
   getUpcoming,
 } from "@/lib/data";
@@ -28,6 +29,7 @@ import { getI18n } from "@/i18n/server";
 import { ApiError } from "@/lib/api";
 import { currentMonthKey, dayKey, daysInMonth, monthLabel, monthRange, shiftMonth, todayParts } from "@/lib/dates";
 import { change, isTransfer, rollUpCategories, savingsRate, totalsFromSummary } from "@/lib/insights";
+import { sumBalances, txCents } from "@/lib/convert";
 import { percent, toCents } from "@/lib/money";
 import { relativeDue } from "@/lib/recurring";
 import { getPreferences, requestTime } from "@/lib/session";
@@ -55,9 +57,11 @@ async function Home() {
   const range = monthRange(monthKey, timeZone);
   const prevRange = monthRange(shiftMonth(monthKey, -1), timeZone);
 
-  const [user, accounts, categories, summary, prevSummary, series, month, recent, upcoming, attention] = await Promise.all([
+  const [user, accounts, allAccounts, categories, summary, prevSummary, series, month, recent, upcoming, attention] = await Promise.all([
     getCurrentUser(),
     getAccounts(),
+    // Archived ones too: their past entries still need their currency
+    getAccounts(true),
     getCategories(),
     getSummary(range.from, range.to),
     getSummary(prevRange.from, prevRange.to),
@@ -96,17 +100,33 @@ async function Home() {
 
   const totals = totalsFromSummary(summary);
   const prev = totalsFromSummary(prevSummary);
-  const netWorth = accounts.reduce((sum, a) => sum + toCents(a.balance), 0);
-  const owed = accounts.filter((a) => a.type === "creditCard").reduce((sum, a) => sum + Math.min(toCents(a.balance), 0), 0);
-  const available = accounts.filter((a) => a.type !== "creditCard").reduce((sum, a) => sum + toCents(a.balance), 0);
+  // Accounts can be in different currencies: everything below is in the
+  // preferred one, converted at today's rate where needed
+  const preferred = user.preferredCurrency;
+  const net = sumBalances(accounts, preferred);
+  const netWorth = net.cents;
+  const owedSum = sumBalances(
+    accounts.filter((a) => a.type === "creditCard" && toCents(a.balance) < 0),
+    preferred,
+  );
+  const owed = owedSum.cents;
+  const availableSum = sumBalances(accounts.filter((a) => a.type !== "creditCard"), preferred);
+  const available = availableSum.cents;
+  const currencyOf = Object.fromEntries(allAccounts.map((a) => [a.id, a.currency]));
+  const rates = await getRatesTo(
+    month.rows.map((tx) => currencyOf[tx.accountId] ?? preferred),
+    preferred,
+  );
 
   // Spending by day, for the calendar and the pace estimate
   const today = dayKey(now, timeZone);
   const days: Record<string, number> = {};
   for (const tx of month.rows) {
     if (tx.type !== "expense" || isTransfer(tx)) continue;
+    const cents = txCents(tx, currencyOf, preferred, rates);
+    if (cents === null) continue;
     const key = dayKey(tx.date, timeZone);
-    days[key] = (days[key] ?? 0) + toCents(tx.amount);
+    days[key] = (days[key] ?? 0) + cents;
   }
   const dayOfMonth = todayParts(timeZone, now).day;
   const totalDays = daysInMonth(monthKey);
@@ -144,18 +164,18 @@ async function Home() {
             <h2 id="net-title" className="text-sm text-white/75">
               {t.home.netAcross(accounts.length)}
             </h2>
-            <Money cents={netWorth} className="mt-2 block truncate text-[clamp(2rem,11vw,2.75rem)] leading-none font-semibold tracking-tighter sm:text-[56px]" />
+            <Money cents={netWorth} approximate={net.approximate} className="mt-2 block truncate text-[clamp(2rem,11vw,2.75rem)] leading-none font-semibold tracking-tighter sm:text-[56px]" />
             <dl className="mt-6 grid grid-cols-2 [&>div]:min-w-0 gap-4 sm:max-w-md lg:mt-auto lg:pt-6">
               <div>
                 <dt className="text-sm text-white/70">{t.home.cashAndDebit}</dt>
                 <dd>
-                  <Money cents={available} className="block truncate text-lg font-medium" />
+                  <Money cents={available} approximate={availableSum.approximate} className="block truncate text-lg font-medium" />
                 </dd>
               </div>
               <div>
                 <dt className="text-sm text-white/70">{t.home.creditOwed}</dt>
                 <dd>
-                  <Money cents={Math.abs(owed)} className="block truncate text-lg font-medium" />
+                  <Money cents={Math.abs(owed)} approximate={owedSum.approximate} className="block truncate text-lg font-medium" />
                 </dd>
               </div>
             </dl>
@@ -366,7 +386,7 @@ function ComingUp({ upcoming, today, t, locale }: { upcoming: Upcoming; today: s
           <span className="flex-1">
             {t.home.shortFor(
               <span className="font-medium">{account.name}</span>,
-              <Money value={account.shortfall} className="font-medium" />,
+              <Money value={account.shortfall} currency={account.currency} className="font-medium" />,
             )}
           </span>
           <ArrowRight size={16} className="shrink-0 text-ink-2" />
@@ -384,6 +404,7 @@ function ComingUp({ upcoming, today, t, locale }: { upcoming: Upcoming; today: s
               <span className="flex shrink-0 flex-col items-end gap-1">
                 <Money
                   value={occurrence.type === "income" ? occurrence.amount : -Number(occurrence.amount)}
+                  currency={occurrence.currency}
                   sign
                   className={cn("text-[15px] font-semibold", occurrence.type === "income" ? "text-income" : "text-ink")}
                 />

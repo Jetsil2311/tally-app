@@ -41,7 +41,9 @@ export function AccountCard({ account, className, href }: { account: Account; cl
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[15px] font-medium">{account.name}</p>
-          <p className="text-sm text-white/70">{t.accountTypes[account.type].label}</p>
+          <p className="text-sm text-white/70">
+            {t.accountTypes[account.type].label} · <span translate="no">{account.currency}</span>
+          </p>
         </div>
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15">
           <AccountIcon type={account.type} size={20} />
@@ -49,7 +51,21 @@ export function AccountCard({ account, className, href }: { account: Account; cl
       </div>
       <div className="relative">
         <p className="text-sm text-white/70">{owed ? t.accountCard.youOwe : credit ? t.accountCard.creditBalance : t.accountCard.available}</p>
-        <Money cents={credit ? Math.abs(cents) : cents} className="text-[28px] leading-tight font-semibold tracking-tight" />
+        <Money
+          cents={credit ? Math.abs(cents) : cents}
+          currency={account.currency}
+          className="block truncate text-[28px] leading-tight font-semibold tracking-tight"
+        />
+        {/* In the preferred currency too, when the account uses another one */}
+        {account.preferredBalance && account.preferredBalance.currency !== account.currency ? (
+          <p className="truncate text-xs text-white/75">
+            <Money
+              value={credit ? Math.abs(Number(account.preferredBalance.amount)) : account.preferredBalance.amount}
+              currency={account.preferredBalance.currency}
+              approximate
+            />
+          </p>
+        ) : null}
         {!credit && cents < 0 ? <p className="text-xs text-white/80">{t.accountCard.overdrawn}</p> : null}
       </div>
     </div>
