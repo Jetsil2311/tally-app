@@ -1,6 +1,8 @@
 import "server-only";
 import { redirect } from "next/navigation";
 
+import { getI18n } from "@/i18n/server";
+
 import { env } from "./env";
 import { getToken } from "./session";
 
@@ -49,7 +51,7 @@ export async function api<T>(path: string, { method = "GET", body, query }: Opti
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError(503, "Can't reach the finance API. Is it running?");
+    throw new ApiError(503, (await getI18n()).t.common.apiUnreachable);
   }
 
   if (response.status === 401) {

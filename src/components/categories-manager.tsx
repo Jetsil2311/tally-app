@@ -4,7 +4,8 @@ import { ArrowsLeftRight, CaretRight, PencilSimple, Plus, Sparkle, Tag, Trash } 
 import { useActionState, useState, useTransition } from "react";
 
 import { createStarterCategories, deleteCategory, saveCategory } from "@/actions/categories";
-import { isSystemCategory, isTransferCategory } from "@/lib/insights";
+import { useI18n } from "@/i18n/client";
+import { categoryLabel, isSystemCategory, isTransferCategory } from "@/lib/insights";
 import type { ActionState, Category } from "@/lib/types";
 
 import { Money } from "./preferences";
@@ -23,6 +24,7 @@ export function CategoriesManager({
   spent: Record<string, number>; // category id -> cents spent this month
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [editing, setEditing] = useState<Editing | null>(null);
   const [open, setOpen] = useState(false);
   const [seeding, startSeeding] = useTransition();
@@ -37,26 +39,24 @@ export function CategoriesManager({
   const seed = () =>
     startSeeding(async () => {
       const result = await createStarterCategories();
-      toast(result.message ?? "Done", { tone: result.ok ? "success" : "error" });
+      toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
     });
 
   return (
     <>
       <div className="flex flex-col gap-4 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">Categories</h1>
-          <p className="mt-1 max-w-[56ch] text-ink-2">
-            Group spending and income so every cent has a place. Subcategories roll up into their parent in reports.
-          </p>
+          <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.categories}</h1>
+          <p className="mt-1 max-w-[56ch] text-ink-2">{t.categories.intro}</p>
         </div>
         <div className="flex gap-2">
           {topLevel.length > 0 ? (
             <Button variant="secondary" onClick={seed} disabled={seeding}>
-              <Sparkle size={18} /> {seeding ? "Adding…" : "Add starter set"}
+              <Sparkle size={18} /> {seeding ? t.categories.adding : t.categories.addStarter}
             </Button>
           ) : null}
           <Button onClick={() => edit({})}>
-            <Plus size={18} weight="bold" /> New category
+            <Plus size={18} weight="bold" /> {t.categories.newCategory}
           </Button>
         </div>
       </div>
@@ -65,19 +65,19 @@ export function CategoriesManager({
         <Card>
           <EmptyState
             icon={<Tag size={24} />}
-            title="No categories yet"
+            title={t.categories.emptyTitle}
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Button onClick={seed} disabled={seeding}>
-                  <Sparkle size={18} /> {seeding ? "Adding…" : "Use a starter set"}
+                  <Sparkle size={18} /> {seeding ? t.categories.adding : t.categories.useStarter}
                 </Button>
                 <Button variant="secondary" onClick={() => edit({})}>
-                  Start from scratch
+                  {t.categories.startFromScratch}
                 </Button>
               </div>
             }
           >
-            The starter set covers housing, food, transport, bills, salary and more. Rename or delete anything later.
+            {t.categories.emptyBody}
           </EmptyState>
         </Card>
       ) : (
@@ -99,23 +99,21 @@ export function CategoriesManager({
                     {isMove ? <ArrowsLeftRight size={18} /> : <Tag size={18} />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{parent.name}</p>
+                    <p className="truncate font-medium">{categoryLabel(parent.name, t)}</p>
                     <p className="text-sm text-ink-2">
-                      {transfer ? (
-                        isMove ? "Moves between your accounts. Not counted in reports." : "Starting balances. Not counted in reports."
-                      ) : total ? (
-                        <>
-                          <Money cents={total} /> spent this month
-                        </>
-                      ) : (
-                        "Nothing spent this month"
-                      )}
+                      {transfer
+                        ? isMove
+                          ? t.categories.transferNote
+                          : t.categories.openingNote
+                        : total
+                          ? t.categories.spentThisMonth(<Money cents={total} />)
+                          : t.categories.nothingSpent}
                     </p>
                   </div>
-                  <IconButton label={`Add subcategory to ${parent.name}`} onClick={() => edit({ parentId: parent.id })}>
+                  <IconButton label={t.categories.addSubcategory(parent.name)} onClick={() => edit({ parentId: parent.id })}>
                     <Plus size={18} />
                   </IconButton>
-                  <IconButton label={`Edit ${parent.name}`} onClick={() => edit({ category: parent })}>
+                  <IconButton label={t.categories.edit(parent.name)} onClick={() => edit({ category: parent })}>
                     <PencilSimple size={18} />
                   </IconButton>
                 </div>
@@ -145,7 +143,7 @@ export function CategoriesManager({
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
-        title={editing?.category ? "Edit category" : editing?.parentId ? "New subcategory" : "New category"}
+        title={editing?.category ? t.categories.editCategory : editing?.parentId ? t.categories.newSubcategory : t.categories.newCategory}
       >
         {editing ? (
           <CategoryForm
@@ -176,12 +174,13 @@ function CategoryForm({
   onDone: () => void;
 }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [deleting, startDelete] = useTransition();
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await saveCategory(prev, formData);
     if (result.ok) {
-      toast(result.message ?? "Saved");
+      toast(result.message ?? t.common.saved);
       onDone();
     }
     return result;
@@ -192,26 +191,26 @@ function CategoryForm({
   return (
     <form onSubmit={submitWith(formAction)} className="space-y-6" noValidate>
       {category ? <input type="hidden" name="id" value={category.id} /> : null}
-      <Field label="Name" htmlFor="category-name" error={errors.name}>
+      <Field label={t.common.name} htmlFor="category-name" error={errors.name}>
         <Input
           id="category-name"
           name="name"
           defaultValue={category?.name}
-          placeholder="Groceries"
+          placeholder={t.categories.namePlaceholder}
           autoFocus
           autoComplete="off"
           aria-invalid={Boolean(errors.name)}
         />
       </Field>
       {!hasChildren ? (
-        <Field label="Inside" htmlFor="category-parent" hint="Subcategories roll up into their parent in reports.">
+        <Field label={t.categories.inside} htmlFor="category-parent" hint={t.categories.insideHint}>
           <Select id="category-parent" name="parentId" defaultValue={currentParent}>
-            <option value="">Nothing (top level)</option>
+            <option value="">{t.categories.topLevel}</option>
             {parents
               .filter((p) => p.id !== category?.id)
               .map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {categoryLabel(p.name, t)}
                 </option>
               ))}
           </Select>
@@ -228,7 +227,7 @@ function CategoryForm({
 
       {confirming ? (
         <p className="rounded-2xl bg-expense-soft px-4 py-3 text-sm text-expense">
-          {hasChildren ? "Its subcategories will be deleted too. " : ""}Entries in it stay, but lose their category.
+          {t.categories.deleteWarning(hasChildren)}
         </p>
       ) : null}
 
@@ -244,16 +243,16 @@ function CategoryForm({
               if (!confirming) return setConfirming(true);
               startDelete(async () => {
                 const result = await deleteCategory(category.id);
-                toast(result.message ?? "Deleted", { tone: result.ok ? "success" : "error" });
+                toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
                 if (result.ok) onDone();
               });
             }}
           >
-            <Trash size={18} /> {confirming ? "Delete for good" : "Delete"}
+            <Trash size={18} /> {confirming ? t.categories.deleteForGood : t.common.delete}
           </Button>
         ) : null}
         <Button type="submit" size="lg" disabled={pending} className="sm:flex-1">
-          {pending ? "Saving…" : category ? "Save changes" : "Create"}
+          {pending ? t.common.saving : category ? t.common.saveChanges : t.common.create}
         </Button>
       </div>
     </form>

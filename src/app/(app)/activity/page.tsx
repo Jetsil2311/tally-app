@@ -3,25 +3,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { Busy } from "@/components/busy";
 import { OpenQuickAdd } from "@/components/actions-bar";
 import { ActivityFilters } from "@/components/activity-filters";
 import { Money } from "@/components/preferences";
 import { TransactionRow } from "@/components/transaction-row";
 import { Card, cn, EmptyState, Skeleton } from "@/components/ui";
+import { capitalize } from "@/i18n/format";
+import { getI18n } from "@/i18n/server";
 import { activityHref, type ActivityQuery } from "@/lib/activity-query";
 import { getAccounts, getAllTransactions, getCategories } from "@/lib/data";
 import { currentMonthKey, dayKey, monthLabel, monthRange, parseMonthKey, shiftMonth, type MonthKey } from "@/lib/dates";
 import { isTransfer } from "@/lib/insights";
 import { toCents } from "@/lib/money";
 import { getPreferences, requestTime } from "@/lib/session";
+import type { Dictionary } from "@/i18n/dictionaries";
 import type { Transaction } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Activity" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t.nav.activity };
+}
 
-export default function ActivityPage({ searchParams }: PageProps<"/activity">) {
+export default async function ActivityPage({ searchParams }: PageProps<"/activity">) {
+  const { t } = await getI18n();
   return (
     <div className="space-y-5">
-      <h1 className="rise pt-2 text-[28px] font-semibold tracking-tight sm:text-[32px]">Activity</h1>
+      <h1 className="rise pt-2 text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.activity}</h1>
       <Suspense fallback={<ActivitySkeleton />}>
         <Activity searchParams={searchParams} />
       </Suspense>
@@ -34,6 +42,7 @@ const single = (value: string | string[] | undefined) => (Array.isArray(value) ?
 async function Activity({ searchParams }: { searchParams: PageProps<"/activity">["searchParams"] }) {
   const params = await searchParams;
   const { timeZone } = await getPreferences();
+  const { t, locale } = await getI18n();
   const now = await requestTime();
   const current = currentMonthKey(timeZone, now);
   const rawMonth = single(params.month);
@@ -77,7 +86,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   }
 
   const groups = groupByDay(rows, timeZone);
-  const dayFormat = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+  const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   const today = dayKey(now, timeZone);
   const yesterday = dayKey(new Date(now.getTime() - 86_400_000), timeZone);
   const filtered = Boolean(query.q || query.type || query.account || query.category || query.filter);
@@ -87,14 +96,14 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
       <ActivityFilters query={query} accounts={accounts} categories={categories} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <MonthSwitcher month={month} current={current} query={query} />
+        <MonthSwitcher month={month} current={current} query={query} t={t} locale={locale} />
       </div>
 
       <dl className="rise grid grid-cols-3 gap-2 sm:gap-3">
         {[
-          { label: "In", cents: income, tone: "text-income" },
-          { label: "Out", cents: expense, tone: "text-ink" },
-          { label: "Net", cents: income - expense, tone: income - expense < 0 ? "text-expense" : "text-ink", sign: true },
+          { label: t.common.in, cents: income, tone: "text-income" },
+          { label: t.common.out, cents: expense, tone: "text-ink" },
+          { label: t.common.net, cents: income - expense, tone: income - expense < 0 ? "text-expense" : "text-ink", sign: true },
         ].map((item) => (
           <div key={item.label} className="min-w-0 rounded-3xl border border-line bg-surface px-3.5 py-3 sm:px-5 sm:py-3.5">
             <dt className="text-sm text-ink-2">{item.label}</dt>
@@ -107,23 +116,23 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
 
       {result.truncated ? (
         <p className="rounded-2xl bg-surface-2 px-4 py-3 text-sm text-ink-2">
-          Showing the most recent {result.rows.length} entries. Pick a month to see everything in it.
+          {t.activity.showingRecent(result.rows.length)}
         </p>
       ) : null}
 
       {groups.length === 0 ? (
         <Card>
           {filtered ? (
-            <EmptyState icon={<MagnifyingGlass size={24} />} title="Nothing matches">
-              Try another search, or clear the filters.
+            <EmptyState icon={<MagnifyingGlass size={24} />} title={t.activity.nothingMatches}>
+              {t.activity.nothingMatchesHint}
             </EmptyState>
           ) : (
             <EmptyState
               icon={<Receipt size={24} />}
-              title={month === "all" ? "No entries yet" : `Nothing logged in ${monthLabel(month, "long", false)}`}
-              action={<OpenQuickAdd>Add an entry</OpenQuickAdd>}
+              title={month === "all" ? t.activity.noEntries : t.activity.nothingIn(monthLabel(month, "long", false, locale))}
+              action={<OpenQuickAdd>{t.activity.addEntry}</OpenQuickAdd>}
             >
-              Log purchases as they happen, or catch up on the ones you remember.
+              {t.activity.emptyHint}
             </EmptyState>
           )}
         </Card>
@@ -132,7 +141,11 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
           {groups.map((group, i) => {
             const [y, m, d] = group.day.split("-").map(Number);
             const label =
-              group.day === today ? "Today" : group.day === yesterday ? "Yesterday" : dayFormat.format(new Date(Date.UTC(y, m - 1, d)));
+              group.day === today
+                ? t.common.today
+                : group.day === yesterday
+                  ? t.common.yesterday
+                  : capitalize(dayFormat.format(new Date(Date.UTC(y, m - 1, d))));
             return (
               <section
                 key={group.day}
@@ -143,9 +156,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
                 <div className="flex items-baseline justify-between px-2 pb-1.5">
                   <h2 className="text-sm font-medium text-ink-2">{label}</h2>
                   {group.spent ? (
-                    <p className="text-sm text-ink-3">
-                      Spent <Money cents={group.spent} />
-                    </p>
+                    <p className="text-sm text-ink-3">{t.activity.spent(<Money cents={group.spent} />)}</p>
                   ) : null}
                 </div>
                 <Card className="p-1.5 sm:p-2">
@@ -177,22 +188,34 @@ function groupByDay(rows: Transaction[], timeZone: string) {
   return groups;
 }
 
-function MonthSwitcher({ month, current, query }: { month: MonthKey | "all"; current: MonthKey; query: ActivityQuery }) {
+function MonthSwitcher({
+  month,
+  current,
+  query,
+  t,
+  locale,
+}: {
+  month: MonthKey | "all";
+  current: MonthKey;
+  query: ActivityQuery;
+  t: Dictionary;
+  locale: string;
+}) {
   const href = (m: string) => activityHref({ ...query, month: m === current ? "" : m });
   const base = month === "all" ? current : month;
   const next = shiftMonth(base, 1);
   const pill =
     "inline-flex h-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink";
   return (
-    <nav aria-label="Month" className="flex w-full items-center gap-1 sm:w-auto">
-      <Link href={href(shiftMonth(base, -1))} aria-label="Previous month" className={cn(pill, "w-11")}>
+    <nav aria-label={t.activity.month} className="flex w-full items-center gap-1 sm:w-auto">
+      <Link href={href(shiftMonth(base, -1))} aria-label={t.activity.previousMonth} className={cn(pill, "w-11")}>
         <CaretLeft size={18} />
       </Link>
       <p className="min-w-40 flex-1 text-center text-[17px] font-semibold tracking-tight sm:flex-none" aria-live="polite">
-        {month === "all" ? "All time" : monthLabel(month)}
+        {month === "all" ? t.activity.allTime : capitalize(monthLabel(month, "long", true, locale))}
       </p>
       {next <= current ? (
-        <Link href={href(next)} aria-label="Next month" className={cn(pill, "w-11")}>
+        <Link href={href(next)} aria-label={t.activity.nextMonth} className={cn(pill, "w-11")}>
           <CaretRight size={18} />
         </Link>
       ) : (
@@ -204,7 +227,7 @@ function MonthSwitcher({ month, current, query }: { month: MonthKey | "all"; cur
         href={href(month === "all" ? current : "all")}
         className={cn(pill, "ml-1 border border-line px-4 text-sm font-medium", month === "all" && "border-ink bg-ink text-surface hover:bg-ink hover:text-surface")}
       >
-        All time
+        {t.activity.allTime}
       </Link>
     </nav>
   );
@@ -212,7 +235,7 @@ function MonthSwitcher({ month, current, query }: { month: MonthKey | "all"; cur
 
 function ActivitySkeleton() {
   return (
-    <div className="space-y-5" aria-busy aria-label="Loading">
+    <Busy className="space-y-5">
       <Skeleton className="h-12 w-full rounded-full" />
       <Skeleton className="h-11 w-64 rounded-full" />
       <div className="grid grid-cols-3 gap-3">
@@ -221,6 +244,6 @@ function ActivitySkeleton() {
         <Skeleton className="h-20 rounded-3xl" />
       </div>
       <Skeleton className="h-72 rounded-3xl" />
-    </div>
+    </Busy>
   );
 }

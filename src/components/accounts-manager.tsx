@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 
 import { saveAccount, setAccountActive } from "@/actions/accounts";
+import { useI18n } from "@/i18n/client";
 import { currencySymbol } from "@/lib/money";
 import type { Account, AccountType, ActionState } from "@/lib/types";
 
@@ -34,6 +35,7 @@ export function AccountsManager({
   openNew: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [editing, setEditing] = useState<{ account?: Account; session: number } | null>(openNew ? { session: 0 } : null);
   const [open, setOpen] = useState(openNew);
   const active = accounts.filter((a) => a.isActive);
@@ -61,9 +63,9 @@ export function AccountsManager({
   return (
     <>
       <div className="flex items-center justify-between gap-3 pt-2">
-        <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">Accounts</h1>
+        <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.accounts}</h1>
         <Button onClick={() => start()}>
-          <Plus size={18} weight="bold" /> New account
+          <Plus size={18} weight="bold" /> {t.accounts.newAccount}
         </Button>
       </div>
 
@@ -71,10 +73,10 @@ export function AccountsManager({
         <Card>
           <EmptyState
             icon={<Wallet size={24} />}
-            title="Where does your money live?"
-            action={<Button onClick={() => start()}>Add your first account</Button>}
+            title={t.accounts.emptyTitle}
+            action={<Button onClick={() => start()}>{t.accounts.addFirst}</Button>}
           >
-            Add a cash wallet, a debit card, or a credit card. Each one tracks its own balance.
+            {t.accounts.emptyBody}
           </EmptyState>
         </Card>
       ) : (
@@ -88,11 +90,9 @@ export function AccountsManager({
       {archived.length > 0 ? (
         <section aria-labelledby="archived-title" className="pt-4">
           <h2 id="archived-title" className="mb-3 text-[17px] font-semibold tracking-tight">
-            Archived
+            {t.accounts.archived}
           </h2>
-          <p className="mb-4 max-w-[60ch] text-sm text-ink-2">
-            Archived accounts keep their history and still count in reports, but can&apos;t take new entries.
-          </p>
+          <p className="mb-4 max-w-[60ch] text-sm text-ink-2">{t.accounts.archivedHint}</p>
           <Card className="divide-y divide-line">
             {archived.map((account) => (
               <ArchivedRow key={account.id} account={account} />
@@ -101,7 +101,7 @@ export function AccountsManager({
         </section>
       ) : null}
 
-      <Sheet open={open} onClose={close} title={editing?.account ? "Edit account" : "New account"}>
+      <Sheet open={open} onClose={close} title={editing?.account ? t.accounts.editAccount : t.accounts.newAccount}>
         {editing ? <AccountForm key={editing.session} account={editing.account} onDone={close} /> : null}
       </Sheet>
     </>
@@ -120,22 +120,25 @@ function AccountTile({
   onEdit: () => void;
 }) {
   const { open } = useQuickAdd();
+  const { t } = useI18n();
   return (
     <div className="rise flex flex-col gap-3" style={{ "--i": index } as React.CSSProperties}>
       <AccountCard account={account} href={`/activity?account=${account.id}`} />
       <Card className="flex items-center gap-2 p-2 pl-4">
         <div className="min-w-0 flex-1 text-sm">
-          <p className="text-ink-2">This month</p>
+          <p className="text-ink-2">{t.accounts.thisMonth}</p>
           <p className="truncate">
-            <Money cents={stats?.income ?? 0} className="font-medium text-income" />{" "}
-            <span className="text-ink-3">in ·</span> <Money cents={stats?.expense ?? 0} className="font-medium" />{" "}
-            <span className="text-ink-3">out</span>
+            {t.accounts.inOut(
+              <Money cents={stats?.income ?? 0} className="font-medium text-income" />,
+              <Money cents={stats?.expense ?? 0} className="font-medium" />,
+              (text) => <span className="text-ink-3">{text}</span>,
+            )}
           </p>
         </div>
-        <IconButton label={`Add entry to ${account.name}`} onClick={() => open({ mode: "expense", accountId: account.id })}>
+        <IconButton label={t.accounts.addEntryTo(account.name)} onClick={() => open({ mode: "expense", accountId: account.id })}>
           <Plus size={18} />
         </IconButton>
-        <IconButton label={`Edit ${account.name}`} onClick={onEdit}>
+        <IconButton label={t.accounts.edit(account.name)} onClick={onEdit}>
           <PencilSimple size={18} />
         </IconButton>
       </Card>
@@ -145,6 +148,7 @@ function AccountTile({
 
 function ArchivedRow({ account }: { account: Account }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [pending, startTransition] = useTransition();
   return (
     <div className="flex items-center gap-3 px-4 py-3">
@@ -154,11 +158,11 @@ function ArchivedRow({ account }: { account: Account }) {
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{account.name}</p>
         <p className="text-sm text-ink-2">
-          Balance <Money value={account.balance} />
+          {t.accounts.balance(<Money value={account.balance} />)}
         </p>
       </div>
       <Link href={`/activity?account=${account.id}&month=all`} className={cn(buttonClass("ghost", "sm"), "hidden sm:inline-flex")}>
-        <Receipt size={16} /> History
+        <Receipt size={16} /> {t.accounts.history}
       </Link>
       <Button
         variant="secondary"
@@ -167,11 +171,11 @@ function ArchivedRow({ account }: { account: Account }) {
         onClick={() =>
           startTransition(async () => {
             const result = await setAccountActive(account.id, true);
-            toast(result.message ?? "Done", { tone: result.ok ? "success" : "error" });
+            toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
           })
         }
       >
-        <ArrowCounterClockwise size={16} /> Restore
+        <ArrowCounterClockwise size={16} /> {t.accounts.restore}
       </Button>
     </div>
   );
@@ -180,6 +184,7 @@ function ArchivedRow({ account }: { account: Account }) {
 function AccountForm({ account, onDone }: { account?: Account; onDone: () => void }) {
   const toast = useToast();
   const { currency } = usePreferences();
+  const { t, locale } = useI18n();
   const [type, setType] = useState<AccountType>(account?.type ?? "debit");
   const [archiving, startArchive] = useTransition();
   const [confirmArchive, setConfirmArchive] = useState(false);
@@ -187,7 +192,7 @@ function AccountForm({ account, onDone }: { account?: Account; onDone: () => voi
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await saveAccount(prev, formData);
     if (result.ok) {
-      toast(result.message ?? "Saved");
+      toast(result.message ?? t.common.saved);
       onDone();
     }
     return result;
@@ -200,9 +205,10 @@ function AccountForm({ account, onDone }: { account?: Account; onDone: () => voi
       <input type="hidden" name="type" value={type} />
 
       <fieldset>
-        <legend className="mb-3 text-sm font-medium">Type</legend>
+        <legend className="mb-3 text-sm font-medium">{t.common.type}</legend>
         <div className="grid gap-2 sm:grid-cols-3">
-          {ACCOUNT_TYPES.map((option) => {
+          {ACCOUNT_TYPES.map((value) => {
+            const option = { value, ...t.accountTypes[value] };
             const checked = type === option.value;
             return (
               <button
@@ -229,12 +235,12 @@ function AccountForm({ account, onDone }: { account?: Account; onDone: () => voi
         </div>
       </fieldset>
 
-      <Field label="Name" htmlFor="account-name" error={errors.name} hint="Use the name on the card, so Apple Pay automations can match it.">
+      <Field label={t.common.name} htmlFor="account-name" error={errors.name} hint={t.accounts.nameHint}>
         <Input
           id="account-name"
           name="name"
           defaultValue={account?.name}
-          placeholder={type === "cash" ? "Wallet" : type === "debit" ? "BBVA Debit" : "Visa Gold"}
+          placeholder={t.accounts.placeholder[type]}
           autoComplete="off"
           autoFocus
           aria-invalid={Boolean(errors.name)}
@@ -243,18 +249,14 @@ function AccountForm({ account, onDone }: { account?: Account; onDone: () => voi
 
       {!account ? (
         <Field
-          label={type === "creditCard" ? "What you owe today" : "Balance today"}
+          label={type === "creditCard" ? t.accounts.owedToday : t.accounts.balanceToday}
           htmlFor="account-opening"
           optional
           error={errors.opening}
-          hint={
-            type === "creditCard"
-              ? "Your current statement debt. Recorded as an opening expense on this card."
-              : "Recorded as an opening entry, so the balance matches reality from day one."
-          }
+          hint={type === "creditCard" ? t.accounts.openingHintCredit : t.accounts.openingHint}
         >
           <div className="relative">
-            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-2">{currencySymbol(currency)}</span>
+            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-2">{currencySymbol(currency, locale)}</span>
             <Input id="account-opening" name="opening" inputMode="decimal" placeholder="0.00" className="pl-9 tabular" aria-invalid={Boolean(errors.opening)} />
           </div>
         </Field>
@@ -278,16 +280,16 @@ function AccountForm({ account, onDone }: { account?: Account; onDone: () => voi
               if (!confirmArchive) return setConfirmArchive(true);
               startArchive(async () => {
                 const result = await setAccountActive(account.id, false);
-                toast(result.message ?? "Archived", { tone: result.ok ? "success" : "error" });
+                toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
                 if (result.ok) onDone();
               });
             }}
           >
-            <Archive size={18} /> {confirmArchive ? "Tap again to archive" : "Archive"}
+            <Archive size={18} /> {confirmArchive ? t.accounts.tapAgainToArchive : t.accounts.archive}
           </Button>
         ) : null}
         <Button type="submit" size="lg" disabled={pending} className="sm:flex-1">
-          {pending ? "Saving…" : account ? "Save changes" : "Create account"}
+          {pending ? t.common.saving : account ? t.common.saveChanges : t.accounts.createAccount}
         </Button>
       </div>
     </form>

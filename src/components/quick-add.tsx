@@ -16,6 +16,7 @@ import {
 } from "react";
 
 import { createTransfer, deleteTransaction, restoreTransaction, saveTransaction, undoCreate } from "@/actions/transactions";
+import { useI18n } from "@/i18n/client";
 import { toLocalInputValue } from "@/lib/dates";
 import { isSystemCategory } from "@/lib/insights";
 import { currencySymbol } from "@/lib/money";
@@ -96,6 +97,7 @@ export function QuickAddProvider({
 
   const value = useMemo(() => ({ open }), [open]);
   const editing = Boolean(state?.transaction);
+  const { t } = useI18n();
 
   return (
     <QuickAddContext value={value}>
@@ -103,8 +105,8 @@ export function QuickAddProvider({
       <Sheet
         open={isOpen}
         onClose={close}
-        title={editing ? "Edit transaction" : "New entry"}
-        description={editing ? undefined : "Every cent counts. Log it while you remember."}
+        title={editing ? t.quickAdd.editTransaction : t.quickAdd.newEntry}
+        description={editing ? undefined : t.quickAdd.description}
       >
         {state ? (
           <Suspense fallback={<FormSkeleton />}>
@@ -142,13 +144,14 @@ function EntryForms({
   const accounts = use(accountsPromise);
   const categories = use(categoriesPromise);
   const [mode, setMode] = useState<Mode>(options.transaction?.type ?? options.mode ?? "expense");
+  const { t } = useI18n();
 
   if (accounts.length === 0) {
     return (
       <div className="pb-4 text-center">
-        <p className="text-ink-2">Add an account first, so we know where the money moved.</p>
+        <p className="text-ink-2">{t.quickAdd.addAccountFirst}</p>
         <Link href="/accounts?new=1" onClick={onDone} className={cn(buttonClass("primary"), "mt-5")}>
-          Create an account
+          {t.quickAdd.createAccount}
         </Link>
       </div>
     );
@@ -158,14 +161,14 @@ function EntryForms({
     <div className="space-y-6">
       {!options.transaction ? (
         <Segmented
-          label="Entry type"
+          label={t.quickAdd.entryType}
           value={mode}
           onChange={setMode}
           className="w-full"
           options={[
-            { value: "expense", label: "Expense", icon: <ArrowUp size={16} weight="bold" /> },
-            { value: "income", label: "Income", icon: <ArrowDown size={16} weight="bold" /> },
-            { value: "transfer", label: "Transfer", icon: <ArrowsLeftRight size={16} weight="bold" /> },
+            { value: "expense", label: t.common.expense, icon: <ArrowUp size={16} weight="bold" /> },
+            { value: "income", label: t.common.income, icon: <ArrowDown size={16} weight="bold" /> },
+            { value: "transfer", label: t.common.transfer, icon: <ArrowsLeftRight size={16} weight="bold" /> },
           ]}
         />
       ) : null}
@@ -186,7 +189,7 @@ function EntryForms({
   );
 }
 
-function AmountInput({
+export function AmountInput({
   defaultValue,
   error,
   result,
@@ -198,6 +201,7 @@ function AmountInput({
   tone: "income" | "expense" | "neutral";
 }) {
   const { currency } = usePreferences();
+  const { t, locale } = useI18n();
   // Hide a stale error as soon as the amount is edited
   const [shownError, setShownError] = useState(error);
   const [lastResult, setLastResult] = useState(result);
@@ -208,7 +212,7 @@ function AmountInput({
   return (
     <div>
       <label htmlFor="amount" className="sr-only">
-        Amount
+        {t.quickAdd.amount}
       </label>
       <div
         className={cn(
@@ -216,7 +220,7 @@ function AmountInput({
           tone === "income" ? "bg-income-soft" : tone === "expense" ? "bg-expense-soft" : "bg-accent-soft",
         )}
       >
-        <span className="text-3xl font-medium text-ink-2">{currencySymbol(currency)}</span>
+        <span className="text-3xl font-medium text-ink-2">{currencySymbol(currency, locale)}</span>
         <input
           id="amount"
           name="amount"
@@ -259,6 +263,7 @@ function TransactionForm({
 }) {
   const toast = useToast();
   const { timeZone } = usePreferences();
+  const { t } = useI18n();
   const keepOpen = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -290,10 +295,10 @@ function TransactionForm({
         localStorage.setItem(LAST_ACCOUNT_KEY, String(formData.get("accountId")));
       } catch {}
       const createdId = result.data?.id;
-      toast(result.message ?? "Saved", {
+      toast(result.message ?? t.common.saved, {
         action:
           !transaction && createdId
-            ? { label: "Undo", onClick: () => void undoCreate(createdId).then((r) => toast(r.message ?? "Undone")) }
+            ? { label: t.common.undo, onClick: () => void undoCreate(createdId).then((r) => toast(r.message ?? t.common.done)) }
             : undefined,
       });
       if (keepOpen.current && !transaction) {
@@ -324,9 +329,9 @@ function TransactionForm({
       <AmountInput defaultValue={transaction?.amount} error={errors.amount} result={state} tone={type} />
 
       <fieldset className="space-y-3">
-        <legend className="mb-3 text-sm font-medium text-ink">{type === "income" ? "Into" : "Paid with"}</legend>
+        <legend className="mb-3 text-sm font-medium text-ink">{type === "income" ? t.quickAdd.into : t.quickAdd.paidWith}</legend>
         <ChipGroup
-          label="Account"
+          label={t.common.account}
           name="accountId"
           value={accountId}
           onChange={setAccountId}
@@ -346,24 +351,24 @@ function TransactionForm({
 
       <fieldset>
         <legend className="mb-3 flex w-full items-baseline justify-between text-sm font-medium text-ink">
-          Category
+          {t.common.category}
           <Link href="/categories" className="text-xs font-normal text-ink-2 underline-offset-4 hover:underline">
-            Manage
+            {t.common.manage}
           </Link>
         </legend>
         {topLevel.length === 0 ? (
           <p className="rounded-2xl bg-surface-2 p-4 text-sm text-ink-2">
-            No categories yet.{" "}
-            <Link href="/categories" className="font-medium text-accent underline-offset-4 hover:underline">
-              Add some
-            </Link>{" "}
-            to see where your money goes.
+            {t.quickAdd.noCategories(
+              <Link href="/categories" className="font-medium text-accent underline-offset-4 hover:underline">
+                {t.quickAdd.addSome}
+              </Link>,
+            )}
           </p>
         ) : (
           <div className="space-y-3">
             <div className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
               <CategoryChip active={!parentId} onClick={() => (setParentId(""), setChildId(""))}>
-                None
+                {t.common.none}
               </CategoryChip>
               {topLevel.map((category) => (
                 <CategoryChip
@@ -397,17 +402,17 @@ function TransactionForm({
       </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Note" htmlFor="description" optional error={errors.description}>
+        <Field label={t.common.note} htmlFor="description" optional error={errors.description}>
           <Input
             id="description"
             name="description"
-            placeholder={type === "income" ? "Paycheck, refund…" : "Groceries at Costco…"}
+            placeholder={type === "income" ? t.quickAdd.notePlaceholderIncome : t.quickAdd.notePlaceholderExpense}
             defaultValue={transaction?.description ?? ""}
             maxLength={500}
             autoComplete="off"
           />
         </Field>
-        <Field label="When" htmlFor="date" error={errors.date}>
+        <Field label={t.common.when} htmlFor="date" error={errors.date}>
           <input id="date" name="date" type="datetime-local" defaultValue={defaultDate} required className={inputClass} />
         </Field>
       </div>
@@ -430,7 +435,7 @@ function TransactionForm({
             onClick={() => (keepOpen.current = true)}
             className="sm:flex-1"
           >
-            Save & add another
+            {t.quickAdd.saveAndAddAnother}
           </Button>
         )}
         <Button
@@ -440,7 +445,7 @@ function TransactionForm({
           onClick={() => (keepOpen.current = false)}
           className="sm:flex-1"
         >
-          {pending ? "Saving…" : transaction ? "Save changes" : type === "income" ? "Add income" : "Add expense"}
+          {pending ? t.common.saving : transaction ? t.common.saveChanges : type === "income" ? t.quickAdd.addIncome : t.quickAdd.addExpense}
         </Button>
       </div>
     </form>
@@ -476,13 +481,14 @@ function CategoryChip({
 
 function DeleteButton({ id, onDone }: { id: string; onDone: () => void }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
 
   if (!confirming) {
     return (
       <Button type="button" variant="ghost" size="lg" onClick={() => setConfirming(true)} className="text-expense sm:flex-1">
-        <Trash size={18} /> Delete
+        <Trash size={18} /> {t.common.delete}
       </Button>
     );
   }
@@ -500,16 +506,16 @@ function DeleteButton({ id, onDone }: { id: string; onDone: () => void }) {
         setPending(false);
         if (result.ok) {
           const snapshot = result.data!;
-          toast("Transaction deleted", {
-            action: { label: "Undo", onClick: () => void restoreTransaction(snapshot).then((r) => toast(r.message ?? "Restored")) },
+          toast(t.quickAdd.deleted, {
+            action: { label: t.common.undo, onClick: () => void restoreTransaction(snapshot).then((r) => toast(r.message ?? t.common.done)) },
           });
           onDone();
         } else {
-          toast(result.message ?? "Couldn't delete", { tone: "error" });
+          toast(result.message ?? t.quickAdd.couldntDelete, { tone: "error" });
         }
       }}
     >
-      <Trash size={18} /> {pending ? "Deleting…" : "Tap again to delete"}
+      <Trash size={18} /> {pending ? t.common.deleting : t.common.tapAgainToDelete}
     </Button>
   );
 }
@@ -517,6 +523,7 @@ function DeleteButton({ id, onDone }: { id: string; onDone: () => void }) {
 function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () => void }) {
   const toast = useToast();
   const { timeZone } = usePreferences();
+  const { t } = useI18n();
   const active = accounts.filter((a) => a.isActive);
   const [from, setFrom] = useState(active.find((a) => a.type !== "creditCard")?.id ?? active[0]?.id ?? "");
   const [to, setTo] = useState(active.find((a) => a.id !== from && a.type === "creditCard")?.id ?? active.find((a) => a.id !== from)?.id ?? "");
@@ -525,7 +532,7 @@ function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () =>
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await createTransfer(prev, formData);
     if (result.ok) {
-      toast(result.message ?? "Transfer recorded");
+      toast(result.message ?? t.common.saved);
       onDone();
     }
     return result;
@@ -535,7 +542,7 @@ function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () =>
   if (active.length < 2) {
     return (
       <p className="rounded-2xl bg-surface-2 p-4 text-sm text-ink-2">
-        Transfers move money between two of your accounts, like paying the credit card from debit. Add a second account to use them.
+        {t.quickAdd.transferNeedsTwo}
       </p>
     );
   }
@@ -550,29 +557,29 @@ function TransferForm({ accounts, onDone }: { accounts: Account[]; onDone: () =>
     <form onSubmit={submitWith(formAction)} className="space-y-6" noValidate>
       <AmountInput error={errors.amount} result={state} tone="neutral" />
       <fieldset>
-        <legend className="mb-3 text-sm font-medium">From</legend>
-        <ChipGroup label="From account" name="fromAccountId" value={from} onChange={setFrom} options={options} invalid={Boolean(errors.fromAccountId)} />
+        <legend className="mb-3 text-sm font-medium">{t.quickAdd.from}</legend>
+        <ChipGroup label={t.quickAdd.fromAccount} name="fromAccountId" value={from} onChange={setFrom} options={options} invalid={Boolean(errors.fromAccountId)} />
         {errors.fromAccountId ? <p role="alert" className="mt-2 text-sm text-expense">{errors.fromAccountId}</p> : null}
       </fieldset>
       <fieldset>
-        <legend className="mb-3 text-sm font-medium">To</legend>
-        <ChipGroup label="To account" name="toAccountId" value={to} onChange={setTo} options={options.filter((o) => o.value !== from)} invalid={Boolean(errors.toAccountId)} />
+        <legend className="mb-3 text-sm font-medium">{t.quickAdd.to}</legend>
+        <ChipGroup label={t.quickAdd.toAccount} name="toAccountId" value={to} onChange={setTo} options={options.filter((o) => o.value !== from)} invalid={Boolean(errors.toAccountId)} />
         {errors.toAccountId ? <p role="alert" className="mt-2 text-sm text-expense">{errors.toAccountId}</p> : null}
       </fieldset>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Note" htmlFor="transfer-note" optional>
-          <Input id="transfer-note" name="description" placeholder="Card payment…" autoComplete="off" />
+        <Field label={t.common.note} htmlFor="transfer-note" optional>
+          <Input id="transfer-note" name="description" placeholder={t.quickAdd.transferNotePlaceholder} autoComplete="off" />
         </Field>
-        <Field label="When" htmlFor="transfer-date" error={errors.date}>
+        <Field label={t.common.when} htmlFor="transfer-date" error={errors.date}>
           <input id="transfer-date" name="date" type="datetime-local" defaultValue={defaultDate} className={inputClass} />
         </Field>
       </div>
-      <p className="text-sm text-ink-2">Transfers don&apos;t count as spending or income in your reports.</p>
+      <p className="text-sm text-ink-2">{t.quickAdd.transferNotCounted}</p>
       {state.message && !state.ok && !Object.keys(errors).length ? (
         <p role="alert" className="rounded-2xl bg-expense-soft px-4 py-3 text-sm text-expense">{state.message}</p>
       ) : null}
       <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Saving…" : "Record transfer"}
+        {pending ? t.common.saving : t.quickAdd.recordTransfer}
       </Button>
     </form>
   );

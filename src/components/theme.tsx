@@ -3,6 +3,8 @@
 import { Desktop, Moon, Sun } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
 
+import { useI18n } from "@/i18n/client";
+
 import { Menu, MenuItem } from "./menu";
 
 type Theme = "light" | "dark" | "system";
@@ -59,18 +61,19 @@ export function useTheme() {
   return theme;
 }
 
-const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "Match system", icon: Desktop },
+const OPTIONS: { value: Theme; icon: typeof Sun }[] = [
+  { value: "light", icon: Sun },
+  { value: "dark", icon: Moon },
+  { value: "system", icon: Desktop },
 ];
 
 export function ThemeMenu() {
   const theme = useTheme();
+  const { t } = useI18n();
   const Current = theme === "dark" ? Moon : theme === "light" ? Sun : Desktop;
   return (
     <Menu
-      label={`Theme: ${theme}`}
+      label={t.theme.label(t.theme[theme])}
       trigger={() => (
         <span className="inline-flex size-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink">
           <Current size={20} />
@@ -78,7 +81,7 @@ export function ThemeMenu() {
       )}
     >
       {(close) =>
-        OPTIONS.map(({ value, label, icon: Icon }) => (
+        OPTIONS.map(({ value, icon: Icon }) => (
           <MenuItem
             key={value}
             active={theme === value}
@@ -88,7 +91,7 @@ export function ThemeMenu() {
               close();
             }}
           >
-            {label}
+            {t.theme[value]}
           </MenuItem>
         ))
       }

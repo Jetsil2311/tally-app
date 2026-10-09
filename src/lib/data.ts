@@ -4,7 +4,18 @@ import { cacheLife } from "next/cache";
 
 import { api } from "./api";
 import { monthKeyOf, monthRange } from "./dates";
-import type { Account, ApiKey, Category, Summary, Transaction, TransactionPage, TransactionType, User } from "./types";
+import type {
+  Account,
+  ApiKey,
+  Category,
+  RecurringPayment,
+  Summary,
+  Transaction,
+  TransactionPage,
+  TransactionType,
+  Upcoming,
+  User,
+} from "./types";
 
 // Data Access Layer: the only place pages read from the API.
 // Reads are per-request (wrapped in React `cache` to dedupe within a render)
@@ -81,3 +92,13 @@ export async function getMonthSeries(endKey: string, count: number, timeZone: st
 export async function getApiKeys() {
   return api<ApiKey[]>("/api-keys");
 }
+
+// Each payment comes with `next`, the funding forecast for its next occurrence
+export const getRecurringPayments = cache(async (includeInactive = false) => {
+  return api<RecurringPayment[]>("/recurring-payments", { query: { includeInactive: includeInactive || undefined } });
+});
+
+// Every occurrence in the next `days` days, plus each account's projected balance
+export const getUpcoming = cache(async (days = 30) => {
+  return api<Upcoming>("/recurring-payments/upcoming", { query: { days } });
+});

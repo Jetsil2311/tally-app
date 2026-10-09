@@ -3,11 +3,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { Busy } from "@/components/busy";
 import { SpendingCalendar } from "@/components/charts";
 import { CategoryDrilldown, InsightsHeader, YearChart } from "@/components/insights-controls";
 import { Money } from "@/components/preferences";
 import { TransactionRow } from "@/components/transaction-row";
 import { Card, cn, EmptyState, SectionTitle, Skeleton } from "@/components/ui";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { capitalize } from "@/i18n/format";
+import { getI18n } from "@/i18n/server";
 import { getAllTransactions, getCategories, getSummary, getYearSeries } from "@/lib/data";
 import {
   currentMonthKey,
@@ -25,7 +29,10 @@ import { change, isTransfer, rollUpCategories, savingsRate, totalsFromSummary } 
 import { percent, toCents } from "@/lib/money";
 import { getPreferences, requestTime } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Insights" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t.nav.insights };
+}
 
 export default function InsightsPage({ searchParams }: PageProps<"/insights">) {
   return (
@@ -42,6 +49,7 @@ const single = (value: string | string[] | undefined) => (Array.isArray(value) ?
 async function Insights({ searchParams }: { searchParams: PageProps<"/insights">["searchParams"] }) {
   const params = await searchParams;
   const { timeZone } = await getPreferences();
+  const { t, locale } = await getI18n();
   const now = await requestTime();
   const current = currentMonthKey(timeZone, now);
   const currentYear = todayParts(timeZone, now).year;
@@ -49,12 +57,12 @@ async function Insights({ searchParams }: { searchParams: PageProps<"/insights">
   if (single(params.view) === "year") {
     const raw = Number(single(params.year));
     const year = Number.isInteger(raw) && raw > 1970 && raw <= currentYear ? raw : currentYear;
-    return <YearView year={year} currentYear={currentYear} current={current} timeZone={timeZone} />;
+    return <YearView year={year} currentYear={currentYear} current={current} timeZone={timeZone} t={t} locale={locale} />;
   }
 
   const raw = single(params.month);
   const month = parseMonthKey(raw) && (raw as MonthKey) <= current ? (raw as MonthKey) : current;
-  return <MonthView month={month} current={current} timeZone={timeZone} now={now} />;
+  return <MonthView month={month} current={current} timeZone={timeZone} now={now} t={t} locale={locale} />;
 }
 
 function Kpi({
@@ -66,6 +74,7 @@ function Kpi({
   invert,
   note,
   index,
+  locale,
 }: {
   label: string;
   cents?: number;
@@ -75,6 +84,7 @@ function Kpi({
   invert?: boolean; // for expenses, going up is bad
   note?: React.ReactNode;
   index: number;
+  locale: string;
 }) {
   const good = delta == null ? null : invert ? delta < 0 : delta > 0;
   return (
@@ -87,14 +97,28 @@ function Kpi({
       {delta != null ? (
         <p className={cn("mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium", good ? "bg-income-soft text-income" : "bg-expense-soft text-expense")}>
           {delta > 0 ? <ArrowUpRight size={12} weight="bold" /> : <ArrowDownRight size={12} weight="bold" />}
-          {percent(Math.abs(delta))}
+          {percent(Math.abs(delta), locale)}
         </p>
       ) : null}
     </Card>
   );
 }
 
-async function MonthView({ month, current, timeZone, now }: { month: MonthKey; current: MonthKey; timeZone: string; now: Date }) {
+async function MonthView({
+  month,
+  current,
+  timeZone,
+  now,
+  t,
+  locale,
+}: {
+  month: MonthKey;
+  current: MonthKey;
+  timeZone: string;
+  now: Date;
+  t: Dictionary;
+  locale: string;
+}) {
   const range = monthRange(month, timeZone);
   const prevKey = shiftMonth(month, -1);
   const prevRange = monthRange(prevKey, timeZone);
@@ -120,7 +144,7 @@ async function MonthView({ month, current, timeZone, now }: { month: MonthKey; c
   const biggest = [...expenses].sort((a, b) => toCents(b.amount) - toCents(a.amount)).slice(0, 5);
   const spendDays = Object.keys(days).length;
   const elapsedDays = month === current ? todayParts(timeZone, now).day : daysInMonth(month);
-  const label = monthLabel(month);
+  const label = capitalize(monthLabel(month, "long", true, locale));
 
   return (
     <>
@@ -134,58 +158,58 @@ async function MonthView({ month, current, timeZone, now }: { month: MonthKey; c
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <Kpi index={0} label="Income" cents={totals.income} tone="text-income" delta={change(totals.income, prev.income)} />
-        <Kpi index={1} label="Expenses" cents={totals.expense} delta={change(totals.expense, prev.expense)} invert />
-        <Kpi index={2} label="Net" cents={totals.net} sign tone={totals.net < 0 ? "text-expense" : "text-ink"} />
+        <Kpi locale={locale} index={0} label={t.common.income} cents={totals.income} tone="text-income" delta={change(totals.income, prev.income)} />
+        <Kpi locale={locale} index={1} label={t.common.expenses} cents={totals.expense} delta={change(totals.expense, prev.expense)} invert />
+        <Kpi locale={locale} index={2} label={t.common.net} cents={totals.net} sign tone={totals.net < 0 ? "text-expense" : "text-ink"} />
         <Kpi
+          locale={locale}
           index={3}
-          label="Savings rate"
+          label={t.insights.savingsRate}
           note={
-            <p className="text-[26px] leading-tight font-semibold tracking-tight">{rate === null ? "–" : percent(rate)}</p>
+            <p className="text-[26px] leading-tight font-semibold tracking-tight">{rate === null ? "–" : percent(rate, locale)}</p>
           }
           delta={rate !== null && prevRate !== null ? rate - prevRate : null}
         />
       </div>
       <p className="-mt-1 text-sm text-ink-2">
-        Compared with {monthLabel(prevKey, "long", false)}. Transfers between your accounts aren&apos;t counted.
+        {t.insights.comparedWith(monthLabel(prevKey, "long", false, locale))}
       </p>
 
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
         <Card className="rise p-6" style={{ "--i": 4 } as React.CSSProperties}>
-          <SectionTitle>Spending by category</SectionTitle>
+          <SectionTitle>{t.insights.spendingByCategory}</SectionTitle>
           {spending.length ? (
             <CategoryDrilldown rows={spending} type="expense" month={month} limit={8} />
           ) : (
-            <EmptyState icon={<ChartBar size={24} />} title="No expenses this month" className="py-6" />
+            <EmptyState icon={<ChartBar size={24} />} title={t.insights.noExpensesMonth} className="py-6" />
           )}
         </Card>
         <Card className="rise p-6" style={{ "--i": 5 } as React.CSSProperties}>
-          <SectionTitle>Income by source</SectionTitle>
+          <SectionTitle>{t.insights.incomeBySource}</SectionTitle>
           {earning.length ? (
             <CategoryDrilldown rows={earning} type="income" month={month} limit={8} />
           ) : (
-            <EmptyState icon={<ChartBar size={24} />} title="No income this month" className="py-6" />
+            <EmptyState icon={<ChartBar size={24} />} title={t.insights.noIncomeMonth} className="py-6" />
           )}
         </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-12 lg:gap-5">
         <Card className="rise p-6 lg:col-span-5" style={{ "--i": 6 } as React.CSSProperties}>
-          <SectionTitle>Day by day</SectionTitle>
+          <SectionTitle>{t.insights.dayByDay}</SectionTitle>
           <SpendingCalendar monthKey={month} days={days} today={month === current ? dayKey(now, timeZone) : undefined} />
           <p className="mt-4 text-sm text-ink-2">
-            You spent money on {spendDays} of {elapsedDays} {elapsedDays === 1 ? "day" : "days"}
-            {month === current ? " so far" : ""}.
+            {t.insights.spendDays(spendDays, elapsedDays, month === current)}
           </p>
         </Card>
         <Card className="rise p-3 sm:p-4 lg:col-span-7" style={{ "--i": 7 } as React.CSSProperties}>
           <div className="px-3 pt-2">
-            <SectionTitle>Biggest expenses</SectionTitle>
+            <SectionTitle>{t.insights.biggestExpenses}</SectionTitle>
           </div>
           {biggest.length ? (
             biggest.map((tx) => <TransactionRow key={tx.id} tx={tx} showDate />)
           ) : (
-            <p className="px-3 pb-4 text-sm text-ink-2">Nothing yet.</p>
+            <p className="px-3 pb-4 text-sm text-ink-2">{t.insights.nothingYet}</p>
           )}
         </Card>
       </div>
@@ -198,12 +222,17 @@ async function YearView({
   currentYear,
   current,
   timeZone,
+  t,
+  locale,
 }: {
   year: number;
   currentYear: number;
   current: MonthKey;
   timeZone: string;
+  t: Dictionary;
+  locale: string;
 }) {
+  const month = (key: MonthKey) => capitalize(monthLabel(key, "long", false, locale));
   const range = yearRange(year, timeZone);
   const prevRange = yearRange(year - 1, timeZone);
   const [series, summary, prevSummary, categories] = await Promise.all([
@@ -238,29 +267,30 @@ async function YearView({
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <Kpi index={0} label={`Income in ${year}`} cents={totals.income} tone="text-income" delta={change(totals.income, prev.income)} />
-        <Kpi index={1} label={`Expenses in ${year}`} cents={totals.expense} delta={change(totals.expense, prev.expense)} invert />
-        <Kpi index={2} label="Spent per month, avg." cents={Math.round(totals.expense / elapsed)} />
+        <Kpi locale={locale} index={0} label={t.insights.incomeIn(year)} cents={totals.income} tone="text-income" delta={change(totals.income, prev.income)} />
+        <Kpi locale={locale} index={1} label={t.insights.expensesIn(year)} cents={totals.expense} delta={change(totals.expense, prev.expense)} invert />
+        <Kpi locale={locale} index={2} label={t.insights.perMonthAvg} cents={Math.round(totals.expense / elapsed)} />
         <Kpi
+          locale={locale}
           index={3}
-          label="Kept"
+          label={t.insights.kept}
           cents={totals.net}
           sign
           tone={totals.net < 0 ? "text-expense" : "text-ink"}
-          note={rate !== null ? <p className="text-sm text-ink-2">{percent(rate)} of income</p> : null}
+          note={rate !== null ? <p className="text-sm text-ink-2">{t.insights.ofIncome(percent(rate, locale))}</p> : null}
         />
       </div>
-      <p className="-mt-1 text-sm text-ink-2">Compared with {year - 1}. Transfers between your accounts aren&apos;t counted.</p>
+      <p className="-mt-1 text-sm text-ink-2">{t.insights.comparedWith(String(year - 1))}</p>
 
       <Card className="rise p-6" style={{ "--i": 4 } as React.CSSProperties}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[17px] font-semibold tracking-tight">Month by month</h2>
+          <h2 className="text-[17px] font-semibold tracking-tight">{t.insights.monthByMonth}</h2>
           <ul className="flex items-center gap-4 text-sm text-ink-2">
             <li className="flex items-center gap-2">
-              <span className="size-2.5 rounded-[3px] bg-chart-income" aria-hidden /> In
+              <span className="size-2.5 rounded-[3px] bg-chart-income" aria-hidden /> {t.common.in}
             </li>
             <li className="flex items-center gap-2">
-              <span className="size-2.5 rounded-[3px] bg-chart-expense" aria-hidden /> Out
+              <span className="size-2.5 rounded-[3px] bg-chart-expense" aria-hidden /> {t.common.out}
             </li>
           </ul>
         </div>
@@ -268,7 +298,7 @@ async function YearView({
           const t = totalsFromSummary(summary);
           return { key: key as MonthKey, income: t.income, expense: t.expense };
         })} />
-        <p className="mt-4 text-sm text-ink-2">Select a month to open it.</p>
+        <p className="mt-4 text-sm text-ink-2">{t.insights.selectMonth}</p>
       </Card>
 
       {best || priciest ? (
@@ -279,10 +309,8 @@ async function YearView({
                 <TrendUp size={22} />
               </span>
               <div>
-                <p className="text-sm text-ink-2">Best month</p>
-                <p className="font-medium">
-                  {monthLabel(best.key, "long", false)}, kept <Money cents={best.net} sign />
-                </p>
+                <p className="text-sm text-ink-2">{t.insights.bestMonth}</p>
+                <p className="font-medium">{t.insights.keptIn(month(best.key), <Money cents={best.net} sign />)}</p>
               </div>
             </Card>
           ) : null}
@@ -292,9 +320,9 @@ async function YearView({
                 <TrendDown size={22} />
               </span>
               <div>
-                <p className="text-sm text-ink-2">Most spent</p>
+                <p className="text-sm text-ink-2">{t.insights.mostSpent}</p>
                 <p className="font-medium">
-                  {monthLabel(priciest.key, "long", false)}, <Money cents={priciest.expense} />
+                  {month(priciest.key)}, <Money cents={priciest.expense} />
                 </p>
               </div>
             </Card>
@@ -304,36 +332,36 @@ async function YearView({
 
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
         <Card className="rise p-6" style={{ "--i": 7 } as React.CSSProperties}>
-          <SectionTitle>Where {year}&apos;s money went</SectionTitle>
+          <SectionTitle>{t.insights.whereYearWent(year)}</SectionTitle>
           {spending.length ? (
             <CategoryDrilldown rows={spending} type="expense" limit={8} />
           ) : (
-            <EmptyState icon={<ChartBar size={24} />} title="No expenses this year" className="py-6" />
+            <EmptyState icon={<ChartBar size={24} />} title={t.insights.noExpensesYear} className="py-6" />
           )}
         </Card>
         <Card className="rise p-6" style={{ "--i": 8 } as React.CSSProperties}>
-          <SectionTitle>Where it came from</SectionTitle>
+          <SectionTitle>{t.insights.whereItCameFrom}</SectionTitle>
           {earning.length ? (
             <CategoryDrilldown rows={earning} type="income" limit={8} />
           ) : (
-            <EmptyState icon={<ChartBar size={24} />} title="No income this year" className="py-6" />
+            <EmptyState icon={<ChartBar size={24} />} title={t.insights.noIncomeYear} className="py-6" />
           )}
         </Card>
       </div>
 
       <Card className="rise overflow-hidden" style={{ "--i": 9 } as React.CSSProperties}>
         <div className="px-6 pt-6">
-          <SectionTitle>Monthly breakdown</SectionTitle>
+          <SectionTitle>{t.insights.monthlyBreakdown}</SectionTitle>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] text-[15px]">
             <thead>
               <tr className="text-left text-sm text-ink-2">
-                <th scope="col" className="px-6 py-3 font-medium">Month</th>
-                <th scope="col" className="px-3 py-3 text-right font-medium">In</th>
-                <th scope="col" className="px-3 py-3 text-right font-medium">Out</th>
-                <th scope="col" className="px-3 py-3 text-right font-medium">Net</th>
-                <th scope="col" className="px-6 py-3 text-right font-medium">Saved</th>
+                <th scope="col" className="px-6 py-3 font-medium">{t.insights.month}</th>
+                <th scope="col" className="px-3 py-3 text-right font-medium">{t.common.in}</th>
+                <th scope="col" className="px-3 py-3 text-right font-medium">{t.common.out}</th>
+                <th scope="col" className="px-3 py-3 text-right font-medium">{t.common.net}</th>
+                <th scope="col" className="px-6 py-3 text-right font-medium">{t.insights.saved}</th>
               </tr>
             </thead>
             <tbody>
@@ -343,7 +371,7 @@ async function YearView({
                   <tr key={m.key} className="border-t border-line transition-colors hover:bg-surface-2">
                     <th scope="row" className="px-6 py-3 text-left font-medium">
                       <Link href={`/insights?view=month&month=${m.key}`} className="underline-offset-4 hover:underline">
-                        {monthLabel(m.key, "long", false)}
+                        {month(m.key)}
                       </Link>
                     </th>
                     <td className="px-3 py-3 text-right">
@@ -355,14 +383,14 @@ async function YearView({
                     <td className="px-3 py-3 text-right">
                       <Money cents={m.net} sign className={m.net < 0 ? "text-expense" : ""} />
                     </td>
-                    <td className="tabular px-6 py-3 text-right text-ink-2">{r === null ? "–" : percent(r)}</td>
+                    <td className="tabular px-6 py-3 text-right text-ink-2">{r === null ? "–" : percent(r, locale)}</td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-line-strong font-semibold">
-                <th scope="row" className="px-6 py-3 text-left">Total</th>
+                <th scope="row" className="px-6 py-3 text-left">{t.common.total}</th>
                 <td className="px-3 py-3 text-right">
                   <Money cents={totals.income} className="text-income" />
                 </td>
@@ -372,7 +400,7 @@ async function YearView({
                 <td className="px-3 py-3 text-right">
                   <Money cents={totals.net} sign />
                 </td>
-                <td className="tabular px-6 py-3 text-right">{rate === null ? "–" : percent(rate)}</td>
+                <td className="tabular px-6 py-3 text-right">{rate === null ? "–" : percent(rate, locale)}</td>
               </tr>
             </tfoot>
           </table>
@@ -384,7 +412,7 @@ async function YearView({
 
 function InsightsSkeleton() {
   return (
-    <div className="space-y-5 pt-2" aria-busy aria-label="Loading">
+    <Busy className="space-y-5 pt-2">
       <div className="flex justify-between">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-11 w-72 rounded-full" />
@@ -395,6 +423,6 @@ function InsightsSkeleton() {
         ))}
       </div>
       <Skeleton className="h-80 rounded-3xl" />
-    </div>
+    </Busy>
   );
 }

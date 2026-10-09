@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { Busy } from "@/components/busy";
 import { CategoriesManager } from "@/components/categories-manager";
 import { Skeleton } from "@/components/ui";
+import { getI18n } from "@/i18n/server";
 import { getCategories, getSummary } from "@/lib/data";
 import { currentMonthKey, monthRange } from "@/lib/dates";
 import { toCents } from "@/lib/money";
 import { getPreferences, requestTime } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Categories" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t.nav.categories };
+}
 
 export default function CategoriesPage() {
   return (
@@ -35,13 +40,13 @@ async function Categories() {
 
 function CategoriesSkeleton() {
   return (
-    <div className="space-y-5 pt-2" aria-busy aria-label="Loading">
+    <Busy className="space-y-5 pt-2">
       <Skeleton className="h-9 w-48" />
       <div className="grid gap-3 md:grid-cols-2">
         {[0, 1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-32 rounded-3xl" />
         ))}
       </div>
-    </div>
+    </Busy>
   );
 }

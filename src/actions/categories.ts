@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 
+import { getI18n } from "@/i18n/server";
 import { api } from "@/lib/api";
 import type { ActionState, Category } from "@/lib/types";
 
@@ -11,9 +12,10 @@ export async function saveCategory(_prev: ActionState, formData: FormData): Prom
   const id = text(formData, "id");
   const name = text(formData, "name");
   const parentId = text(formData, "parentId");
+  const { t } = await getI18n();
 
   if (!name) {
-    return { ok: false, message: "Check the highlighted fields.", fieldErrors: { name: "Give the category a name." } };
+    return { ok: false, message: t.common.checkFields, fieldErrors: { name: t.categories.nameRequired } };
   }
 
   try {
@@ -23,40 +25,28 @@ export async function saveCategory(_prev: ActionState, formData: FormData): Prom
       await api("/categories", { method: "POST", body: { name, parentId: parentId || undefined } });
     }
     refresh();
-    return { ok: true, message: id ? "Category updated" : "Category created" };
+    return { ok: true, message: id ? t.categories.updated : t.categories.created };
   } catch (error) {
     return toActionState(error);
   }
 }
 
 export async function deleteCategory(id: string): Promise<ActionState> {
+  const { t } = await getI18n();
   try {
     await api(`/categories/${id}`, { method: "DELETE" });
     refresh();
-    return { ok: true, message: "Category deleted" };
+    return { ok: true, message: t.categories.deleted };
   } catch (error) {
     return toActionState(error);
   }
 }
 
-// A sensible starting set, so new users can categorize from the first entry
-const STARTER: { name: string; children?: string[] }[] = [
-  { name: "Housing", children: ["Rent", "Utilities", "Internet"] },
-  { name: "Food", children: ["Groceries", "Restaurants", "Coffee"] },
-  { name: "Transport", children: ["Fuel", "Public transit", "Rideshare"] },
-  { name: "Health" },
-  { name: "Shopping" },
-  { name: "Entertainment", children: ["Subscriptions"] },
-  { name: "Bills & fees" },
-  { name: "Education" },
-  { name: "Travel" },
-  { name: "Gifts" },
-  { name: "Salary" },
-  { name: "Freelance" },
-  { name: "Other income" },
-];
-
+// A sensible starting set, so new users can categorize from the first
+// entry. Names come from the dictionary, in the user's language.
 export async function createStarterCategories(): Promise<ActionState> {
+  const { t } = await getI18n();
+  const STARTER = t.categories.starter;
   try {
     const existing = await api<Category[]>("/categories");
     const names = new Set(existing.map((c) => c.name.toLowerCase()));
@@ -71,7 +61,7 @@ export async function createStarterCategories(): Promise<ActionState> {
       }
     }
     refresh();
-    return { ok: true, message: "Starter categories added" };
+    return { ok: true, message: t.categories.starterAdded };
   } catch (error) {
     return toActionState(error);
   }

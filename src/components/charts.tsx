@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 
+import { useI18n } from "@/i18n/client";
+import { capitalize, weekdayInitials } from "@/i18n/format";
 import { monthLabel, type MonthKey } from "@/lib/dates";
+import { categoryLabel } from "@/lib/insights";
 import { percent } from "@/lib/money";
 
 import { Money, useMoney } from "./preferences";
@@ -53,6 +56,9 @@ export function CashFlowChart({
   onSelect?: (key: MonthKey) => void;
 }) {
   const format = useMoney();
+  const { t, locale } = useI18n();
+  const month = (key: MonthKey, style?: "long" | "short", withYear?: boolean) =>
+    capitalize(monthLabel(key, style, withYear, locale));
   const [active, setActive] = useState<MonthKey | null>(null);
   const max = niceMax(Math.max(...points.flatMap((p) => [p.income, p.expense]), 0) / 100) * 100;
   const ticks = [1, 0.5, 0];
@@ -85,7 +91,7 @@ export function CashFlowChart({
                 onFocus={() => setActive(p.key)}
                 onBlur={() => setActive(null)}
                 onClick={() => onSelect?.(p.key)}
-                aria-label={`${monthLabel(p.key)}: income ${format(p.income / 100)}, expenses ${format(p.expense / 100)}`}
+                aria-label={t.charts.barLabel(month(p.key), format(p.income / 100), format(p.expense / 100))}
                 className={cn(
                   "group relative flex h-full flex-1 items-end justify-center gap-[2px] rounded-xl transition-opacity duration-200",
                   onSelect ? "cursor-pointer" : "cursor-default",
@@ -105,17 +111,17 @@ export function CashFlowChart({
                     role="tooltip"
                     className="glass pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-10 w-max -translate-x-1/2 rounded-2xl px-3 py-2 text-left text-sm"
                   >
-                    <span className="block font-medium text-ink">{monthLabel(p.key)}</span>
+                    <span className="block font-medium text-ink">{month(p.key)}</span>
                     <span className="mt-1 flex items-center gap-2 text-ink-2">
-                      <span className="size-2 rounded-[2px] bg-chart-income" /> In
+                      <span className="size-2 rounded-[2px] bg-chart-income" /> {t.common.in}
                       <Money cents={p.income} className="ml-auto pl-4 font-medium text-ink" />
                     </span>
                     <span className="flex items-center gap-2 text-ink-2">
-                      <span className="size-2 rounded-[2px] bg-chart-expense" /> Out
+                      <span className="size-2 rounded-[2px] bg-chart-expense" /> {t.common.out}
                       <Money cents={p.expense} className="ml-auto pl-4 font-medium text-ink" />
                     </span>
                     <span className="mt-1 flex items-center gap-2 border-t border-line pt-1 text-ink-2">
-                      Net
+                      {t.common.net}
                       <Money cents={p.income - p.expense} sign className="ml-auto pl-4 font-medium text-ink" />
                     </span>
                   </span>
@@ -126,7 +132,7 @@ export function CashFlowChart({
         </div>
         {empty ? (
           <p className="absolute inset-0 ml-12 flex items-center justify-center text-sm text-ink-2">
-            Nothing logged in this period yet.
+            {t.charts.nothingLogged}
           </p>
         ) : null}
       </div>
@@ -139,7 +145,7 @@ export function CashFlowChart({
               (highlight ?? active) === p.key ? "font-medium text-ink" : "text-ink-3",
             )}
           >
-            {monthLabel(p.key, "short", false).slice(0, points.length > 8 ? 1 : 3)}
+            {month(p.key, "short", false).replace(".", "").slice(0, points.length > 8 ? 1 : 3)}
           </span>
         ))}
       </div>
@@ -149,7 +155,8 @@ export function CashFlowChart({
 
 export interface CategorySlice {
   id: string | null;
-  name: string;
+  // null = uncategorized
+  name: string | null;
   total: number; // cents
   count: number;
 }
@@ -167,6 +174,7 @@ export function CategoryBars({
   onSelect?: (id: string | null) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const { t, locale } = useI18n();
   const total = rows.reduce((sum, r) => sum + r.total, 0);
   const shown = expanded ? rows : rows.slice(0, limit);
   const max = Math.max(...rows.map((r) => r.total), 1);
@@ -179,9 +187,9 @@ export function CategoryBars({
           const content = (
             <>
               <span className="flex items-baseline justify-between gap-3 text-[15px]">
-                <span className={cn("truncate", row.id === null ? "text-warn" : "text-ink")}>{row.name}</span>
+                <span className={cn("truncate", row.id === null ? "text-warn" : "text-ink")}>{row.name === null ? t.common.uncategorized : categoryLabel(row.name, t)}</span>
                 <span className="flex shrink-0 items-baseline gap-2">
-                  <span className="tabular text-xs text-ink-3">{percent(share)}</span>
+                  <span className="tabular text-xs text-ink-3">{percent(share, locale)}</span>
                   <Money cents={row.total} className="font-medium" />
                 </span>
               </span>
@@ -216,7 +224,7 @@ export function CategoryBars({
           onClick={() => setExpanded((v) => !v)}
           className="mt-4 text-sm font-medium text-accent underline-offset-4 hover:underline"
         >
-          {expanded ? "Show less" : `Show all ${rows.length}`}
+          {expanded ? t.common.showLess : t.common.showAll(rows.length)}
         </button>
       ) : null}
     </div>
@@ -234,12 +242,15 @@ export function SpendingCalendar({
   today?: string;
 }) {
   const format = useMoney();
+  const { t, locale } = useI18n();
   const [year, month] = monthKey.split("-").map(Number);
   const first = new Date(Date.UTC(year, month - 1, 1));
   const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const offset = (first.getUTCDay() + 6) % 7; // Monday first
   const max = Math.max(...Object.values(days), 0);
-  const weekdays = ["M", "T", "W", "T", "F", "S", "S"];
+  const weekdays = weekdayInitials(locale);
+  const longMonth = monthLabel(monthKey, "long", false, locale);
+  const shortMonth = monthLabel(monthKey, "short", false, locale);
 
   const level = (cents: number) => {
     if (!cents || !max) return 0;
@@ -256,7 +267,7 @@ export function SpendingCalendar({
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1.5" role="grid" aria-label={`Daily spending, ${monthLabel(monthKey)}`}>
+      <div className="grid grid-cols-7 gap-1.5" role="grid" aria-label={t.charts.dailySpending(monthLabel(monthKey, "long", true, locale))}>
         {weekdays.map((d, i) => (
           <span key={i} className="pb-1 text-center text-xs text-ink-3" aria-hidden>
             {d}
@@ -276,8 +287,8 @@ export function SpendingCalendar({
               key={key}
               role="gridcell"
               tabIndex={0}
-              title={`${monthLabel(monthKey, "short", false)} ${day}: ${cents ? format(cents / 100) : "no spending"}`}
-              aria-label={`${monthLabel(monthKey, "long", false)} ${day}: ${cents ? `spent ${format(cents / 100)}` : future ? "upcoming" : "no spending"}`}
+              title={`${shortMonth} ${day}: ${cents ? format(cents / 100) : t.charts.noSpending}`}
+              aria-label={`${longMonth} ${day}: ${cents ? t.charts.spent(format(cents / 100)) : future ? t.charts.upcoming : t.charts.noSpending}`}
               className={cn(
                 "flex aspect-square items-center justify-center rounded-[10px] text-xs tabular transition-transform hover:scale-105",
                 l >= 3 ? "text-white" : "text-ink-2",
@@ -292,11 +303,11 @@ export function SpendingCalendar({
         })}
       </div>
       <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-ink-3" aria-hidden>
-        Less
+        {t.charts.less}
         {fills.map((f, i) => (
           <span key={i} className="size-3 rounded-[4px]" style={{ background: f }} />
         ))}
-        More
+        {t.charts.more}
       </div>
     </div>
   );

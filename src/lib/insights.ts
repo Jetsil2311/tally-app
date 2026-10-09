@@ -1,3 +1,5 @@
+import type { Dictionary } from "@/i18n/dictionaries";
+
 import { toCents } from "./money";
 import type { Category, CategoryTotal, Summary, Transaction } from "./types";
 
@@ -17,6 +19,15 @@ export function isTransferCategory(name: string | null | undefined) {
 export function isSystemCategory(name: string | null | undefined) {
   const n = (name ?? "").toLowerCase();
   return n === TRANSFER_CATEGORY.toLowerCase() || n === OPENING_CATEGORY.toLowerCase();
+}
+
+// The two system categories keep their English names in the data (that's
+// how they're found), but are shown in the user's language
+export function categoryLabel(name: string, t: Dictionary) {
+  const n = name.toLowerCase();
+  if (n === TRANSFER_CATEGORY.toLowerCase()) return t.common.systemCategory.transfers;
+  if (n === OPENING_CATEGORY.toLowerCase()) return t.common.systemCategory.opening;
+  return name;
 }
 
 export interface Totals {
@@ -55,7 +66,7 @@ export function totalsFromSummary(summary: Summary): Totals {
 // Subcategory totals rolled up into their top-level parent
 export function rollUpCategories(rows: CategoryTotal[], categories: Category[], type: "income" | "expense") {
   const byId = new Map(categories.map((c) => [c.id, c]));
-  const groups = new Map<string, { id: string | null; name: string; total: number; count: number }>();
+  const groups = new Map<string, { id: string | null; name: string | null; total: number; count: number }>();
 
   for (const row of rows) {
     if (row.type !== type) continue;
@@ -63,7 +74,8 @@ export function rollUpCategories(rows: CategoryTotal[], categories: Category[], 
     const top = category?.parentId ? byId.get(category.parentId) ?? category : category;
     const id = top?.id ?? null;
     const key = id ?? "none";
-    const group = groups.get(key) ?? { id, name: top?.name ?? row.name ?? "Uncategorized", total: 0, count: 0 };
+    // name: null marks "uncategorized"; the page shows it in the user's language
+    const group = groups.get(key) ?? { id, name: top?.name ?? row.name ?? null, total: 0, count: 0 };
     group.total += toCents(row.total);
     group.count += row.count;
     groups.set(key, group);

@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 
+import { getI18n } from "@/i18n/server";
 import { api } from "@/lib/api";
 import { OPENING_CATEGORY, isSystemCategory } from "@/lib/insights";
 import type { Account, AccountType, ActionState, Category } from "@/lib/types";
@@ -16,13 +17,14 @@ export async function saveAccount(_prev: ActionState, formData: FormData): Promi
   const type = text(formData, "type") as AccountType;
   const openingRaw = text(formData, "opening");
   const opening = openingRaw ? parseAmount(openingRaw) : null;
+  const { t } = await getI18n();
 
   const fieldErrors: Record<string, string> = {};
-  if (!name) fieldErrors.name = "Give the account a name, like “Visa Gold” or “Wallet”.";
-  if (!TYPES.includes(type)) fieldErrors.type = "Choose cash, debit or credit card.";
-  if (openingRaw && !opening) fieldErrors.opening = "Enter a positive amount, or leave it empty.";
+  if (!name) fieldErrors.name = t.accounts.nameRequired;
+  if (!TYPES.includes(type)) fieldErrors.type = t.accounts.typeRequired;
+  if (openingRaw && !opening) fieldErrors.opening = t.accounts.openingInvalid;
   if (Object.keys(fieldErrors).length) {
-    return { ok: false, message: "Check the highlighted fields.", fieldErrors };
+    return { ok: false, message: t.common.checkFields, fieldErrors };
   }
 
   try {
@@ -44,20 +46,21 @@ export async function saveAccount(_prev: ActionState, formData: FormData): Promi
             type: type === "creditCard" ? "expense" : "income",
             accountId: account.id,
             categoryId: category.id,
-            description: "Opening balance",
+            description: t.accounts.openingDescription,
             source: "opening",
           },
         });
       }
     }
     refresh();
-    return { ok: true, message: id ? "Account updated" : "Account created" };
+    return { ok: true, message: id ? t.accounts.updated : t.accounts.created };
   } catch (error) {
     return toActionState(error);
   }
 }
 
 export async function setAccountActive(id: string, isActive: boolean): Promise<ActionState> {
+  const { t } = await getI18n();
   try {
     if (isActive) {
       await api(`/accounts/${id}`, { method: "PATCH", body: { isActive: true } });
@@ -65,7 +68,7 @@ export async function setAccountActive(id: string, isActive: boolean): Promise<A
       await api(`/accounts/${id}`, { method: "DELETE" });
     }
     refresh();
-    return { ok: true, message: isActive ? "Account restored" : "Account archived" };
+    return { ok: true, message: isActive ? t.accounts.restored : t.accounts.archivedMessage };
   } catch (error) {
     return toActionState(error);
   }

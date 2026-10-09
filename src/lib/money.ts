@@ -36,15 +36,17 @@ export function isCurrency(code: string) {
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
+// `locale` shapes separators and symbol placement ("1.234,50 €" in es-ES,
+// "$1,234.50" in es-MX); `currency` is the user's display currency
 export function formatMoney(
   value: number | string,
   currency: string,
-  { compact = false, sign = false }: { compact?: boolean; sign?: boolean } = {},
+  { compact = false, sign = false, locale = "en-US" }: { compact?: boolean; sign?: boolean; locale?: string } = {},
 ) {
-  const key = `${currency}|${compact}|${sign}`;
+  const key = `${locale}|${currency}|${compact}|${sign}`;
   let formatter = formatters.get(key);
   if (!formatter) {
-    formatter = new Intl.NumberFormat("en-US", {
+    formatter = new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
       currencyDisplay: "narrowSymbol",
@@ -57,16 +59,26 @@ export function formatMoney(
   return formatter.format(typeof value === "string" ? Number(value) : value);
 }
 
-export function currencySymbol(currency: string) {
+export function currencySymbol(currency: string, locale = "en-US") {
   return (
-    new Intl.NumberFormat("en-US", { style: "currency", currency, currencyDisplay: "narrowSymbol" })
+    new Intl.NumberFormat(locale, { style: "currency", currency, currencyDisplay: "narrowSymbol" })
       .formatToParts(0)
       .find((p) => p.type === "currency")?.value ?? currency
   );
 }
 
-export function percent(value: number, digits = 0) {
-  return new Intl.NumberFormat("en-US", {
+// "Mexican Peso" / "peso mexicano", from the browser's own locale data
+export function currencyName(code: string, locale = "en-US") {
+  try {
+    const name = new Intl.DisplayNames([locale], { type: "currency" }).of(code) ?? code;
+    return name.charAt(0).toLocaleUpperCase() + name.slice(1);
+  } catch {
+    return CURRENCIES.find((c) => c.code === code)?.name ?? code;
+  }
+}
+
+export function percent(value: number, locale = "en-US", digits = 0) {
+  return new Intl.NumberFormat(locale, {
     style: "percent",
     maximumFractionDigits: digits,
   }).format(value);

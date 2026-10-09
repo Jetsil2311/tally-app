@@ -1,6 +1,8 @@
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import type { ComponentProps, ReactNode } from "react";
 
+import { OptionalTag } from "./optional-tag";
+
 // Shared presentational pieces. Shape rule: containers 24px, inputs 16px,
 // anything pressable is a pill.
 
@@ -118,7 +120,7 @@ export function Field({
     <div className={cn("flex flex-col gap-2", className)}>
       <label htmlFor={htmlFor} className="flex items-baseline justify-between text-sm font-medium text-ink">
         {label}
-        {optional ? <span className="text-xs font-normal text-ink-3">Optional</span> : null}
+        {optional ? <OptionalTag /> : null}
       </label>
       {children}
       {error ? (

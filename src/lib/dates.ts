@@ -96,9 +96,11 @@ export function dayKey(iso: string | Date, timeZone: string) {
   return `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
 }
 
-export function monthLabel(key: MonthKey, style: "long" | "short" = "long", withYear = true) {
+// In the user's language; Spanish month names come lowercase ("octubre de
+// 2026"), so headings wrap this in capitalize() from i18n/format
+export function monthLabel(key: MonthKey, style: "long" | "short" = "long", withYear = true, locale = "en-US") {
   const { year, month } = parseMonthKey(key)!;
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale, {
     month: style,
     ...(withYear ? { year: "numeric" } : {}),
     timeZone: "UTC",

@@ -3,8 +3,9 @@
 import { Check, Copy, Desktop, Key, Moon, Sun, Trash, WarningOctagon } from "@phosphor-icons/react";
 import { useActionState, useState, useTransition } from "react";
 
-import { createApiKey, deleteMyAccount, revokeApiKey } from "@/actions/settings";
-import { CURRENCIES, currencySymbol } from "@/lib/money";
+import { createApiKey, deleteMyAccount, revokeApiKey, setLanguage } from "@/actions/settings";
+import { useI18n } from "@/i18n/client";
+import { CURRENCIES, currencyName, currencySymbol } from "@/lib/money";
 import type { ActionState, ApiKey } from "@/lib/types";
 
 import { Segmented } from "./chips";
@@ -14,32 +15,59 @@ import { useToast } from "./toast";
 import { Button, Card, Field, Input, Select, cn } from "./ui";
 import { submitWith } from "./use-form-action";
 
-export function AppearancePanel() {
+// `language` is "auto" (detected by region) or a pinned "en" / "es"
+export function AppearancePanel({ language }: { language: "auto" | "en" | "es" }) {
   const theme = useTheme();
   const { currency, setCurrency } = usePreferences();
+  const { t, locale } = useI18n();
+  const toast = useToast();
+  const [choice, setChoice] = useState(language);
+  const [pending, startTransition] = useTransition();
+
+  const changeLanguage = (value: string) => {
+    setChoice(value as typeof language);
+    startTransition(async () => {
+      const result = await setLanguage(value);
+      if (result.ok && result.data?.lang) document.documentElement.lang = result.data.lang;
+      if (result.message) toast(result.message, { tone: result.ok ? "success" : "error" });
+    });
+  };
+
   return (
     <Card className="p-6">
-      <h2 className="text-[17px] font-semibold tracking-tight">Appearance</h2>
+      <h2 className="text-[17px] font-semibold tracking-tight">{t.settings.appearance}</h2>
       <div className="mt-5 grid gap-6 sm:grid-cols-2">
         <div>
-          <p className="mb-3 text-sm font-medium">Theme</p>
+          <p className="mb-3 text-sm font-medium">{t.settings.theme}</p>
           <Segmented
-            label="Theme"
+            label={t.settings.theme}
             value={theme}
             onChange={setTheme}
             className="w-full"
             options={[
-              { value: "light", label: "Light", icon: <Sun size={16} /> },
-              { value: "dark", label: "Dark", icon: <Moon size={16} /> },
-              { value: "system", label: "Auto", icon: <Desktop size={16} /> },
+              { value: "light", label: t.theme.light, icon: <Sun size={16} /> },
+              { value: "dark", label: t.theme.dark, icon: <Moon size={16} /> },
+              { value: "system", label: t.theme.auto, icon: <Desktop size={16} /> },
             ]}
           />
         </div>
-        <Field label="Display currency" htmlFor="currency" hint="Changes how amounts are shown. Values aren't converted.">
+        <Field label={t.settings.language} htmlFor="language" hint={t.settings.languageHint}>
+          <Select id="language" value={choice} disabled={pending} onChange={(e) => changeLanguage(e.target.value)}>
+            <option value="auto">{t.settings.languageAuto}</option>
+            {/* Each language in its own name, so it's findable whatever is showing */}
+            <option value="en" lang="en">
+              English
+            </option>
+            <option value="es" lang="es">
+              Español
+            </option>
+          </Select>
+        </Field>
+        <Field label={t.settings.displayCurrency} htmlFor="currency" hint={t.currency.hint} className="sm:col-span-2">
           <Select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
             {CURRENCIES.map((c) => (
               <option key={c.code} value={c.code}>
-                {currencySymbol(c.code)} {c.name} ({c.code})
+                {currencySymbol(c.code, locale)} {currencyName(c.code, locale)} ({c.code})
               </option>
             ))}
           </Select>
@@ -51,6 +79,7 @@ export function AppearancePanel() {
 
 export function ApiKeysPanel({ keys, timeZone }: { keys: ApiKey[]; timeZone: string }) {
   const toast = useToast();
+  const { t, locale } = useI18n();
   const [created, setCreated] = useState<{ key: string; name: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
@@ -61,7 +90,7 @@ export function ApiKeysPanel({ keys, timeZone }: { keys: ApiKey[]; timeZone: str
     }
     return result;
   }, {});
-  const date = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone });
+  const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone });
 
   return (
     <Card className="p-6">
@@ -70,19 +99,23 @@ export function ApiKeysPanel({ keys, timeZone }: { keys: ApiKey[]; timeZone: str
           <Key size={20} />
         </span>
         <div>
-          <h2 className="text-[17px] font-semibold tracking-tight">Apple Shortcuts & API keys</h2>
+          <h2 className="text-[17px] font-semibold tracking-tight">{t.settings.apiTitle}</h2>
           <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-ink-2">
-            Log Apple Pay purchases automatically. Create a key, then add a “Get Contents of URL” action that POSTs to{" "}
-            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-[13px]">/transactions</code> with the header{" "}
-            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-[13px]">X-API-Key</code>. Name accounts like the cards in
-            your Wallet so they match.
+            {t.settings.apiBody(
+              <code translate="no" className="rounded bg-surface-2 px-1.5 py-0.5 text-[13px]">
+                /transactions
+              </code>,
+              <code translate="no" className="rounded bg-surface-2 px-1.5 py-0.5 text-[13px]">
+                X-API-Key
+              </code>,
+            )}
           </p>
         </div>
       </div>
 
       {created ? (
         <div className="rise mt-5 rounded-3xl border border-income/30 bg-income-soft p-4">
-          <p className="text-sm font-medium">Copy “{created.name}” now. It won&apos;t be shown again.</p>
+          <p className="text-sm font-medium">{t.settings.copyNow(created.name)}</p>
           <div className="mt-3 flex gap-2">
             <code className="flex h-11 min-w-0 flex-1 items-center overflow-x-auto rounded-2xl bg-surface px-3 font-mono text-sm whitespace-nowrap">
               {created.key}
@@ -93,21 +126,21 @@ export function ApiKeysPanel({ keys, timeZone }: { keys: ApiKey[]; timeZone: str
               onClick={async () => {
                 await navigator.clipboard.writeText(created.key);
                 setCopied(true);
-                toast("Key copied");
+                toast(t.settings.keyCopied);
               }}
             >
-              {copied ? <Check size={18} /> : <Copy size={18} />} {copied ? "Copied" : "Copy"}
+              {copied ? <Check size={18} /> : <Copy size={18} />} {copied ? t.settings.copied : t.settings.copy}
             </Button>
           </div>
         </div>
       ) : null}
 
       <form onSubmit={submitWith(formAction)} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start" noValidate>
-        <Field label="New key name" htmlFor="key-name" error={state.fieldErrors?.name} className="flex-1">
-          <Input id="key-name" name="name" placeholder="iPhone Shortcuts" autoComplete="off" aria-invalid={Boolean(state.fieldErrors?.name)} />
+        <Field label={t.settings.newKeyName} htmlFor="key-name" error={state.fieldErrors?.name} className="flex-1">
+          <Input id="key-name" name="name" placeholder={t.settings.keyPlaceholder} autoComplete="off" aria-invalid={Boolean(state.fieldErrors?.name)} />
         </Field>
         <Button type="submit" disabled={pending} className="sm:mt-7">
-          {pending ? "Creating…" : "Create key"}
+          {pending ? t.settings.creating : t.settings.createKey}
         </Button>
       </form>
       {state.message && !state.ok && !state.fieldErrors?.name ? (
@@ -129,6 +162,7 @@ export function ApiKeysPanel({ keys, timeZone }: { keys: ApiKey[]; timeZone: str
 
 function KeyRow({ apiKey, format }: { apiKey: ApiKey; format: (date: string) => string }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
   return (
@@ -136,8 +170,10 @@ function KeyRow({ apiKey, format }: { apiKey: ApiKey; format: (date: string) => 
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{apiKey.name}</p>
         <p className="truncate text-sm text-ink-2">
-          <span className="font-mono">{apiKey.prefix}…</span> · created {format(apiKey.createdAt)} ·{" "}
-          {apiKey.lastUsedAt ? `last used ${format(apiKey.lastUsedAt)}` : "never used"}
+          <span translate="no" className="font-mono">
+            {apiKey.prefix}…
+          </span>
+          {t.settings.keyMeta(format(apiKey.createdAt), apiKey.lastUsedAt ? format(apiKey.lastUsedAt) : null)}
         </p>
       </div>
       <Button
@@ -149,11 +185,11 @@ function KeyRow({ apiKey, format }: { apiKey: ApiKey; format: (date: string) => 
           if (!confirming) return setConfirming(true);
           startTransition(async () => {
             const result = await revokeApiKey(apiKey.id);
-            toast(result.message ?? "Revoked", { tone: result.ok ? "success" : "error" });
+            toast(result.message ?? t.settings.revoked, { tone: result.ok ? "success" : "error" });
           });
         }}
       >
-        <Trash size={16} /> {confirming ? "Confirm" : "Revoke"}
+        <Trash size={16} /> {confirming ? t.settings.confirm : t.settings.revoke}
       </Button>
     </li>
   );
@@ -161,6 +197,7 @@ function KeyRow({ apiKey, format }: { apiKey: ApiKey; format: (date: string) => 
 
 export function DangerZone() {
   const [state, formAction, pending] = useActionState(deleteMyAccount, {});
+  const { t } = useI18n();
   const [value, setValue] = useState("");
   return (
     <Card className="border-expense/30 p-6">
@@ -169,13 +206,10 @@ export function DangerZone() {
           <WarningOctagon size={20} />
         </span>
         <div className="flex-1">
-          <h2 className="text-[17px] font-semibold tracking-tight">Delete everything</h2>
-          <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-ink-2">
-            Permanently deletes your profile, accounts, categories, every transaction and every API key. This can&apos;t be
-            undone.
-          </p>
+          <h2 className="text-[17px] font-semibold tracking-tight">{t.settings.dangerTitle}</h2>
+          <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-ink-2">{t.settings.dangerBody}</p>
           <form onSubmit={submitWith(formAction)} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start" noValidate>
-            <Field label="Type DELETE to confirm" htmlFor="confirm-delete" error={state.fieldErrors?.confirm} className="flex-1">
+            <Field label={t.settings.typeDelete} htmlFor="confirm-delete" error={state.fieldErrors?.confirm} className="flex-1">
               <Input
                 id="confirm-delete"
                 name="confirm"
@@ -186,7 +220,7 @@ export function DangerZone() {
               />
             </Field>
             <Button type="submit" variant="danger" disabled={pending || value !== "DELETE"} className="sm:mt-7">
-              {pending ? "Deleting…" : "Delete my data"}
+              {pending ? t.common.deleting : t.settings.deleteMyData}
             </Button>
           </form>
           {state.message && !state.ok ? (

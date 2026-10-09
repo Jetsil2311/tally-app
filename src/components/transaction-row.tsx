@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowDownLeft, ArrowsLeftRight, ArrowUpRight } from "@phosphor-icons/react";
+import { ArrowDownLeft, ArrowsLeftRight, ArrowUpRight, Repeat } from "@phosphor-icons/react";
 
-import { isSystemCategory, isTransferCategory } from "@/lib/insights";
+import { useI18n } from "@/i18n/client";
+import { categoryLabel, isSystemCategory, isTransferCategory } from "@/lib/insights";
 import type { Transaction } from "@/lib/types";
 
 import { Money, usePreferences } from "./preferences";
@@ -13,16 +14,18 @@ import { cn } from "./ui";
 export function TransactionRow({ tx, showDate = false }: { tx: Transaction; showDate?: boolean }) {
   const { open } = useQuickAdd();
   const { timeZone } = usePreferences();
+  const { t, locale } = useI18n();
   const transfer = isSystemCategory(tx.category?.name);
   const isMove = isTransferCategory(tx.category?.name);
   const missingCategory = !tx.category && tx.source !== "opening";
-  const when = new Intl.DateTimeFormat("en-US", {
+  const when = new Intl.DateTimeFormat(locale, {
     timeZone,
     ...(showDate ? { month: "short", day: "numeric" } : { hour: "numeric", minute: "2-digit" }),
   }).format(new Date(tx.date));
 
   const Icon = isMove ? ArrowsLeftRight : tx.type === "income" ? ArrowDownLeft : ArrowUpRight;
-  const title = tx.description || tx.category?.name || (tx.type === "income" ? "Income" : "Expense");
+  const categoryName = tx.category ? categoryLabel(tx.category.name, t) : null;
+  const title = tx.description || categoryName || (tx.type === "income" ? t.common.income : t.common.expense);
 
   return (
     <button
@@ -40,12 +43,17 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
         <Icon size={18} weight="bold" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-medium text-ink">{title}</span>
+        <span className="flex min-w-0 items-center gap-1.5 text-[15px] font-medium text-ink">
+          <span className="truncate">{title}</span>
+          {tx.source === "recurring" ? (
+            <Repeat size={14} weight="bold" className="shrink-0 text-ink-3" aria-label={t.transactionRow.recurring} role="img" />
+          ) : null}
+        </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-ink-2">
           {missingCategory ? (
-            <span className="shrink-0 rounded-full bg-warn-soft px-2 py-px text-xs font-medium text-warn">No category</span>
+            <span className="shrink-0 rounded-full bg-warn-soft px-2 py-px text-xs font-medium text-warn">{t.transactionRow.noCategory}</span>
           ) : tx.description && tx.category ? (
-            <span className="shrink-0">{tx.category.name}</span>
+            <span className="shrink-0">{categoryName}</span>
           ) : null}
           <span className="min-w-0 truncate text-ink-3">
             {missingCategory || (tx.description && tx.category) ? "· " : ""}

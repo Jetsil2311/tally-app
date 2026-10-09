@@ -3,6 +3,8 @@
 import { X } from "@phosphor-icons/react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
+import { useI18n } from "@/i18n/client";
+
 import { cn, IconButton } from "./ui";
 
 // Content stays mounted while closed so the exit animation has something to
@@ -26,6 +28,7 @@ export function Sheet({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const { t } = useI18n();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -54,7 +57,7 @@ export function Sheet({
               </h2>
               {description ? <p className="mt-1 text-sm text-ink-2">{description}</p> : null}
             </div>
-            <IconButton label="Close" onClick={onClose} className="-mt-1 -mr-2">
+            <IconButton label={t.common.close} onClick={onClose} className="-mt-1 -mr-2">
               <X size={20} />
             </IconButton>
           </header>

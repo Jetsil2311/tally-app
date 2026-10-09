@@ -64,6 +64,58 @@ export interface Summary {
   byCategory: CategoryTotal[];
 }
 
+export type RecurringFrequency = "weekly" | "monthly" | "yearly";
+
+// Will the account have the money on the due date? (see the API's forecast)
+export type FundingStatus = "covered" | "insufficient" | "income" | "noCheck" | "accountInactive";
+
+export interface Forecast {
+  dueDate: string;
+  // Due date passed but not paid yet (not enough money)
+  overdue: boolean;
+  status: FundingStatus;
+  balanceBefore: string;
+  balanceAfter: string;
+  shortfall: string;
+}
+
+export interface RecurringPayment {
+  id: string;
+  name: string;
+  description: string | null;
+  amount: string;
+  type: TransactionType;
+  frequency: RecurringFrequency;
+  interval: number;
+  // Dates are UTC midnight: they name a calendar day, not an instant
+  startDate: string;
+  nextDueDate: string;
+  endDate: string | null;
+  isActive: boolean;
+  lastAttemptAt: string | null;
+  lastAttemptStatus: "paid" | "insufficientFunds" | "accountInactive" | null;
+  accountId: string;
+  categoryId: string | null;
+  account: { id: string; name: string; type: AccountType; isActive: boolean };
+  category: { id: string; name: string } | null;
+  next: Forecast | null;
+}
+
+export interface Occurrence extends Forecast {
+  recurringPaymentId: string;
+  name: string;
+  type: TransactionType;
+  amount: string;
+  account: { id: string; name: string };
+  category: { id: string; name: string } | null;
+}
+
+export interface Upcoming {
+  until: string;
+  occurrences: Occurrence[];
+  accounts: { id: string; name: string; currentBalance: string; projectedBalance: string; shortfall: string }[];
+}
+
 export interface ApiKey {
   id: string;
   name: string;

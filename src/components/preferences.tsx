@@ -2,6 +2,7 @@
 
 import { createContext, use, useCallback, useMemo, useState, type ReactNode } from "react";
 
+import { useI18n } from "@/i18n/client";
 import { formatMoney } from "@/lib/money";
 
 interface Preferences {
@@ -42,9 +43,11 @@ export function usePreferences() {
 
 export function useMoney() {
   const { currency } = usePreferences();
+  const { locale } = useI18n();
   return useCallback(
-    (value: number | string, options?: { compact?: boolean; sign?: boolean }) => formatMoney(value, currency, options),
-    [currency],
+    (value: number | string, options?: { compact?: boolean; sign?: boolean }) =>
+      formatMoney(value, currency, { ...options, locale }),
+    [currency, locale],
   );
 }
 
@@ -65,5 +68,10 @@ export function Money({
 }) {
   const format = useMoney();
   const amount = cents !== undefined ? cents / 100 : Number(value ?? 0);
-  return <span className={`tabular ${className ?? ""}`}>{format(amount, { sign, compact })}</span>;
+  // translate="no": the browser's page translation must never rewrite an amount
+  return (
+    <span translate="no" className={`tabular ${className ?? ""}`}>
+      {format(amount, { sign, compact })}
+    </span>
+  );
 }

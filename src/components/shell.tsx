@@ -6,6 +6,7 @@ import {
   House,
   Plus,
   Receipt,
+  Repeat,
   SignOut,
   SquaresFour,
   Tag,
@@ -18,6 +19,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Suspense, use } from "react";
 
 import { signOut } from "@/actions/settings";
+import { useI18n } from "@/i18n/client";
 import type { User } from "@/lib/types";
 
 import { CurrencyMenu } from "./currency-menu";
@@ -27,10 +29,10 @@ import { ThemeMenu } from "./theme";
 import { cn } from "./ui";
 
 const NAV = [
-  { href: "/", label: "Home", icon: House },
-  { href: "/activity", label: "Activity", icon: Receipt },
-  { href: "/accounts", label: "Accounts", icon: Wallet },
-  { href: "/insights", label: "Insights", icon: ChartLineUp },
+  { href: "/", key: "home", icon: House },
+  { href: "/activity", key: "activity", icon: Receipt },
+  { href: "/accounts", key: "accounts", icon: Wallet },
+  { href: "/insights", key: "insights", icon: ChartLineUp },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -38,12 +40,15 @@ function isActive(pathname: string, href: string) {
 }
 
 export function Logo() {
+  const { t } = useI18n();
   return (
-    <Link href="/" className="flex items-center gap-2.5 rounded-full pr-2" aria-label="Tally home">
+    <Link href="/" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={t.nav.tallyHome}>
       <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
         <SquaresFour size={18} weight="fill" />
       </span>
-      <span className="text-[17px] font-semibold tracking-tight">Tally</span>
+      <span translate="no" className="text-[17px] font-semibold tracking-tight">
+        Tally
+      </span>
     </Link>
   );
 }
@@ -97,9 +102,10 @@ function Avatar({ user, size = 36 }: { user: User; size?: number }) {
 function UserMenu({ user: userPromise }: { user: Promise<User> }) {
   const user = use(userPromise);
   const router = useRouter();
+  const { t } = useI18n();
   return (
     <Menu
-      label="Account menu"
+      label={t.nav.accountMenu}
       panelClassName="w-64"
       trigger={() => (
         <span className="ml-1 flex size-11 items-center justify-center rounded-full transition-transform active:scale-95">
@@ -112,16 +118,19 @@ function UserMenu({ user: userPromise }: { user: Promise<User> }) {
           <div className="flex items-center gap-3 px-3 pt-2 pb-3">
             <Avatar user={user} size={40} />
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-medium">{user.name ?? "You"}</p>
+              <p className="truncate text-[15px] font-medium">{user.name ?? t.nav.you}</p>
               <p className="truncate text-sm text-ink-2">{user.email}</p>
             </div>
           </div>
           <div className="border-t border-line pt-1.5">
+            <MenuItem icon={<Repeat size={18} />} onClick={() => (close(), router.push("/recurring"))}>
+              {t.nav.recurring}
+            </MenuItem>
             <MenuItem icon={<Tag size={18} />} onClick={() => (close(), router.push("/categories"))}>
-              Categories
+              {t.nav.categories}
             </MenuItem>
             <MenuItem icon={<Gear size={18} />} onClick={() => (close(), router.push("/settings"))}>
-              Settings
+              {t.nav.settings}
             </MenuItem>
           </div>
           <form action={signOut} className="mt-1.5 border-t border-line pt-1.5">
@@ -129,7 +138,7 @@ function UserMenu({ user: userPromise }: { user: Promise<User> }) {
               type="submit"
               className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-[15px] text-expense transition-colors hover:bg-expense-soft"
             >
-              <SignOut size={18} /> Sign out
+              <SignOut size={18} /> {t.nav.signOut}
             </button>
           </form>
         </>
@@ -144,11 +153,13 @@ export function Dock() {
   const pathname = usePathname();
   const { open } = useQuickAdd();
   const reduce = useReducedMotion();
+  const { t } = useI18n();
   const left = NAV.slice(0, 2);
   const right = NAV.slice(2);
 
-  const item = ({ href, label, icon: Icon }: (typeof NAV)[number]) => {
+  const item = ({ href, key, icon: Icon }: (typeof NAV)[number]) => {
     const active = isActive(pathname, href);
+    const label = t.nav[key];
     return (
       <Link
         key={href}
@@ -174,7 +185,7 @@ export function Dock() {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t.nav.primary}
       className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-5"
     >
       <div className="glass flex w-full max-w-md items-center justify-between gap-1 rounded-full p-1.5 sm:w-auto sm:max-w-none">
@@ -182,8 +193,8 @@ export function Dock() {
         <button
           type="button"
           onClick={() => open({ mode: "expense" })}
-          aria-label="Add entry (N)"
-          title="Add entry (N)"
+          aria-label={t.nav.addEntry}
+          title={t.nav.addEntry}
           className="mx-1 flex size-14 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft transition-[transform,background-color] duration-200 hover:bg-accent-hover active:scale-95 sm:size-12"
         >
           <Plus size={24} weight="bold" />
@@ -202,7 +213,9 @@ export function TopBarSkeleton() {
           <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
             <SquaresFour size={18} weight="fill" />
           </span>
-          <span className="text-[17px] font-semibold tracking-tight">Tally</span>
+          <span translate="no" className="text-[17px] font-semibold tracking-tight">
+            Tally
+          </span>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <div className="skeleton h-8 w-16 rounded-full" />

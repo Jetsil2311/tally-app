@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
+import { useI18n } from "@/i18n/client";
 import { toCents } from "@/lib/money";
 import type { Account } from "@/lib/types";
 
-import { AccountIcon, accountTypeLabel } from "./account-icon";
+import { AccountIcon } from "./account-icon";
 import { Money } from "./preferences";
 import { cn } from "./ui";
 
@@ -16,6 +19,7 @@ const SKINS = {
 } as const;
 
 export function AccountCard({ account, className, href }: { account: Account; className?: string; href?: string }) {
+  const { t } = useI18n();
   const cents = toCents(account.balance);
   const credit = account.type === "creditCard";
   const owed = credit && cents < 0;
@@ -37,16 +41,16 @@ export function AccountCard({ account, className, href }: { account: Account; cl
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[15px] font-medium">{account.name}</p>
-          <p className="text-sm text-white/70">{accountTypeLabel(account.type)}</p>
+          <p className="text-sm text-white/70">{t.accountTypes[account.type].label}</p>
         </div>
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15">
           <AccountIcon type={account.type} size={20} />
         </span>
       </div>
       <div className="relative">
-        <p className="text-sm text-white/70">{owed ? "You owe" : credit ? "Credit balance" : "Available"}</p>
+        <p className="text-sm text-white/70">{owed ? t.accountCard.youOwe : credit ? t.accountCard.creditBalance : t.accountCard.available}</p>
         <Money cents={credit ? Math.abs(cents) : cents} className="text-[28px] leading-tight font-semibold tracking-tight" />
-        {!credit && cents < 0 ? <p className="text-xs text-white/80">Overdrawn</p> : null}
+        {!credit && cents < 0 ? <p className="text-xs text-white/80">{t.accountCard.overdrawn}</p> : null}
       </div>
     </div>
   );

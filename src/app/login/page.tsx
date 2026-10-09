@@ -5,57 +5,89 @@ import { Suspense } from "react";
 import { AccountCard } from "@/components/account-card";
 import { CashFlowChart } from "@/components/charts";
 import { PreferencesProvider } from "@/components/preferences";
-import { cn } from "@/components/ui";
+import { cn, Skeleton } from "@/components/ui";
+import { I18nProvider } from "@/i18n/client";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { getI18n } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Sign in" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t.login.title, description: t.login.description };
+}
 
-const ERRORS: Record<string, string> = {
-  cancelled: "Sign-in was cancelled. Try again when you're ready.",
-  state: "That sign-in link expired. Please start again.",
-  google: "Google couldn't confirm your sign-in. Please try again.",
-  api: "Your Google account was verified, but the finance service refused the sign-in. Check its GOOGLE_CLIENT_ID.",
-  unreachable: "Can't reach the finance service right now. Make sure it's running, then try again.",
-  expired: "Your session ended. Sign in again to pick up where you left off.",
-};
-
+// Everything on this page is in the visitor's language, which comes from a
+// cookie, so it streams in behind a skeleton of the same shape
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <section className="flex flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-8 sm:px-12 lg:px-16">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
-            <SquaresFour size={18} weight="fill" />
-          </span>
-          <span className="text-[17px] font-semibold tracking-tight">Tally</span>
-        </div>
+    <Suspense fallback={<LoginSkeleton />}>
+      <Login searchParams={searchParams} />
+    </Suspense>
+  );
+}
 
-        <div className="my-auto max-w-md py-16">
-          <h1 className="rise text-[40px] leading-[1.05] font-semibold tracking-tighter sm:text-5xl">
-            Know where every cent goes.
-          </h1>
-          <p className="rise mt-5 text-[17px] leading-relaxed text-ink-2" style={{ "--i": 1 } as React.CSSProperties}>
-            Cash, debit and credit in one calm place. Log a purchase in two taps and see each month and year at a glance.
-          </p>
-          <div className="rise mt-10" style={{ "--i": 2 } as React.CSSProperties}>
-            <Suspense fallback={<GoogleButton href="/auth/google" />}>
-              <SignIn searchParams={searchParams} />
-            </Suspense>
-          </div>
-          <p className="mt-6 flex items-center gap-2 text-sm text-ink-2">
-            <LockSimple size={16} />
-            Your session stays in a secure, httpOnly cookie.
-          </p>
+function Brand() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
+        <SquaresFour size={18} weight="fill" />
+      </span>
+      <span translate="no" className="text-[17px] font-semibold tracking-tight">
+        Tally
+      </span>
+    </div>
+  );
+}
+
+function LoginSkeleton() {
+  return (
+    <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]" aria-busy>
+      <section className="flex flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-8 sm:px-12 lg:px-16">
+        <Brand />
+        <div className="my-auto w-full max-w-md space-y-5 py-16">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-14 w-4/5" />
+          <Skeleton className="mt-10 h-14 w-full rounded-full" />
         </div>
       </section>
-
-      <Preview />
+      <section className="hidden bg-[linear-gradient(160deg,#1e2a78_0%,#121a4d_60%,#0b1033_100%)] lg:block" />
     </main>
   );
 }
 
-async function SignIn({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
+async function Login({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
+  const { t, locale } = await getI18n();
+  return (
+    <I18nProvider locale={locale}>
+    <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <section className="flex flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-8 sm:px-12 lg:px-16">
+        <Brand />
+
+        <div className="my-auto max-w-md py-16">
+          <h1 className="rise text-[40px] leading-[1.05] font-semibold tracking-tighter sm:text-5xl">
+            {t.login.headline}
+          </h1>
+          <p className="rise mt-5 text-[17px] leading-relaxed text-ink-2" style={{ "--i": 1 } as React.CSSProperties}>
+            {t.login.body}
+          </p>
+          <div className="rise mt-10" style={{ "--i": 2 } as React.CSSProperties}>
+            <SignIn searchParams={searchParams} t={t} />
+          </div>
+          <p className="mt-6 flex items-center gap-2 text-sm text-ink-2">
+            <LockSimple size={16} />
+            {t.login.secureCookie}
+          </p>
+        </div>
+      </section>
+
+      <Preview t={t} />
+    </main>
+    </I18nProvider>
+  );
+}
+
+async function SignIn({ searchParams, t }: { searchParams: PageProps<"/login">["searchParams"]; t: Dictionary }) {
   const params = await searchParams;
-  const error = typeof params.error === "string" ? ERRORS[params.error] : undefined;
+  const error = typeof params.error === "string" ? t.login.errors[params.error] : undefined;
   const next = typeof params.next === "string" ? params.next : undefined;
   const href = next ? `/auth/google?next=${encodeURIComponent(next)}` : "/auth/google";
   return (
@@ -65,12 +97,12 @@ async function SignIn({ searchParams }: { searchParams: PageProps<"/login">["sea
           {error}
         </p>
       ) : null}
-      <GoogleButton href={href} />
+      <GoogleButton href={href} label={t.login.continueWithGoogle} />
     </>
   );
 }
 
-function GoogleButton({ href }: { href: string }) {
+function GoogleButton({ href, label }: { href: string; label: string }) {
   return (
     // A plain link: this starts a full-page OAuth redirect, not a client navigation
     <a
@@ -87,14 +119,14 @@ function GoogleButton({ href }: { href: string }) {
         <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
         <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
       </svg>
-      Continue with Google
+      {label}
     </a>
   );
 }
 
 // The app's own components with example numbers, so the first screen shows
 // what you'll actually get.
-function Preview() {
+function Preview({ t }: { t: Dictionary }) {
   const points = [
     { key: "2026-05", income: 412000, expense: 298550 },
     { key: "2026-06", income: 412000, expense: 351210 },
@@ -105,7 +137,7 @@ function Preview() {
   ] as const;
   return (
     <section
-      aria-label="Example of the dashboard"
+      aria-label={t.login.example}
       className="relative hidden overflow-hidden bg-[linear-gradient(160deg,#1e2a78_0%,#121a4d_60%,#0b1033_100%)] lg:flex lg:items-center lg:justify-center"
     >
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_75%_15%,rgba(129,151,255,0.35),transparent_45%)]" />
@@ -114,18 +146,18 @@ function Preview() {
           <div className="grid grid-cols-2 gap-4">
             <AccountCard
               className="rotate-[-2deg]"
-              account={{ id: "a", name: "Everyday Debit", type: "debit", isActive: true, balance: "2841.37" }}
+              account={{ id: "a", name: t.login.exampleAccounts.debit, type: "debit", isActive: true, balance: "2841.37" }}
             />
             <AccountCard
               className="translate-y-6 rotate-[2deg]"
-              account={{ id: "b", name: "Visa Gold", type: "creditCard", isActive: true, balance: "-612.09" }}
+              account={{ id: "b", name: t.login.exampleAccounts.credit, type: "creditCard", isActive: true, balance: "-612.09" }}
             />
           </div>
           <div className="rounded-3xl border border-white/10 bg-surface/95 p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.6)]">
-            <p className="mb-4 text-[15px] font-semibold">Cash flow, last 6 months</p>
+            <p className="mb-4 text-[15px] font-semibold">{t.home.cashFlow}</p>
             <CashFlowChart points={[...points]} height={150} highlight="2026-10" />
           </div>
-          <p className="text-center text-sm text-white/60">Example data</p>
+          <p className="text-center text-sm text-white/60">{t.login.exampleData}</p>
         </div>
       </PreferencesProvider>
     </section>

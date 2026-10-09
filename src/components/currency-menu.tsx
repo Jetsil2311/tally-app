@@ -3,7 +3,8 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useState } from "react";
 
-import { CURRENCIES, currencySymbol } from "@/lib/money";
+import { useI18n } from "@/i18n/client";
+import { CURRENCIES, currencyName, currencySymbol } from "@/lib/money";
 
 import { Menu } from "./menu";
 import { usePreferences } from "./preferences";
@@ -13,18 +14,21 @@ import { cn } from "./ui";
 // your numbers are shown in.
 export function CurrencyMenu() {
   const { currency, setCurrency } = usePreferences();
+  const { t, locale } = useI18n();
   const [query, setQuery] = useState("");
-  const q = query.trim().toLowerCase();
-  const list = CURRENCIES.filter((c) => !q || c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
+  const q = query.trim().toLocaleLowerCase();
+  const list = CURRENCIES.map((c) => ({ code: c.code, name: currencyName(c.code, locale) })).filter(
+    (c) => !q || c.code.toLowerCase().includes(q) || c.name.toLocaleLowerCase().includes(q),
+  );
 
   return (
     <Menu
-      label={`Display currency: ${currency}`}
+      label={t.currency.label(currency)}
       panelClassName="w-72"
       trigger={() => (
         <span className="inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink">
           <span className="flex size-6 items-center justify-center rounded-full bg-surface-3 text-xs text-ink">
-            {currencySymbol(currency)}
+            {currencySymbol(currency, locale)}
           </span>
           {currency}
         </span>
@@ -38,12 +42,12 @@ export function CurrencyMenu() {
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search currency"
-              aria-label="Search currency"
+              placeholder={t.currency.search}
+              aria-label={t.currency.search}
               className="h-10 w-full rounded-xl bg-surface-2 pr-3 pl-9 text-[15px] focus:outline-none focus:ring-2 focus:ring-accent-soft"
             />
           </div>
-          <ul className="max-h-72 overflow-y-auto py-1" role="listbox" aria-label="Currencies">
+          <ul className="max-h-72 overflow-y-auto py-1" role="listbox" aria-label={t.currency.list}>
             {list.map((c) => (
               <li key={c.code} role="option" aria-selected={c.code === currency}>
                 <button
@@ -57,16 +61,16 @@ export function CurrencyMenu() {
                     c.code === currency && "bg-surface-2",
                   )}
                 >
-                  <span className="w-8 text-center font-medium text-ink-2">{currencySymbol(c.code)}</span>
+                  <span className="w-8 text-center font-medium text-ink-2">{currencySymbol(c.code, locale)}</span>
                   <span className="flex-1 text-[15px]">{c.name}</span>
                   <span className="text-xs text-ink-3">{c.code}</span>
                 </button>
               </li>
             ))}
-            {list.length === 0 ? <li className="px-3 py-4 text-sm text-ink-2">No match for “{query}”.</li> : null}
+            {list.length === 0 ? <li className="px-3 py-4 text-sm text-ink-2">{t.currency.noMatch(query)}</li> : null}
           </ul>
           <p className="border-t border-line px-3 pt-2 pb-1 text-xs leading-relaxed text-ink-2">
-            Changes how amounts are shown. Values aren&apos;t converted.
+            {t.currency.hint}
           </p>
         </div>
       )}

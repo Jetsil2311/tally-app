@@ -5,6 +5,8 @@ import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
 import { getAccounts, getCategories, getCurrentUser } from "@/lib/data";
+import { I18nProvider } from "@/i18n/client";
+import { getI18n } from "@/i18n/server";
 import { getPreferences } from "@/lib/session";
 
 // Signed-in shell. Everything here depends on the session cookie, so it
@@ -19,12 +21,14 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 
 async function Shell({ children }: { children: React.ReactNode }) {
   const { currency, timeZone } = await getPreferences();
+  const { locale, t } = await getI18n();
   // Started here, awaited only where needed (user menu, the add sheet)
   const user = getCurrentUser();
   const accounts = getAccounts();
   const categories = getCategories();
 
   return (
+    <I18nProvider locale={locale}>
     <PreferencesProvider currency={currency} timeZone={timeZone}>
       <ToastProvider>
         <QuickAddProvider accounts={accounts} categories={categories}>
@@ -32,7 +36,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
             href="#main"
             className="sr-only z-60 rounded-full bg-ink px-4 py-2 text-surface focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
           >
-            Skip to content
+            {t.nav.skipToContent}
           </a>
           <TopBar user={user} />
           <main id="main" className="mx-auto w-full max-w-6xl px-4 pt-2 pb-36 sm:px-6 sm:pb-32">
@@ -42,6 +46,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
         </QuickAddProvider>
       </ToastProvider>
     </PreferencesProvider>
+    </I18nProvider>
   );
 }
 

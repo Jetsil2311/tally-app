@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { Busy } from "@/components/busy";
 import { AccountsManager, type AccountStats } from "@/components/accounts-manager";
 import { Skeleton } from "@/components/ui";
+import { getI18n } from "@/i18n/server";
 import { getAccounts, getSummary } from "@/lib/data";
 import { currentMonthKey, monthRange } from "@/lib/dates";
 import { totalsFromSummary } from "@/lib/insights";
 import { getPreferences, requestTime } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Accounts" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t.nav.accounts };
+}
 
 export default function AccountsPage({ searchParams }: PageProps<"/accounts">) {
   return (
@@ -41,7 +46,7 @@ async function Accounts({ searchParams }: { searchParams: PageProps<"/accounts">
 
 function AccountsSkeleton() {
   return (
-    <div className="space-y-5 pt-2" aria-busy aria-label="Loading">
+    <Busy className="space-y-5 pt-2">
       <div className="flex justify-between">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-11 w-36 rounded-full" />
@@ -51,6 +56,6 @@ function AccountsSkeleton() {
           <Skeleton key={i} className="h-60 rounded-3xl" />
         ))}
       </div>
-    </div>
+    </Busy>
   );
 }

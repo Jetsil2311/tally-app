@@ -1,12 +1,14 @@
 import "server-only";
 import { unstable_rethrow } from "next/navigation";
 
+import { getI18n } from "@/i18n/server";
 import { ApiError } from "@/lib/api";
 import type { ActionState } from "@/lib/types";
 
 // Turns a thrown error into the state a form shows. API validation issues
 // become per-field messages; Next.js redirects (e.g. expired session) pass through.
-export function toActionState(error: unknown, fallback = "Something went wrong. Try again."): ActionState {
+// Messages written by the API itself arrive in English.
+export async function toActionState(error: unknown, fallback?: string): Promise<ActionState> {
   unstable_rethrow(error);
   if (error instanceof ApiError) {
     const fieldErrors: Record<string, string> = {};
@@ -16,7 +18,7 @@ export function toActionState(error: unknown, fallback = "Something went wrong. 
     }
     return { ok: false, message: error.message, fieldErrors };
   }
-  return { ok: false, message: fallback };
+  return { ok: false, message: fallback ?? (await getI18n()).t.common.somethingWrong };
 }
 
 export function text(formData: FormData, name: string) {

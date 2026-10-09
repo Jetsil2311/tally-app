@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 
+import { getI18n } from "@/i18n/server";
 import { api } from "@/lib/api";
 import { fromLocalInputValue } from "@/lib/dates";
 import { TRANSFER_CATEGORY, isTransferCategory } from "@/lib/insights";
@@ -20,14 +21,15 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
   const description = text(formData, "description");
   const { timeZone } = await getPreferences();
   const date = fromLocalInputValue(text(formData, "date"), timeZone);
+  const { t } = await getI18n();
 
   const fieldErrors: Record<string, string> = {};
-  if (type !== "income" && type !== "expense") fieldErrors.type = "Choose income or expense.";
-  if (!amount) fieldErrors.amount = "Enter an amount above zero, like 12.50.";
-  if (!accountId) fieldErrors.accountId = "Pick the account this money moved through.";
-  if (!date) fieldErrors.date = "Enter a valid date and time.";
+  if (type !== "income" && type !== "expense") fieldErrors.type = t.transactions.typeRequired;
+  if (!amount) fieldErrors.amount = t.common.amountRequired;
+  if (!accountId) fieldErrors.accountId = t.transactions.accountRequired;
+  if (!date) fieldErrors.date = t.transactions.dateRequired;
   if (Object.keys(fieldErrors).length) {
-    return { ok: false, message: "Check the highlighted fields.", fieldErrors };
+    return { ok: false, message: t.common.checkFields, fieldErrors };
   }
 
   const body = {
@@ -55,7 +57,7 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
     refresh();
     return {
       ok: true,
-      message: id ? "Changes saved" : type === "income" ? "Income added" : "Expense added",
+      message: id ? t.transactions.saved : type === "income" ? t.transactions.incomeAdded : t.transactions.expenseAdded,
       data: { id: saved.id },
     };
   } catch (error) {
@@ -71,7 +73,7 @@ export async function deleteTransaction(id: string): Promise<ActionState> {
     // Returned so the client can offer "Undo"
     return {
       ok: true,
-      message: "Transaction deleted",
+      message: (await getI18n()).t.quickAdd.deleted,
       data: {
         amount: tx.amount,
         type: tx.type,
@@ -102,7 +104,7 @@ export async function restoreTransaction(data: Record<string, string>): Promise<
       },
     });
     refresh();
-    return { ok: true, message: "Restored" };
+    return { ok: true, message: (await getI18n()).t.transactions.restored };
   } catch (error) {
     return toActionState(error);
   }
@@ -112,7 +114,7 @@ export async function undoCreate(id: string): Promise<ActionState> {
   try {
     await api(`/transactions/${id}`, { method: "DELETE" });
     refresh();
-    return { ok: true, message: "Undone" };
+    return { ok: true, message: (await getI18n()).t.transactions.undone };
   } catch (error) {
     return toActionState(error);
   }
@@ -128,15 +130,16 @@ export async function createTransfer(_prev: ActionState, formData: FormData): Pr
   const note = text(formData, "description");
   const { timeZone } = await getPreferences();
   const date = fromLocalInputValue(text(formData, "date"), timeZone);
+  const { t } = await getI18n();
 
   const fieldErrors: Record<string, string> = {};
-  if (!fromAccountId) fieldErrors.fromAccountId = "Pick where the money leaves from.";
-  if (!toAccountId) fieldErrors.toAccountId = "Pick where the money goes.";
-  if (fromAccountId && fromAccountId === toAccountId) fieldErrors.toAccountId = "Choose two different accounts.";
-  if (!amount) fieldErrors.amount = "Enter an amount above zero, like 12.50.";
-  if (!date) fieldErrors.date = "Enter a valid date and time.";
+  if (!fromAccountId) fieldErrors.fromAccountId = t.transactions.fromRequired;
+  if (!toAccountId) fieldErrors.toAccountId = t.transactions.toRequired;
+  if (fromAccountId && fromAccountId === toAccountId) fieldErrors.toAccountId = t.transactions.sameAccount;
+  if (!amount) fieldErrors.amount = t.common.amountRequired;
+  if (!date) fieldErrors.date = t.transactions.dateRequired;
   if (Object.keys(fieldErrors).length) {
-    return { ok: false, message: "Check the highlighted fields.", fieldErrors };
+    return { ok: false, message: t.common.checkFields, fieldErrors };
   }
 
   try {
@@ -146,19 +149,19 @@ export async function createTransfer(_prev: ActionState, formData: FormData): Pr
       (await api<Category>("/categories", { method: "POST", body: { name: TRANSFER_CATEGORY } }));
 
     const accounts = await api<{ id: string; name: string }[]>("/accounts");
-    const nameOf = (id: string) => accounts.find((a) => a.id === id)?.name ?? "account";
+    const nameOf = (id: string) => accounts.find((a) => a.id === id)?.name ?? t.transactions.someAccount;
     const shared = { amount, categoryId: transfer.id, date: date!.toISOString(), source: "transfer" };
 
     await api("/transactions", {
       method: "POST",
-      body: { ...shared, type: "expense", accountId: fromAccountId, description: note || `To ${nameOf(toAccountId)}` },
+      body: { ...shared, type: "expense", accountId: fromAccountId, description: note || t.transactions.toAccount(nameOf(toAccountId)) },
     });
     await api("/transactions", {
       method: "POST",
-      body: { ...shared, type: "income", accountId: toAccountId, description: note || `From ${nameOf(fromAccountId)}` },
+      body: { ...shared, type: "income", accountId: toAccountId, description: note || t.transactions.fromAccount(nameOf(fromAccountId)) },
     });
     refresh();
-    return { ok: true, message: "Transfer recorded" };
+    return { ok: true, message: t.transactions.transferRecorded };
   } catch (error) {
     return toActionState(error);
   }
