@@ -37,6 +37,8 @@ import { AiMark } from "./ai-mark";
 import { ChipGroup, Segmented } from "./chips";
 import { Avatar, displayName, RoleBadge, TxStatusPill, useViewer } from "./people-ui";
 import { Money, useAccountCurrency, usePreferences } from "./preferences";
+import { useAi } from "./ai-assist";
+import { NewCategoryChip } from "./new-category";
 import { Sheet } from "./sheet";
 import { VerifyActions } from "./verification";
 import { useToast } from "./toast";
@@ -401,8 +403,12 @@ function TransactionForm({
     return activeAccounts[0]?.id ?? "";
   });
 
+  // Created from this sheet (they also arrive with the refreshed list; until
+  // then they're kept here so the entry can use them right away)
+  const [created, setCreated] = useState<Category[]>([]);
+  const allCategories = [...categories, ...created.filter((c) => !categories.some((known) => known.id === c.id))];
   // Your personal categories plus the chosen account's shared ones
-  const usableOn = (id: string) => categories.filter((c) => !isSystemCategory(c.name) && (c.accountId === null || c.accountId === id));
+  const usableOn = (id: string) => allCategories.filter((c) => !isSystemCategory(c.name) && (c.accountId === null || c.accountId === id));
   const usable = usableOn(accountId);
   const topLevel = usable.filter((c) => !c.parentId);
   const initialCategory = usable.find((c) => c.id === transaction?.categoryId);
@@ -433,6 +439,19 @@ function TransactionForm({
   };
   const children = usable.filter((c) => c.parentId === parentId);
   const categoryId = childId || parentId;
+
+  // A new category is selected as soon as it exists
+  const addCategory = (category: Category) => {
+    setCreated((list) => [...list, category]);
+    if (category.parentId) {
+      setParentId(category.parentId);
+      setChildId(category.id);
+    } else {
+      setParentId(category.id);
+      setChildId("");
+    }
+    toast(t.quickAdd.categoryCreated(category.name), { tone: "success" });
+  };
 
   const [defaultDate] = useState(() => toLocalInputValue(transaction?.date ?? new Date(), timeZone));
 
@@ -512,6 +531,14 @@ function TransactionForm({
         }
       />
 
+      {/* Before saving a new expense: ask the assistant if it fits, with
+          the amount, currency, note and account already filled in */}
+      {!transaction && type === "expense" && Number(amountText.replace(",", ".")) > 0 ? (
+        <div className="-mt-2 flex justify-center">
+          <AffordButton amount={amountText} currency={currency} accountId={accountId} formRef={formRef} />
+        </div>
+      ) : null}
+
       {transaction?.createdBy && transaction.createdBy.id !== viewer.id ? <AddedBy person={transaction.createdBy} /> : null}
 
       <fieldset className="space-y-3">
@@ -547,49 +574,44 @@ function TransactionForm({
         {transaction && (transaction.categoryStatus === "review" || transaction.categoryStatus === "ai") && transaction.category ? (
           <CategorySuggestion tx={transaction} onDone={onDone} />
         ) : null}
-        {topLevel.length === 0 ? (
-          <p className="rounded-2xl bg-surface-2 p-4 text-sm text-ink-2">
-            {t.quickAdd.noCategories(
-              <Link href="/categories" className="font-medium text-accent underline-offset-4 hover:underline">
-                {t.quickAdd.addSome}
-              </Link>,
-            )}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            <div className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        <div className="space-y-3">
+          {topLevel.length === 0 ? <p className="text-sm text-ink-2">{t.quickAdd.noCategoriesInline}</p> : null}
+          <div className="no-scrollbar -mx-6 flex items-start gap-2 overflow-x-auto px-6 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+            {topLevel.length ? (
               <CategoryChip active={!parentId} onClick={() => (setParentId(""), setChildId(""))}>
                 {t.common.none}
               </CategoryChip>
-              {topLevel.map((category) => (
+            ) : null}
+            {topLevel.map((category) => (
+              <CategoryChip
+                key={category.id}
+                active={parentId === category.id}
+                onClick={() => {
+                  setParentId(category.id);
+                  setChildId("");
+                }}
+              >
+                {category.name}
+              </CategoryChip>
+            ))}
+            <NewCategoryChip onCreated={addCategory} />
+          </div>
+          {parentId ? (
+            <div className="flex flex-wrap items-start gap-2 rounded-2xl bg-surface-2 p-2">
+              {children.map((category) => (
                 <CategoryChip
                   key={category.id}
-                  active={parentId === category.id}
-                  onClick={() => {
-                    setParentId(category.id);
-                    setChildId("");
-                  }}
+                  small
+                  active={childId === category.id}
+                  onClick={() => setChildId(childId === category.id ? "" : category.id)}
                 >
                   {category.name}
                 </CategoryChip>
               ))}
+              <NewCategoryChip key={parentId} small parentId={parentId} onCreated={addCategory} />
             </div>
-            {children.length > 0 ? (
-              <div className="flex flex-wrap gap-2 rounded-2xl bg-surface-2 p-2">
-                {children.map((category) => (
-                  <CategoryChip
-                    key={category.id}
-                    small
-                    active={childId === category.id}
-                    onClick={() => setChildId(childId === category.id ? "" : category.id)}
-                  >
-                    {category.name}
-                  </CategoryChip>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        )}
+          ) : null}
+        </div>
       </fieldset>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -640,6 +662,35 @@ function TransactionForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+function AffordButton({
+  amount,
+  currency,
+  accountId,
+  formRef,
+}: {
+  amount: string;
+  currency: string;
+  accountId: string;
+  formRef: React.RefObject<HTMLFormElement | null>;
+}) {
+  const { t } = useI18n();
+  const { open } = useAi();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        // The note is read when asked, not tracked on every keystroke
+        const note = (formRef.current?.elements.namedItem("description") as HTMLInputElement | null)?.value.trim() ?? "";
+        const value = `${amount.replace(",", ".")} ${currency}`;
+        open({ ask: t.ai.affordQuestion(value, note), accountId });
+      }}
+      className="ai-chip inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[transform,box-shadow] active:scale-[0.97]"
+    >
+      <AiMark size={17} /> {t.ai.canIAffordThis}
+    </button>
   );
 }
 

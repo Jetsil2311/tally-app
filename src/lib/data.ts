@@ -38,9 +38,14 @@ export const getCurrentUser = cache(async () => {
   return { ...user, preferredCurrency: user.preferredCurrency ?? "USD" };
 });
 
-export const getAccounts = cache(async (includeInactive = false) => {
-  return api<Account[]>("/accounts", { query: { includeInactive: includeInactive || undefined } });
-});
+// One request per render for every account, active or not: the shell, the
+// add sheet and the page all need them, and /accounts is the slowest call
+const getAllAccounts = cache(() => api<Account[]>("/accounts", { query: { includeInactive: true } }));
+
+export async function getAccounts(includeInactive = false) {
+  const accounts = await getAllAccounts();
+  return includeInactive ? accounts : accounts.filter((account) => account.isActive);
+}
 
 export const getCategories = cache(async () => {
   const categories = await api<Category[]>("/categories");

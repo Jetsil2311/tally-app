@@ -33,9 +33,9 @@ import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { ApiError } from "@/lib/api";
 import { currentMonthKey, dayKey, daysInMonth, monthLabel, monthRange, shiftMonth, todayParts } from "@/lib/dates";
-import { change, isTransfer, rollUpCategories, savingsRate, totalsFromSummary } from "@/lib/insights";
+import { categoryLabel, change, isTransfer, rollUpCategories, savingsRate, totalsFromSummary } from "@/lib/insights";
 import { sumBalances, txCents } from "@/lib/convert";
-import { percent, toCents } from "@/lib/money";
+import { formatMoney, percent, toCents } from "@/lib/money";
 import { relativeDue } from "@/lib/recurring";
 import { getPreferences, requestTime } from "@/lib/session";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -149,6 +149,16 @@ async function Home() {
   const topCategories = rollUpCategories(totals.byCategory, categories, "expense");
   const uncategorized = month.rows.filter((tx) => !tx.category && tx.source !== "opening");
 
+  // Questions for the assistant, worked out from this month's own numbers:
+  // the next bill and the biggest category, so asking takes one tap
+  const nextBill = upcoming?.occurrences.find((o) => o.type === "expense");
+  const topCategory = topCategories.find((c) => c.name);
+  const aiSuggestions = [
+    t.ai.howIsMonth,
+    nextBill ? t.ai.upcomingQuestion(nextBill.name, formatMoney(nextBill.amount, nextBill.currency, { locale })) : null,
+    topCategory?.name ? t.ai.categoryQuestion(categoryLabel(topCategory.name, t)) : null,
+  ].filter((q): q is string => Boolean(q));
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <header className="rise flex flex-col gap-4 pt-2 sm:flex-row sm:items-end sm:justify-between">
@@ -247,7 +257,7 @@ async function Home() {
 
       {attentionStack}
 
-      <HomeAssistant insights={insights} />
+      <HomeAssistant insights={insights} suggestions={aiSuggestions} aiEnabled={Boolean(aiStatus?.enabled)} />
 
       <CategoryReview review={toReview.review} pending={toReview.pending} aiEnabled={Boolean(aiStatus?.enabled)} limit={3} />
 

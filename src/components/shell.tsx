@@ -23,6 +23,7 @@ import { useI18n } from "@/i18n/client";
 import type { User } from "@/lib/types";
 
 import { CurrencyMenu } from "./currency-menu";
+import { useAi } from "./ai-assist";
 import { AiMark } from "./ai-mark";
 import { Avatar } from "./people-ui";
 import { Menu, MenuItem } from "./menu";
@@ -90,22 +91,23 @@ function AssistantButtonWithCount({ count }: { count: Promise<number> }) {
 
 function AssistantButton({ unseen }: { unseen: number }) {
   const { t } = useI18n();
-  const pathname = usePathname();
+  const { open, isOpen } = useAi();
   const label = unseen > 0 ? `${t.ai.open} (${t.ai.newInsightsDot(unseen)})` : t.ai.open;
+  // Opens over the current screen: asking never means leaving it
   return (
-    <Link
-      href="/assistant"
+    <button
+      type="button"
+      onClick={() => open()}
       aria-label={label}
+      aria-haspopup="dialog"
+      aria-expanded={isOpen}
       title={label}
-      aria-current={pathname === "/assistant" ? "page" : undefined}
-      className={cn(
-        "relative inline-flex size-11 items-center justify-center rounded-full transition-[background-color,transform] hover:bg-surface-2 active:scale-95",
-        pathname === "/assistant" && "bg-surface-2",
-      )}
+      className="ai-chip relative inline-flex h-11 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium transition-[transform,box-shadow] active:scale-95 sm:pr-4"
     >
-      <AiMark size={22} />
-      {unseen > 0 ? <span aria-hidden className="absolute top-2 right-2 size-2.5 rounded-full bg-[var(--ai-2)] ring-2 ring-bg" /> : null}
-    </Link>
+      <AiMark size={20} />
+      <span className="hidden sm:inline">{t.ai.askAi}</span>
+      {unseen > 0 ? <span aria-hidden className="absolute top-1 right-1 size-2.5 rounded-full bg-[var(--ai-2)] ring-2 ring-bg" /> : null}
+    </button>
   );
 }
 

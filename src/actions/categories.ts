@@ -37,6 +37,27 @@ export async function saveCategory(_prev: ActionState, formData: FormData): Prom
   }
 }
 
+// From the add sheet, without leaving it: creates a personal category (or a
+// subcategory) and returns it so the entry being typed can use it right away
+export async function createCategoryInline(
+  name: string,
+  parentId?: string,
+): Promise<{ ok: true; category: Category } | { ok: false; message: string }> {
+  const { t } = await getI18n();
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, message: t.categories.nameRequired };
+  try {
+    const category = await api<Category>("/categories", {
+      method: "POST",
+      body: { name: trimmed, parentId: parentId || undefined },
+    });
+    refresh();
+    return { ok: true, category };
+  } catch (error) {
+    return { ok: false, message: (await toActionState(error)).message ?? t.common.somethingWrong };
+  }
+}
+
 export async function deleteCategory(id: string): Promise<ActionState> {
   const { t } = await getI18n();
   try {

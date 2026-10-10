@@ -31,15 +31,21 @@ async function Accounts({ searchParams }: { searchParams: PageProps<"/accounts">
   const range = monthRange(currentMonthKey(timeZone, await requestTime()), timeZone);
   const accounts = await getAccounts(true);
 
-  const stats: Record<string, AccountStats> = {};
-  await Promise.all(
+  // Not awaited: each card's monthly totals stream in on their own, so one
+  // slow summary doesn't hold the whole screen
+  const stats: Record<string, Promise<AccountStats | null>> = Object.fromEntries(
     accounts
       .filter((a) => a.isActive)
-      .map(async (account) => {
+      .map((account) => [
+        account.id,
         // In the account's own currency, not converted
-        const totals = totalsFromSummary(await getSummary(range.from, range.to, account.id, account.currency));
-        stats[account.id] = { income: totals.income, expense: totals.expense, count: totals.count };
-      }),
+        getSummary(range.from, range.to, account.id, account.currency)
+          .then((summary) => {
+            const totals = totalsFromSummary(summary);
+            return { income: totals.income, expense: totals.expense, count: totals.count };
+          })
+          .catch(() => null),
+      ]),
   );
 
   return <AccountsManager accounts={accounts} stats={stats} openNew={params.new === "1"} />;

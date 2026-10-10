@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 
+import { AiProvider } from "@/components/ai-assist";
+import { AssistantSheet } from "@/components/assistant";
 import { PreferencesProvider } from "@/components/preferences";
 import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, TopBar, TopBarSkeleton } from "@/components/shell";
@@ -23,15 +25,15 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 async function Shell({ children }: { children: React.ReactNode }) {
   const { timeZone } = await getPreferences();
   const { locale, t } = await getI18n();
-  // Who's signed in: needed by every screen for "You" and permissions
-  // Plus every account's currency (amounts are formatted in it) and the
-  // currencies the API can convert
-  const [me, allAccounts, currencies] = await Promise.all([
-    getCurrentUser(),
-    getAccounts(true),
-    getCurrencies().catch(() => null),
-  ]);
-  const accountCurrencies = Object.fromEntries(allAccounts.map((a) => [a.id, a.currency]));
+  // Who's signed in: needed by every screen for "You" and permissions.
+  // The rest is started here but not awaited, so the top bar and dock paint
+  // without waiting on /accounts (the slowest call): each account's currency
+  // (amounts are formatted in it) and the currencies the API can convert
+  const me = await getCurrentUser();
+  const accountCurrencies = getAccounts(true)
+    .then((all) => Object.fromEntries(all.map((a) => [a.id, a.currency])))
+    .catch(() => ({}));
+  const currencies = getCurrencies().catch(() => null);
   // Started here, awaited only where needed (user menu, the add sheet)
   const user = Promise.resolve(me);
   const accounts = getAccounts();
@@ -50,6 +52,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
       currencies={currencies}
     >
       <ToastProvider>
+        <AiProvider>
         <QuickAddProvider accounts={accounts} categories={categories}>
           <a
             href="#main"
@@ -62,7 +65,9 @@ async function Shell({ children }: { children: React.ReactNode }) {
             {children}
           </main>
           <Dock />
+          <AssistantSheet accounts={accounts} />
         </QuickAddProvider>
+        </AiProvider>
       </ToastProvider>
     </PreferencesProvider>
     </ViewerProvider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useCallback, useMemo, useOptimistic, useTransition, type ReactNode } from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useOptimistic, useState, useTransition, type ReactNode } from "react";
 
 import { setPreferredCurrency } from "@/actions/settings";
 import { useI18n } from "@/i18n/client";
@@ -11,8 +11,9 @@ interface Preferences {
   // accounts are shown in it, and new accounts default to it
   currency: string;
   timeZone: string;
-  // Each account's own currency, for amounts that belong to one account
-  accountCurrencies: Record<string, string>;
+  // Each account's own currency, for amounts that belong to one account.
+  // A promise so the shell doesn't wait on the accounts list to paint
+  accountCurrencies: Promise<Record<string, string>>;
   // Currencies the API can convert
   currencies: string[];
   setCurrency: (code: string) => void;
@@ -21,17 +22,22 @@ interface Preferences {
 
 const PreferencesContext = createContext<Preferences | null>(null);
 
+// For pages outside the app shell (login, landing): no accounts, built-in list
+const NO_ACCOUNTS: Promise<Record<string, string>> = Promise.resolve({});
+const BUILT_IN: Promise<string[] | null> = Promise.resolve(null);
+
 export function PreferencesProvider({
   currency,
   timeZone,
-  accountCurrencies = {},
-  currencies,
+  accountCurrencies = NO_ACCOUNTS,
+  currencies = BUILT_IN,
   children,
 }: {
   currency: string;
   timeZone: string;
-  accountCurrencies?: Record<string, string>;
-  currencies?: string[] | null;
+  accountCurrencies?: Promise<Record<string, string>>;
+  // Only pickers need it: they start with the built-in list meanwhile
+  currencies?: Promise<string[] | null>;
   children: ReactNode;
 }) {
   // Shown right away; the server action saves it and refreshes the totals
@@ -47,8 +53,18 @@ export function PreferencesProvider({
     [setOptimistic],
   );
 
-  // The provider's list, or a built-in one when it's unreachable
-  const list = useMemo(() => currencies ?? CURRENCIES.map((c) => c.code), [currencies]);
+  // The provider's list once it arrives, or the built-in one (also when the
+  // provider is unreachable)
+  const [list, setList] = useState<string[]>(() => CURRENCIES.map((c) => c.code));
+  useEffect(() => {
+    let live = true;
+    currencies.then((codes) => {
+      if (live && codes?.length) setList(codes);
+    });
+    return () => {
+      live = false;
+    };
+  }, [currencies]);
 
   const value = useMemo(
     () => ({ currency: optimistic, timeZone, accountCurrencies, currencies: list, setCurrency, savingCurrency }),
@@ -66,7 +82,8 @@ export function usePreferences() {
 // The currency of an account's amounts, or the preferred one if unknown
 export function useAccountCurrency(accountId: string | undefined | null) {
   const { accountCurrencies, currency } = usePreferences();
-  return (accountId && accountCurrencies[accountId]) || currency;
+  const map = use(accountCurrencies);
+  return (accountId && map[accountId]) || currency;
 }
 
 // Formats in `currency` (default: the preferred currency), in the user's locale

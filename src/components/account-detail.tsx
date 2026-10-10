@@ -33,6 +33,8 @@ import type {
   TransactionPage,
 } from "@/lib/types";
 
+import { AskAiButton } from "./ai-assist";
+import { ConnectByEmail } from "./people-manager";
 import { AccountCard } from "./account-card";
 import { AccountForm } from "./accounts-manager";
 import { ConfirmMenuItem, Menu, MenuItem } from "./menu";
@@ -110,6 +112,7 @@ export function AccountDetail({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {account.isActive ? <AskAiButton label={t.ai.askAi} ask={t.ai.accountQuestion} accountId={account.id} /> : null}
           {canAddTransactions(role) && account.isActive ? (
             <Button onClick={() => openQuickAdd({ mode: "expense", accountId: account.id })}>
               <Plus size={18} weight="bold" /> {t.activity.addEntry}
@@ -380,24 +383,25 @@ function InviteForm({ account, candidates, onDone }: { account: Account; candida
   }, {});
   const errors = state.fieldErrors ?? {};
 
+  // Only connections can be invited: ask someone new right here instead of
+  // sending the user off to People and back
   if (candidates.length === 0) {
     return (
-      <EmptyState
-        icon={<UsersThree size={24} />}
-        title={t.members.noOne}
-        className="py-6"
-        action={
-          <Link href="/people" className={buttonClass("primary")}>
-            {t.members.findPeople}
-          </Link>
-        }
-      >
-        {t.members.noOneHint}
-      </EmptyState>
+      <div className="space-y-4">
+        <div className="flex items-start gap-3 rounded-2xl bg-surface-2 p-4">
+          <UsersThree size={22} className="mt-0.5 shrink-0 text-ink-2" aria-hidden />
+          <div>
+            <p className="text-[15px] font-medium">{t.members.noOne}</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-ink-2">{t.members.connectFirst}</p>
+          </div>
+        </div>
+        <ConnectByEmail id="invite-connect-email" hint={t.members.connectHint} />
+      </div>
     );
   }
 
   return (
+    <>
     <form onSubmit={submitWith(formAction)} className="space-y-6" noValidate>
       <input type="hidden" name="accountId" value={account.id} />
       <input type="hidden" name="role" value={effectiveRole} />
@@ -458,6 +462,16 @@ function InviteForm({ account, candidates, onDone }: { account: Account; candida
         <UserPlus size={18} /> {pending ? t.common.saving : candidate?.managed ? t.members.addProfile : t.members.sendInvite}
       </Button>
     </form>
+    {/* Someone not connected yet: a separate form (forms can't nest) */}
+    <details className="group mt-6 rounded-2xl border border-line px-4 py-3">
+      <summary className="cursor-pointer list-none text-sm font-medium text-ink-2 hover:text-ink">
+        {t.members.someoneElse}
+      </summary>
+      <div className="pt-4">
+        <ConnectByEmail id="invite-connect-email" hint={t.members.connectHint} />
+      </div>
+    </details>
+    </>
   );
 }
 

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AskAiButton } from "@/components/ai-assist";
+import { InsightsFeed } from "@/components/assistant";
 import { Busy } from "@/components/busy";
 import { SpendingCalendar } from "@/components/charts";
 import { CategoryDrilldown, InsightsHeader, YearChart } from "@/components/insights-controls";
@@ -13,7 +15,7 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { txCents } from "@/lib/convert";
-import { getAccounts, getAllTransactions, getCategories, getCurrentUser, getRatesTo, getSummary, getYearSeries } from "@/lib/data";
+import { getAccounts, getAllTransactions, getCategories, getCurrentUser, getInsights, getRatesTo, getSummary, getYearSeries } from "@/lib/data";
 import {
   currentMonthKey,
   dayKey,
@@ -188,6 +190,11 @@ async function MonthView({
       <p className="-mt-1 text-sm text-ink-2">
         {t.insights.comparedWith(monthLabel(prevKey, "long", false, locale))}
       </p>
+
+      {/* What the AI noticed about this month, streamed on its own */}
+      <Suspense fallback={<Skeleton className="h-40 rounded-3xl" />}>
+        <MonthAi month={month} current={month === current} label={monthLabel(month, "long", true, locale)} t={t} />
+      </Suspense>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
         <Card className="rise p-6" style={{ "--i": 4 } as React.CSSProperties}>
@@ -421,6 +428,29 @@ async function YearView({
         </div>
       </Card>
     </>
+  );
+}
+
+// The detectors' findings for this month (or its quarter), plus a one-tap
+// question about it. The current month also shows the latest ones.
+async function MonthAi({ month, current, label, t }: { month: MonthKey; current: boolean; label: string; t: Dictionary }) {
+  const all = await getInsights();
+  const parsed = parseMonthKey(month);
+  const quarter = parsed ? `${parsed.year}-Q${Math.floor(parsed.month / 3) + 1}` : "";
+  // Monthly and quarterly ones by their period; weekly ones ("2026-W41") by
+  // when they were found
+  const matching = all.filter(
+    (insight) => insight.period === month || insight.period === quarter || insight.createdAt.startsWith(month),
+  );
+  const shown = matching.length || !current ? matching : all.slice(0, 4);
+  return (
+    <InsightsFeed
+      insights={shown}
+      highlight
+      title={t.ai.analysisTitle}
+      hint={t.ai.analysisHint}
+      extra={<AskAiButton ask={current ? t.ai.howIsMonth : t.ai.monthQuestion(label)} />}
+    />
   );
 }
 

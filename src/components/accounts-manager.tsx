@@ -3,7 +3,7 @@
 import { ArrowCounterClockwise, Archive, PencilSimple, Plus, Receipt, UsersThree, Wallet } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState, useTransition } from "react";
+import { Suspense, use, useActionState, useState, useTransition } from "react";
 
 import { saveAccount, setAccountActive } from "@/actions/accounts";
 import { useI18n } from "@/i18n/client";
@@ -33,7 +33,8 @@ export function AccountsManager({
   openNew,
 }: {
   accounts: Account[];
-  stats: Record<string, AccountStats>;
+  // Streamed: the cards show right away and each month's totals fill in
+  stats: Record<string, Promise<AccountStats | null>>;
   openNew: boolean;
 }) {
   const router = useRouter();
@@ -148,7 +149,7 @@ function AccountTile({
   onEdit,
 }: {
   account: Account;
-  stats?: AccountStats;
+  stats?: Promise<AccountStats | null>;
   index: number;
   onEdit: () => void;
 }) {
@@ -167,13 +168,9 @@ function AccountTile({
               </span>
             ) : null}
           </p>
-          <p className="truncate">
-            {t.accounts.inOut(
-              <Money cents={stats?.income ?? 0} currency={account.currency} className="font-medium text-income" />,
-              <Money cents={stats?.expense ?? 0} currency={account.currency} className="font-medium" />,
-              (text) => <span className="text-ink-3">{text}</span>,
-            )}
-          </p>
+          <Suspense fallback={<span className="skeleton mt-1 block h-4 w-40" />}>
+            <MonthLine stats={stats} currency={account.currency} />
+          </Suspense>
         </div>
         {account.myRole !== "owner" ? <RoleBadge role={account.myRole} /> : null}
         {canAddTransactions(account.myRole) ? (
@@ -188,6 +185,20 @@ function AccountTile({
         ) : null}
       </Card>
     </div>
+  );
+}
+
+function MonthLine({ stats, currency }: { stats?: Promise<AccountStats | null>; currency: string }) {
+  const { t } = useI18n();
+  const totals = stats ? use(stats) : null;
+  return (
+    <p className="truncate">
+      {t.accounts.inOut(
+        <Money cents={totals?.income ?? 0} currency={currency} className="font-medium text-income" />,
+        <Money cents={totals?.expense ?? 0} currency={currency} className="font-medium" />,
+        (text) => <span className="text-ink-3">{text}</span>,
+      )}
+    </p>
   );
 }
 

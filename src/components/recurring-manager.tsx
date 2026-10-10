@@ -56,6 +56,9 @@ import { Menu, MenuItem } from "./menu";
 import { useViewer, ViewOnlyTag } from "./people-ui";
 import { Money, usePreferences } from "./preferences";
 import { AmountInput, ConversionPreview } from "./quick-add";
+import { AskAiButton, useAi } from "./ai-assist";
+import { AiMark } from "./ai-mark";
+import { NewCategoryChip } from "./new-category";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
 import { Button, buttonClass, Card, cn, EmptyState, Field, Input, inputClass, SectionTitle, Select } from "./ui";
@@ -113,11 +116,14 @@ export function RecurringManager({
           <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.recurring}</h1>
           <p className="mt-1 max-w-[56ch] text-sm leading-relaxed text-ink-2">{r.intro}</p>
         </div>
-        {(active.length > 0 || inactive.length > 0) && manageable.length > 0 ? (
-          <Button onClick={() => start()} className="w-full sm:w-auto">
-            <Plus size={18} weight="bold" /> {r.newRecurring}
-          </Button>
-        ) : null}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {active.length > 0 ? <AskAiButton ask={t.ai.recurringQuestion} className="w-full sm:w-auto" /> : null}
+          {(active.length > 0 || inactive.length > 0) && manageable.length > 0 ? (
+            <Button onClick={() => start()} className="w-full sm:w-auto">
+              <Plus size={18} weight="bold" /> {r.newRecurring}
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       {payments.length === 0 ? (
@@ -716,6 +722,7 @@ function RecurringForm({
 }) {
   const toast = useToast();
   const { t, locale } = useI18n();
+  const { open: openAi } = useAi();
   const r = t.recurring;
   const [type, setType] = useState<TransactionType>(payment?.type ?? draft?.type ?? "expense");
   const [frequency, setFrequency] = useState<RecurringFrequency>(payment?.frequency ?? draft?.frequency ?? "monthly");
@@ -739,8 +746,12 @@ function RecurringForm({
     setAccountId(id);
   };
 
+  // Created right here without leaving the form, until the refreshed list has them
+  const [created, setCreated] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState(payment?.categoryId ?? "");
+  const all = [...categories, ...created.filter((c) => !categories.some((known) => known.id === c.id))];
   // Personal categories plus the chosen account's shared ones
-  const usable = categories.filter((c) => !isSystemCategory(c.name) && (c.accountId === null || c.accountId === accountId));
+  const usable = all.filter((c) => !isSystemCategory(c.name) && (c.accountId === null || c.accountId === accountId));
   const topLevel = usable.filter((c) => !c.parentId);
 
   const [deleting, startDelete] = useTransition();
@@ -817,6 +828,22 @@ function RecurringForm({
           ) : null
         }
       />
+
+      {/* A new subscription or bill: does it fit every month? */}
+      {!payment && type === "expense" && Number(String(amountText).replace(",", ".")) > 0 ? (
+        <div className="-mt-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              const name = (document.getElementById("recurring-name") as HTMLInputElement | null)?.value.trim() ?? "";
+              openAi({ ask: t.ai.affordMonthly(`${String(amountText).replace(",", ".")} ${currency}`, name), accountId });
+            }}
+            className="ai-chip inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[transform,box-shadow] active:scale-[0.97]"
+          >
+            <AiMark size={17} /> {t.ai.canIAffordThis}
+          </button>
+        </div>
+      ) : null}
 
       <Field label={t.common.name} htmlFor="recurring-name" error={errors.name} hint={r.nameHint}>
         <Input
@@ -968,7 +995,12 @@ function RecurringForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t.common.category} htmlFor="recurring-category" optional error={errors.categoryId}>
-          <Select id="recurring-category" name="categoryId" defaultValue={payment?.categoryId ?? ""}>
+          <Select
+            id="recurring-category"
+            name="categoryId"
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
             <option value="">{t.common.none}</option>
             {topLevel.map((parent) => {
               const children = usable.filter((c) => c.parentId === parent.id);
@@ -988,6 +1020,16 @@ function RecurringForm({
               );
             })}
           </Select>
+          <div className="mt-2">
+            <NewCategoryChip
+              small
+              onCreated={(category) => {
+                setCreated((list) => [...list, category]);
+                setCategoryId(category.id);
+                toast(t.quickAdd.categoryCreated(category.name), { tone: "success" });
+              }}
+            />
+          </div>
         </Field>
         <Field label={r.detailsLabel} htmlFor="recurring-description" optional error={errors.description}>
           <Input

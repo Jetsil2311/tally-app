@@ -347,6 +347,23 @@ function SimpleRow({
 
 function AddConnection() {
   const { t } = useI18n();
+  return (
+    <Card className="rise p-6" style={{ "--i": 2 } as React.CSSProperties}>
+      <div className="mb-4 flex items-center gap-3">
+        <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent">
+          <UserPlus size={20} />
+        </span>
+        <h2 className="text-[17px] font-semibold tracking-tight">{t.people.addTitle}</h2>
+      </div>
+      <ConnectByEmail />
+    </Card>
+  );
+}
+
+// Sends a connection request by email. Also used inside the account invite
+// sheet, so someone new can be asked without leaving it.
+export function ConnectByEmail({ id = "connection-email", hint }: { id?: string; hint?: string }) {
+  const { t } = useI18n();
   const toast = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
@@ -360,36 +377,28 @@ function AddConnection() {
   const error = state.fieldErrors?.email ?? (!state.ok && state.message && !state.fieldErrors ? state.message : undefined);
 
   return (
-    <Card className="rise p-6" style={{ "--i": 2 } as React.CSSProperties}>
-      <div className="mb-4 flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent">
-          <UserPlus size={20} />
-        </span>
-        <h2 className="text-[17px] font-semibold tracking-tight">{t.people.addTitle}</h2>
-      </div>
-      <form ref={formRef} onSubmit={submitWith(formAction)} className="space-y-3" noValidate>
-        <Field label={t.people.emailLabel} htmlFor="connection-email" error={error} hint={t.people.emailHint}>
-          <div className="relative">
-            <EnvelopeSimple size={18} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-3" />
-            <Input
-              id="connection-email"
-              name="email"
-              type="email"
-              inputMode="email"
-              // Someone else's address: don't offer the user's own
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={t.people.emailPlaceholder}
-              className="pl-11"
-              aria-invalid={Boolean(error)}
-            />
-          </div>
-        </Field>
-        <Button type="submit" disabled={pending} className="w-full">
-          <PaperPlaneTilt size={18} /> {pending ? t.people.sending : t.people.send}
-        </Button>
-      </form>
-    </Card>
+    <form ref={formRef} onSubmit={submitWith(formAction)} className="space-y-3" noValidate>
+      <Field label={t.people.emailLabel} htmlFor={id} error={error} hint={hint ?? t.people.emailHint}>
+        <div className="relative">
+          <EnvelopeSimple size={18} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-3" />
+          <Input
+            id={id}
+            name="email"
+            type="email"
+            inputMode="email"
+            // Someone else's address: don't offer the user's own
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={t.people.emailPlaceholder}
+            className="pl-11"
+            aria-invalid={Boolean(error)}
+          />
+        </div>
+      </Field>
+      <Button type="submit" disabled={pending} className="w-full">
+        <PaperPlaneTilt size={18} /> {pending ? t.people.sending : t.people.send}
+      </Button>
+    </form>
   );
 }
 

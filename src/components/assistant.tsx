@@ -16,16 +16,18 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
+import { usePathname } from "next/navigation";
+import { Suspense, use, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
 
-import { askAssistant, dismissInsight, generateInsights, markInsightsSeen, saveFinancialProfile } from "@/actions/ai";
+import { dismissInsight, generateInsights, markInsightsSeen, saveFinancialProfile } from "@/actions/ai";
 import { useI18n } from "@/i18n/client";
 import { currencySymbol } from "@/lib/money";
 import type { Account, ActionState, AiStatus, ChatAnswer, FinancialProfile, Insight, Verdict } from "@/lib/types";
 
+import { AskAiButton, useAi, type Turn } from "./ai-assist";
 import { AiMark, AiTag } from "./ai-mark";
 import { Money } from "./preferences";
+import { Sheet } from "./sheet";
 import { useToast } from "./toast";
 import { Button, Card, cn, EmptyState, Field, Input, IconButton, SectionTitle, Select } from "./ui";
 import { submitWith } from "./use-form-action";
@@ -33,12 +35,6 @@ import { submitWith } from "./use-form-action";
 // The assistant: "can I afford it?" chat on the left; insights, the
 // financial plan and AI usage on the right. Every number shown comes from
 // the API's code; the AI only words the answers.
-
-type Turn = { id: number; question: string; answer?: ChatAnswer; error?: string };
-
-// Home's "ask" box hands its question over in session storage, not the
-// URL: a question about money shouldn't end up in links or server logs
-export const HANDOFF_KEY = "tally:ask";
 
 export function Assistant({
   status,
@@ -79,48 +75,30 @@ export function Assistant({
 // Chat
 // ---------------------------------------------------------------------------
 
-function Chat({ accounts }: { accounts: Account[] }) {
+// The conversation lives in AiProvider: the same one shows on /assistant and
+// in the sheet that any screen opens, so it carries across both.
+function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean }) {
   const { t } = useI18n();
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [draft, setDraft] = useState("");
-  const [accountId, setAccountId] = useState("");
-  const [pending, startTransition] = useTransition();
-  const nextId = useRef(0);
+  const { turns, pending, draft, setDraft, accountId, setAccountId, ask, clear } = useAi();
   const endRef = useRef<HTMLDivElement>(null);
-  const asked = useRef(false);
-
-  const ask = (question: string) => {
-    const text = question.trim();
-    if (!text || pending) return;
-    const id = ++nextId.current;
-    setTurns((list) => [...list, { id, question: text }]);
-    setDraft("");
-    startTransition(async () => {
-      const result = await askAssistant(text, accountId || undefined);
-      setTurns((list) =>
-        list.map((turn) => (turn.id === id ? { ...turn, answer: result.answer, error: result.answer ? undefined : (result.error ?? t.ai.chatError) } : turn)),
-      );
-    });
-  };
-
-  // A question handed over from Home: ask it once, then forget it
-  useEffect(() => {
-    if (asked.current) return;
-    asked.current = true;
-    let question: string | null = null;
-    try {
-      question = sessionStorage.getItem(HANDOFF_KEY);
-      sessionStorage.removeItem(HANDOFF_KEY);
-    } catch {}
-    if (question) ask(question);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Keep the newest answer in view (not on load: that would scroll the
   // page past the header on phones)
   useEffect(() => {
     if (turns.length) endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [turns]);
+
+  // A prefilled question: put the cursor at its end so it can be finished
+  useEffect(() => {
+    if (!inSheet || !draft) return;
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    input.setSelectionRange(draft.length, draft.length);
+    // Only when the sheet opens with a draft, not on every keystroke
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inSheet]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -136,17 +114,16 @@ function Chat({ accounts }: { accounts: Account[] }) {
 
   const writable = accounts.filter((a) => a.isActive);
 
-  return (
-    <Card className="rise flex flex-col overflow-hidden p-0" style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="chat-title">
-      <h2 id="chat-title" className="sr-only">
-        {t.ai.heroTitle}
-      </h2>
-      <div className="flex-1 space-y-5 p-4 sm:p-6" aria-live="polite">
+  const body = (
+    <>
+      <div className={cn("flex-1 space-y-5", inSheet ? "px-6 pb-4" : "p-4 sm:p-6")} aria-live="polite">
         {turns.length === 0 ? (
-          <div className="py-4 sm:py-8">
-            <p className="text-[22px] leading-tight font-semibold tracking-tight sm:text-2xl">{t.ai.heroTitle}</p>
-            <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-ink-2">{t.ai.heroBody}</p>
-            <div className="mt-6 flex flex-col items-start gap-2">
+          <div className={inSheet ? "py-2" : "py-4 sm:py-8"}>
+            {inSheet ? null : (
+              <p className="text-[22px] leading-tight font-semibold tracking-tight sm:text-2xl">{t.ai.heroTitle}</p>
+            )}
+            <p className={cn("max-w-[52ch] text-[15px] leading-relaxed text-ink-2", !inSheet && "mt-2")}>{t.ai.heroBody}</p>
+            <div className="mt-5 flex flex-col items-start gap-2">
               {t.ai.prompts.map((prompt) => (
                 <button
                   key={prompt}
@@ -166,13 +143,14 @@ function Chat({ accounts }: { accounts: Account[] }) {
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={submit} className="border-t border-line bg-surface p-3 sm:p-4">
+      <form onSubmit={submit} className={cn("border-t border-line bg-surface", inSheet ? "sticky bottom-0 px-4 pt-3 pb-1 sm:px-6" : "p-3 sm:p-4")}>
         <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface-2 p-1.5 pl-4 transition-[border-color,box-shadow] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
-          <label htmlFor="assistant-input" className="sr-only">
+          <label htmlFor={inSheet ? "assistant-sheet-input" : "assistant-input"} className="sr-only">
             {t.ai.ask}
           </label>
           <textarea
-            id="assistant-input"
+            ref={inputRef}
+            id={inSheet ? "assistant-sheet-input" : "assistant-input"}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
@@ -207,11 +185,61 @@ function Chat({ accounts }: { accounts: Account[] }) {
           ) : (
             <span />
           )}
-          {t.ai.spanishNote ? <span className="text-xs text-ink-3">{t.ai.spanishNote}</span> : null}
+          <span className="flex items-center gap-3">
+            {t.ai.spanishNote ? <span className="text-xs text-ink-3">{t.ai.spanishNote}</span> : null}
+            {turns.length ? (
+              <button type="button" onClick={clear} className="text-xs text-ink-2 underline-offset-4 hover:text-ink hover:underline">
+                {t.ai.clear}
+              </button>
+            ) : null}
+          </span>
         </div>
       </form>
+    </>
+  );
+
+  if (inSheet) return body;
+  return (
+    <Card className="rise flex flex-col overflow-hidden p-0" style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="chat-title">
+      <h2 id="chat-title" className="sr-only">
+        {t.ai.heroTitle}
+      </h2>
+      {body}
     </Card>
   );
+}
+
+// The assistant over whatever screen you're on. Mounted once in the app
+// shell; AskAiButton, the top bar and Home open it.
+export function AssistantSheet({ accounts: accountsPromise }: { accounts: Promise<Account[]> }) {
+  const { t } = useI18n();
+  const { isOpen, close } = useAi();
+  const pathname = usePathname();
+  return (
+    <Sheet
+      open={isOpen}
+      onClose={close}
+      wide
+      title={t.ai.title}
+      description={
+        pathname === "/assistant" ? undefined : (
+          <Link href="/assistant" onClick={close} className="underline-offset-4 hover:text-ink hover:underline">
+            {t.ai.openFull}
+          </Link>
+        )
+      }
+    >
+      <div className="-mx-6 flex min-h-[40dvh] flex-col">
+        <Suspense fallback={<div className="skeleton mx-6 h-40 rounded-3xl" />}>
+          <SheetChat accounts={accountsPromise} />
+        </Suspense>
+      </div>
+    </Sheet>
+  );
+}
+
+function SheetChat({ accounts }: { accounts: Promise<Account[]> }) {
+  return <Chat accounts={use(accounts)} inSheet />;
 }
 
 function ChatTurn({ turn }: { turn: Turn }) {
@@ -386,7 +414,23 @@ const INSIGHT_ICONS: Record<string, typeof TrendUp> = {
   savings_progress: PiggyBank,
 };
 
-export function InsightsFeed({ insights, compact }: { insights: Insight[]; compact?: boolean }) {
+export function InsightsFeed({
+  insights,
+  compact,
+  title,
+  hint,
+  extra,
+  highlight,
+}: {
+  insights: Insight[];
+  compact?: boolean;
+  title?: string;
+  hint?: string;
+  // More actions next to "Check now", e.g. an Ask AI button
+  extra?: React.ReactNode;
+  // The AI's gradient frame and mark, where it sits among non-AI cards
+  highlight?: boolean;
+}) {
   const { t } = useI18n();
   const toast = useToast();
   const [checking, startCheck] = useTransition();
@@ -405,21 +449,31 @@ export function InsightsFeed({ insights, compact }: { insights: Insight[]; compa
     });
 
   return (
-    <Card className="rise p-3 sm:p-4" style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="insights-title">
+    <Card
+      className={cn("rise p-3 sm:p-4", highlight && "ai-surface")}
+      style={{ "--i": 2 } as React.CSSProperties}
+      aria-labelledby="insights-title"
+    >
       <div className="px-3 pt-2">
         <SectionTitle
           id="insights-title"
           action={
             !compact ? (
-              <Button size="sm" variant="secondary" disabled={checking} onClick={check}>
-                <ClockCounterClockwise size={16} /> {checking ? t.ai.checking : t.ai.checkNow}
-              </Button>
+              <span className="flex flex-wrap justify-end gap-2">
+                {extra}
+                <Button size="sm" variant="secondary" disabled={checking} onClick={check}>
+                  <ClockCounterClockwise size={16} /> {checking ? t.ai.checking : t.ai.checkNow}
+                </Button>
+              </span>
             ) : null
           }
         >
-          {t.ai.insightsTitle}
+          <span className="inline-flex items-center gap-2">
+            {highlight ? <AiMark size={20} /> : null}
+            {title ?? t.ai.insightsTitle}
+          </span>
         </SectionTitle>
-        {!compact ? <p className="-mt-2 mb-2 text-sm text-ink-2">{t.ai.insightsHint}</p> : null}
+        {!compact ? <p className="-mt-2 mb-2 text-sm text-ink-2">{hint ?? t.ai.insightsHint}</p> : null}
       </div>
       {insights.length === 0 ? (
         <EmptyState icon={<AiMark size={24} />} title={t.ai.noInsights} className="py-6">
@@ -466,6 +520,7 @@ function InsightItem({ insight, isNew }: { insight: Insight; isNew: boolean }) {
         </p>
         <p className="mt-1 text-[15px] font-medium leading-snug">{insight.title}</p>
         <p className="mt-1 text-sm leading-relaxed text-ink-2">{insight.message}</p>
+        <AskAiButton size="xs" className="mt-2.5" label={t.ai.askAboutThis} ask={t.ai.askAboutInsight(insight.title)} />
       </div>
       <IconButton
         label={t.ai.dismiss}
@@ -618,35 +673,48 @@ function StatusCard({ status }: { status: AiStatus | null }) {
 // Home: ask about a purchase, and the newest insights
 // ---------------------------------------------------------------------------
 
-export function HomeAssistant({ insights }: { insights: Insight[] }) {
+export function HomeAssistant({
+  insights,
+  suggestions,
+  aiEnabled,
+}: {
+  insights: Insight[];
+  // Questions worked out from this month's numbers (an upcoming bill, the
+  // biggest category), asked in one tap
+  suggestions: string[];
+  aiEnabled: boolean;
+}) {
   const { t } = useI18n();
-  const router = useRouter();
+  const toast = useToast();
+  const { open } = useAi();
   const [draft, setDraft] = useState("");
-  const latest = insights.slice(0, 2);
+  const [checking, startCheck] = useTransition();
+  const latest = insights.slice(0, 3);
+  const unseen = insights.filter((insight) => !insight.seenAt).length;
 
+  // Opens the assistant over Home with the question already asked
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const question = draft.trim();
     if (!question) return;
-    try {
-      sessionStorage.setItem(HANDOFF_KEY, question);
-    } catch {}
-    router.push("/assistant");
+    open({ ask: question });
+    setDraft("");
   };
 
   return (
     <section className="rise ai-surface rounded-3xl p-5 sm:p-6" style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="home-ai-title">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8">
         <div className="min-w-0">
           <div className="flex items-center justify-between gap-3">
             <h2 id="home-ai-title" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
               <AiMark size={20} /> {t.ai.homeTitle}
+              {!aiEnabled ? <span className="text-xs font-normal text-ink-3">· {t.ai.templatesOnly}</span> : null}
             </h2>
             <Link href="/assistant" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
               {t.ai.seeAll}
             </Link>
           </div>
-          <p className="mt-1 text-sm leading-relaxed text-ink-2">{t.ai.heroTitle}.</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-2">{t.ai.homeLead}</p>
           <form onSubmit={submit} className="mt-4 flex gap-2">
             <label htmlFor="home-ask" className="sr-only">
               {t.ai.ask}
@@ -669,28 +737,69 @@ export function HomeAssistant({ insights }: { insights: Insight[] }) {
               <ArrowUp size={20} weight="bold" />
             </button>
           </form>
+          {suggestions.length ? (
+            <div className="mt-3">
+              <p className="mb-2 text-xs font-medium text-ink-3">{t.ai.suggestedQuestions}</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((question) => (
+                  <AskAiButton key={question} size="xs" label={question} ask={question} className="max-w-full" />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
-        {latest.length ? (
-          <ul className="min-w-0 space-y-3 lg:border-l lg:border-line/70 lg:pl-8">
-            {latest.map((insight) => {
-              const Icon = INSIGHT_ICONS[insight.type] ?? ChatCircleDots;
-              return (
-                <li key={insight.id} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-surface text-ink-2" aria-hidden>
-                    <Icon size={16} weight="bold" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-2 text-[15px] font-medium leading-snug">
-                      <span className="min-w-0">{insight.title}</span>
-                      {!insight.seenAt ? <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-label={t.ai.newLabel} /> : null}
-                    </p>
-                    <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-ink-2">{insight.message}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
+
+        <div className="min-w-0 lg:border-l lg:border-line/70 lg:pl-8">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">
+              {t.ai.insightsTitle}
+              {unseen ? <span className="ml-1.5 font-normal text-ink-3">· {t.ai.newInsightsDot(unseen)}</span> : null}
+            </h3>
+            <button
+              type="button"
+              disabled={checking}
+              onClick={() =>
+                startCheck(async () => {
+                  const result = await generateInsights("weekly");
+                  toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
+                })
+              }
+              className="inline-flex items-center gap-1.5 text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline disabled:opacity-50"
+            >
+              <ClockCounterClockwise size={15} aria-hidden /> {checking ? t.ai.checking : t.ai.checkNow}
+            </button>
+          </div>
+          {latest.length ? (
+            <ul className="space-y-3">
+              {latest.map((insight) => {
+                const Icon = INSIGHT_ICONS[insight.type] ?? ChatCircleDots;
+                return (
+                  <li key={insight.id} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-surface text-ink-2" aria-hidden>
+                      <Icon size={16} weight="bold" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-2 text-[15px] font-medium leading-snug">
+                        <span className="min-w-0">{insight.title}</span>
+                        {!insight.seenAt ? <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-label={t.ai.newLabel} /> : null}
+                      </p>
+                      <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-ink-2">{insight.message}</p>
+                      <button
+                        type="button"
+                        onClick={() => open({ ask: t.ai.askAboutInsight(insight.title) })}
+                        className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-ink underline-offset-4 hover:underline"
+                      >
+                        <AiMark size={13} /> {t.ai.askAboutThis}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="rounded-2xl bg-surface/70 px-4 py-3 text-sm leading-relaxed text-ink-2">{t.ai.noInsightsHint}</p>
+          )}
+        </div>
       </div>
     </section>
   );

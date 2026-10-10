@@ -349,6 +349,27 @@ dialog.sheet:not([open])::backdrop {
     linear-gradient(var(--ai-soft), var(--ai-soft)) padding-box,
     linear-gradient(120deg, var(--ai-1), var(--ai-2) 55%, var(--ai-3)) border-box;
 }
+/* "Ask AI" chips: the AI gradient as a hairline border, readable ink text
+   (gradient text is too faint at chip sizes) */
+.ai-chip {
+  border: 1px solid transparent;
+  color: var(--ink);
+  background:
+    linear-gradient(var(--ai-soft), var(--ai-soft)) padding-box,
+    linear-gradient(120deg, var(--ai-1), var(--ai-2) 55%, var(--ai-3)) border-box;
+}
+.ai-chip:hover {
+  box-shadow: 0 2px 12px -4px color-mix(in oklab, var(--ai-2) 45%, transparent);
+}
+.ai-chip:focus-visible {
+  outline: 2px solid var(--ai-1);
+  outline-offset: 2px;
+}
+@media (forced-colors: active) {
+  .ai-chip {
+    border-color: ButtonText;
+  }
+}
 .ai-text {
   background: linear-gradient(100deg, var(--ai-1), var(--ai-2) 60%, var(--ai-3));
   -webkit-background-clip: text;

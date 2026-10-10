@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AskAiButton } from "@/components/ai-assist";
+
 import { Busy } from "@/components/busy";
 import { OpenQuickAdd } from "@/components/actions-bar";
 import { ActivityFilters } from "@/components/activity-filters";
@@ -43,7 +45,10 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
   const { t } = await getI18n();
   return (
     <div className="space-y-5">
-      <h1 className="rise pt-2 text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.activity}</h1>
+      <header className="rise flex items-center justify-between gap-3 pt-2">
+        <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.activity}</h1>
+        <AskAiButton ask={t.ai.activityQuestion} />
+      </header>
       <Suspense fallback={<ActivitySkeleton />}>
         <Activity searchParams={searchParams} />
       </Suspense>
