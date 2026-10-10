@@ -3,9 +3,11 @@
 import {
   ArrowUp,
   CaretDown,
+  Check,
   ChatCircleDots,
   CheckCircle,
   ClockCounterClockwise,
+  Copy,
   PiggyBank,
   Question,
   Repeat,
@@ -16,8 +18,10 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import Link from "next/link";
+import Markdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { usePathname } from "next/navigation";
-import { Suspense, use, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
+import { isValidElement, Suspense, use, useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 
 import { dismissInsight, generateInsights, markInsightsSeen, saveFinancialProfile } from "@/actions/ai";
 import { useI18n } from "@/i18n/client";
@@ -426,52 +430,87 @@ function Fallback({ reason, onRetry }: { reason: string | null; onRetry?: () => 
   );
 }
 
-// The AI writes plain text with light Markdown: paragraphs, "- " or "1. "
-// lists and **bold**. Rendered as elements (never as HTML), so nothing in
-// an answer can inject markup.
+// The AI answers in Markdown (GitHub flavour: lists, tables, code). Raw HTML
+// in it is never rendered and unsafe links are dropped, so an answer can't
+// inject markup. While streaming, a half-written block (an open ``` fence)
+// just shows as what it is so far.
+const MARKDOWN: Components = {
+  p: ({ children }) => <p>{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  em: ({ children }) => <em>{children}</em>,
+  h1: ({ children }) => <h3 className="text-base font-semibold">{children}</h3>,
+  h2: ({ children }) => <h3 className="text-base font-semibold">{children}</h3>,
+  h3: ({ children }) => <h4 className="text-[15px] font-semibold">{children}</h4>,
+  h4: ({ children }) => <h4 className="text-[15px] font-semibold">{children}</h4>,
+  ul: ({ children }) => <ul className="list-disc space-y-1 pl-5 marker:text-ink-3">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal space-y-1 pl-5 marker:text-ink-3">{children}</ol>,
+  li: ({ children }) => <li className="pl-0.5">{children}</li>,
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-accent underline underline-offset-4">
+      {children}
+    </a>
+  ),
+  blockquote: ({ children }) => <blockquote className="border-l-2 border-line-strong pl-3 text-ink-2">{children}</blockquote>,
+  hr: () => <hr className="border-line" />,
+  table: ({ children }) => (
+    <div className="-mx-1 overflow-x-auto">
+      <table className="w-full border-collapse text-sm">{children}</table>
+    </div>
+  ),
+  th: ({ children }) => <th className="border-b border-line px-2 py-1.5 text-left font-semibold">{children}</th>,
+  td: ({ children }) => <td className="border-b border-line/60 px-2 py-1.5 align-top">{children}</td>,
+  // Fenced blocks arrive as <pre><code class="language-x">: the block is
+  // drawn by `pre`, so `code` only styles inline code
+  pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
+  code: ({ className, children }) =>
+    className?.startsWith("language-") ? (
+      <code className={className}>{children}</code>
+    ) : (
+      <code className="rounded-md bg-surface-3 px-1.5 py-0.5 font-mono text-[0.88em]">{children}</code>
+    ),
+};
+
 function RichText({ text, streaming }: { text: string; streaming?: boolean }) {
-  const blocks = text.trim().split(/\n{2,}/);
-  const caret = streaming ? <span aria-hidden className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-[var(--ai-2)] align-[-2px]" /> : null;
   return (
-    <div className="space-y-2.5 text-[15px] leading-relaxed">
-      {blocks.map((block, i) => {
-        const lines = block.split("\n").filter((line) => line.trim());
-        const last = i === blocks.length - 1;
-        const bullet = /^\s*(?:[-*•]|\d+[.)])\s+/;
-        if (lines.length && lines.every((line) => bullet.test(line))) {
-          const ordered = /^\s*\d/.test(lines[0]!);
-          const List = ordered ? "ol" : "ul";
-          return (
-            <List key={i} className={cn("space-y-1 pl-5", ordered ? "list-decimal" : "list-disc marker:text-ink-3")}>
-              {lines.map((line, j) => (
-                <li key={j}>
-                  <Inline text={line.replace(bullet, "")} />
-                  {last && j === lines.length - 1 ? caret : null}
-                </li>
-              ))}
-            </List>
-          );
-        }
-        return (
-          <p key={i} className="whitespace-pre-line">
-            <Inline text={lines.join("\n")} />
-            {last ? caret : null}
-          </p>
-        );
-      })}
+    <div className="space-y-3 text-[15px] leading-relaxed break-words">
+      <Markdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
+        {text}
+      </Markdown>
+      {streaming ? <span aria-hidden className="-mt-2 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-[var(--ai-2)]" /> : null}
     </div>
   );
 }
 
-function Inline({ text }: { text: string }) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
-      <strong key={i} className="font-semibold">
-        {part.slice(2, -2)}
-      </strong>
-    ) : (
-      part
-    ),
+// A code block from an answer: monospace, scrolls sideways instead of
+// wrapping, with its language and a copy button
+function CodeBlock({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLPreElement>(null);
+  const [copied, setCopied] = useState(false);
+  const code = isValidElement<{ className?: string }>(children) ? children : null;
+  const language = code?.props.className?.replace("language-", "") ?? "";
+  return (
+    <div className="overflow-hidden rounded-2xl border border-line bg-bg" translate="no">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-1.5 text-xs text-ink-3">
+        <span className="font-mono">{language}</span>
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard?.writeText(ref.current?.innerText ?? "").then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            });
+          }}
+          className="inline-flex min-h-7 items-center gap-1 rounded-full px-2 font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
+        >
+          {copied ? <Check size={13} weight="bold" aria-hidden /> : <Copy size={13} aria-hidden />}
+          {copied ? t.ai.copied : t.ai.copy}
+        </button>
+      </div>
+      <pre ref={ref} className="overflow-x-auto px-3 py-2.5 font-mono text-[13px] leading-relaxed">
+        {children}
+      </pre>
+    </div>
   );
 }
 

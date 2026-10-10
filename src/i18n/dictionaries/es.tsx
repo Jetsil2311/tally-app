@@ -957,6 +957,8 @@ export const es: Dictionary = {
     homeTitle: "Asistente",
     homeAsk: "Pregunta por una compra…",
     seeAll: "Ver todo",
+    copy: "Copiar",
+    copied: "Copiado",
     tryAgain: "Intentar de nuevo",
     fallbackReason: {
       invalid_figures: "la respuesta de la IA usaba cifras que Tally no pudo comprobar con tus datos, así que no se mostró.",

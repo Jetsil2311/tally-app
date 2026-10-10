@@ -969,6 +969,8 @@ export const en = {
     homeTitle: "Assistant",
     homeAsk: "Ask about a purchase…",
     seeAll: "See all",
+    copy: "Copy",
+    copied: "Copied",
     tryAgain: "Try again",
     fallbackReason: {
       invalid_figures: "the AI's reply quoted figures Tally couldn't check against your data, so it wasn't shown.",
