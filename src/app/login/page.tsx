@@ -1,5 +1,6 @@
 import { KeyReturn, LockSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { AccountCard } from "@/components/account-card";
@@ -25,16 +26,17 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
   );
 }
 
+// Back to the landing page
 function Brand() {
   return (
-    <div className="flex items-center gap-2.5">
+    <Link href="/" className="flex w-fit items-center gap-2.5 rounded-full pr-2">
       <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
         <SquaresFour size={18} weight="fill" />
       </span>
       <span translate="no" className="text-[17px] font-semibold tracking-tight">
         Tally
       </span>
-    </div>
+    </Link>
   );
 }
 

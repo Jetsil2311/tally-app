@@ -260,7 +260,7 @@ const VERDICT_STYLE: Record<Verdict, { icon: typeof CheckCircle; chip: string; f
   insufficient_data: { icon: Question, chip: "bg-surface-2 text-ink-2", fill: "bg-ink-3" },
 };
 
-function AnswerCard({ answer }: { answer: ChatAnswer }) {
+export function AnswerCard({ answer }: { answer: ChatAnswer }) {
   const { t } = useI18n();
   const a = answer.analysis ?? {};
   const currency = typeof a.currency === "string" ? a.currency : undefined;

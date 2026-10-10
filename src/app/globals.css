@@ -204,6 +204,27 @@ input[type="number"] {
   }
 }
 
+/* Landing sections ease in as they scroll into view: CSS scroll-driven
+   animation, no JavaScript. Without support (or with reduced motion) they
+   are simply there. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      /* Done once most of it has entered, so sections near the end of
+         the page (which can't scroll further up) never stay half-faded */
+      animation-range: entry 5% entry 65%;
+    }
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
 /* Skeleton shimmer for loading states */
 .skeleton {
   background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);

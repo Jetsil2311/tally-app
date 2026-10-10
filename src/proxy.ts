@@ -45,6 +45,18 @@ export function proxy(request: NextRequest) {
       : next();
   }
 
+  // Signed-out visitors get the landing page: at "/" (same URL, rewritten)
+  // or directly at /landing
+  if (!hasSession && (pathname === "/" || pathname === "/landing")) {
+    if (pathname === "/landing") return next();
+    const headers = new Headers(request.headers);
+    if (!saved) {
+      const cookie = request.headers.get("cookie");
+      headers.set("cookie", `${cookie ? `${cookie}; ` : ""}${LOCALE_COOKIE}=${locale}`);
+    }
+    return respond(NextResponse.rewrite(new URL("/landing", request.url), { request: { headers } }));
+  }
+
   if (!hasSession) {
     const url = new URL("/login", request.url);
     if (pathname !== "/") url.searchParams.set("next", pathname + search);
