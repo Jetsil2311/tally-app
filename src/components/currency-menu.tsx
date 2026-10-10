@@ -33,7 +33,7 @@ export function CurrencyMenu() {
           <span className="flex size-6 items-center justify-center rounded-full bg-surface-3 text-xs text-ink">
             {currencySymbol(currency, locale)}
           </span>
-          {currency}
+          <span className="hidden min-[400px]:inline">{currency}</span>
         </span>
       )}
     >

@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { confirmCategory } from "@/actions/ai";
 import { quoteConversion, type Quote } from "@/actions/currency";
 import {
   createTransfer,
@@ -32,6 +33,7 @@ import { canAddTransactions, canDeleteTransaction, canEditTransaction, canReview
 import type { Account, ActionState, Category, Transaction, TransactionType } from "@/lib/types";
 
 import { AccountIcon } from "./account-icon";
+import { AiMark } from "./ai-mark";
 import { ChipGroup, Segmented } from "./chips";
 import { Avatar, displayName, RoleBadge, TxStatusPill, useViewer } from "./people-ui";
 import { Money, useAccountCurrency, usePreferences } from "./preferences";
@@ -542,6 +544,9 @@ function TransactionForm({
             {t.common.manage}
           </Link>
         </legend>
+        {transaction && (transaction.categoryStatus === "review" || transaction.categoryStatus === "ai") && transaction.category ? (
+          <CategorySuggestion tx={transaction} onDone={onDone} />
+        ) : null}
         {topLevel.length === 0 ? (
           <p className="rounded-2xl bg-surface-2 p-4 text-sm text-ink-2">
             {t.quickAdd.noCategories(
@@ -909,6 +914,50 @@ function TransactionDetails({ tx, accounts, onDone }: { tx: Transaction; account
         <div className="flex">
           <DeleteButton id={tx.id} onDone={onDone} />
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+// The AI's category: one tap to confirm when it wasn't sure ("review");
+// a note when it decided on its own. Either way, picking another category
+// and saving teaches Tally the merchant.
+function CategorySuggestion({ tx, onDone }: { tx: Transaction; onDone: () => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const [pending, setPending] = useState(false);
+  const name = tx.category ? categoryLabel(tx.category.name, t) : "";
+  const review = tx.categoryStatus === "review";
+  return (
+    <div className="ai-surface mb-3 flex flex-col gap-3 rounded-2xl px-4 py-3 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+        <AiMark size={18} className="mt-0.5" />
+        <p className="text-sm leading-relaxed">
+          {review ? (
+            <>
+              <span className="font-medium">{t.ai.suggested(name)}</span>{" "}
+              <span className="text-ink-2">{t.ai.suggestedHint}</span>
+            </>
+          ) : (
+            <span className="text-ink-2">{t.ai.aiPickedHint(name)}</span>
+          )}
+        </p>
+      </div>
+      {review ? (
+        <Button
+          type="button"
+          size="sm"
+          disabled={pending}
+          onClick={async () => {
+            setPending(true);
+            const result = await confirmCategory(tx.id);
+            setPending(false);
+            toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
+            if (result.ok) onDone();
+          }}
+        >
+          <Check size={16} weight="bold" /> {pending ? t.common.saving : t.ai.confirm}
+        </Button>
       ) : null}
     </div>
   );

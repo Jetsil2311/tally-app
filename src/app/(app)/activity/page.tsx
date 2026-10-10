@@ -14,6 +14,7 @@ import { getI18n } from "@/i18n/server";
 import { activityHref, type ActivityQuery } from "@/lib/activity-query";
 import { ApprovalQueue } from "@/components/approvals";
 import { txCents } from "@/lib/convert";
+import { CategoryReview } from "@/components/category-review";
 import { VerificationQueue } from "@/components/verification";
 import {
   getAccounts,
@@ -23,6 +24,8 @@ import {
   getPending,
   getRatesTo,
   getSharedPeople,
+  getAiStatus,
+  getToReview,
   getUnverified,
 } from "@/lib/data";
 import { currentMonthKey, dayKey, monthLabel, monthRange, parseMonthKey, shiftMonth, type MonthKey } from "@/lib/dates";
@@ -71,12 +74,14 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   };
 
   const range = month === "all" ? {} : monthRange(month, timeZone);
-  const [accounts, categories, people, pending, unverified, result] = await Promise.all([
+  const [accounts, categories, people, pending, unverified, toReview, aiStatus, result] = await Promise.all([
     getAccounts(true),
     getCategories(),
     getSharedPeople(),
     getPending(),
     getUnverified(),
+    getToReview(),
+    getAiStatus(),
     getAllTransactions(
       {
         ...range,
@@ -132,6 +137,9 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
     <>
       {/* Owners and admins decide on dependents' entries first */}
       {!query.status ? <VerificationQueue unverified={unverified.data} accounts={accounts} /> : null}
+      {!query.status ? (
+        <CategoryReview review={toReview.review} pending={toReview.pending} aiEnabled={Boolean(aiStatus?.enabled)} />
+      ) : null}
       {!query.status ? <ApprovalQueue pending={pending.data} accounts={accounts} /> : null}
 
       <ActivityFilters query={query} accounts={accounts} categories={categories} people={people} />

@@ -6,6 +6,7 @@ import { useI18n } from "@/i18n/client";
 import { categoryLabel, isSystemCategory, isTransferCategory } from "@/lib/insights";
 import type { Transaction } from "@/lib/types";
 
+import { AiMark } from "./ai-mark";
 import { Avatar, displayName, TxStatusPill, useViewer } from "./people-ui";
 import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
@@ -32,7 +33,13 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
 
   const Icon = isMove ? ArrowsLeftRight : tx.type === "income" ? ArrowDownLeft : ArrowUpRight;
   const categoryName = tx.category ? categoryLabel(tx.category.name, t) : null;
-  const title = tx.description || categoryName || (tx.type === "income" ? t.common.income : t.common.expense);
+  // The clean merchant name ("Starbucks") reads better than a raw bank
+  // description ("STARBUCKS #1234 MEX")
+  const title = tx.merchant || tx.description || categoryName || (tx.type === "income" ? t.common.income : t.common.expense);
+  const aiStatus = tx.categoryStatus;
+  // Waiting for a person to confirm the AI's guess, or still being categorized
+  const reviewing = aiStatus === "review";
+  const categorizing = aiStatus === "pending" && !tx.category;
 
   return (
     <button
@@ -63,13 +70,25 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-ink-2">
           {tx.status !== "approved" ? <TxStatusPill status={tx.status} /> : null}
-          {missingCategory && counts ? (
+          {reviewing ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ai-soft)] px-2 py-px text-xs font-medium text-ink">
+              <AiMark size={12} /> {t.ai.review}
+            </span>
+          ) : categorizing ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2 py-px text-xs font-medium text-ink-2">
+              <AiMark size={12} /> {t.ai.pending}
+            </span>
+          ) : missingCategory && counts ? (
             <span className="shrink-0 rounded-full bg-warn-soft px-2 py-px text-xs font-medium text-warn">{t.transactionRow.noCategory}</span>
-          ) : tx.description && tx.category ? (
-            <span className="shrink-0">{categoryName}</span>
+          ) : null}
+          {(tx.description || tx.merchant) && tx.category ? (
+            <span className="inline-flex shrink-0 items-center gap-1">
+              {aiStatus === "ai" ? <AiMark size={12} label={t.ai.pickedByAi} /> : null}
+              {categoryName}
+            </span>
           ) : null}
           <span className="min-w-0 truncate text-ink-3">
-            {missingCategory || (tx.description && tx.category) ? "· " : ""}
+            {missingCategory || reviewing || categorizing || ((tx.description || tx.merchant) && tx.category) ? "· " : ""}
             {tx.account.name}
             {byOther ? ` · ${displayName(byOther, t.audit.someone)}` : ""}
             <span className={showDate ? "" : "hidden sm:inline"}> · {when}</span>

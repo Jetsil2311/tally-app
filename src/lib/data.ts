@@ -6,10 +6,13 @@ import { monthKeyOf, monthRange } from "./dates";
 import type { Rates } from "./money";
 import type {
   Account,
+  AiStatus,
   ApiKey,
   AuditPage,
   Category,
   Connection,
+  FinancialProfile,
+  Insight,
   Invitation,
   ManagedProfile,
   Member,
@@ -224,4 +227,40 @@ export const getRatesTo = cache(async (codes: string[], to: string) => {
       }),
   );
   return rates;
+});
+
+// ---------------------------------------------------------------------------
+// AI. Every reader is optional: an API without AI (or with it off) must
+// never break a page.
+// ---------------------------------------------------------------------------
+
+async function optional<T>(promise: Promise<T>, empty: T): Promise<T> {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error instanceof ApiError) return empty;
+    throw error;
+  }
+}
+
+// Whether AI is on for you, and your usage this month
+export const getAiStatus = cache(async () => optional<AiStatus | null>(api<AiStatus>("/ai/status"), null));
+
+// Newest first, without dismissed ones
+export const getInsights = cache(async (limit = 30) =>
+  optional<Insight[]>(api<Insight[]>("/insights", { query: { limit } }), []),
+);
+
+export const getFinancialProfile = cache(async () =>
+  optional<FinancialProfile | null>(api<FinancialProfile>("/me/financial-profile"), null),
+);
+
+// Transactions whose category the AI wasn't sure about ("review"), or that
+// are still waiting to be categorized ("pending")
+export const getToReview = cache(async () => {
+  const [review, pending] = await Promise.all([
+    optional<TransactionPage>(api<TransactionPage>("/transactions", { query: { categoryStatus: "review", limit: 100 } }), { data: [], nextCursor: null }),
+    optional<TransactionPage>(api<TransactionPage>("/transactions", { query: { categoryStatus: "pending", limit: 100 } }), { data: [], nextCursor: null }),
+  ]);
+  return { review: review.data, pending: pending.data };
 });

@@ -19,11 +19,16 @@ import {
   getMonthSeries,
   getSummary,
   getAttention,
+  getAiStatus,
+  getInsights,
   getRatesTo,
+  getToReview,
   getTransactionPage,
   getUpcoming,
 } from "@/lib/data";
 import { NeedsAttention } from "@/components/approvals";
+import { HomeAssistant } from "@/components/assistant";
+import { CategoryReview } from "@/components/category-review";
 import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { ApiError } from "@/lib/api";
@@ -57,7 +62,8 @@ async function Home() {
   const range = monthRange(monthKey, timeZone);
   const prevRange = monthRange(shiftMonth(monthKey, -1), timeZone);
 
-  const [user, accounts, allAccounts, categories, summary, prevSummary, series, month, recent, upcoming, attention] = await Promise.all([
+  const [user, accounts, allAccounts, categories, summary, prevSummary, series, month, recent, upcoming, attention, insights, toReview, aiStatus] =
+    await Promise.all([
     getCurrentUser(),
     getAccounts(),
     // Archived ones too: their past entries still need their currency
@@ -75,6 +81,9 @@ async function Home() {
       throw error;
     }),
     getAttention(),
+    getInsights(5),
+    getToReview(),
+    getAiStatus(),
   ]);
   const attentionStack = (
     <NeedsAttention
@@ -237,6 +246,10 @@ async function Home() {
       </div>
 
       {attentionStack}
+
+      <HomeAssistant insights={insights} />
+
+      <CategoryReview review={toReview.review} pending={toReview.pending} aiEnabled={Boolean(aiStatus?.enabled)} limit={3} />
 
       {uncategorized.length > 0 ? (
         <Link

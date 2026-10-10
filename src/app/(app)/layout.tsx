@@ -5,7 +5,7 @@ import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
 import { ViewerProvider } from "@/components/people-ui";
-import { getAccounts, getAttention, getCategories, getCurrencies, getCurrentUser } from "@/lib/data";
+import { getAccounts, getAttention, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
 import { I18nProvider } from "@/i18n/client";
 import { getI18n } from "@/i18n/server";
 import { getPreferences } from "@/lib/session";
@@ -37,6 +37,8 @@ async function Shell({ children }: { children: React.ReactNode }) {
   const accounts = getAccounts();
   const categories = getCategories();
   const attention = getAttention().then(({ invitations, requests }) => invitations.length + requests.length);
+  // New insights from the assistant, for the dot on its button
+  const aiUnseen = getInsights().then((list) => list.filter((insight) => !insight.seenAt).length);
 
   return (
     <I18nProvider locale={locale}>
@@ -55,7 +57,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
           >
             {t.nav.skipToContent}
           </a>
-          <TopBar user={user} attention={attention} />
+          <TopBar user={user} attention={attention} aiUnseen={aiUnseen} />
           <main id="main" className="mx-auto w-full max-w-6xl px-4 pt-2 pb-36 sm:px-6 sm:pb-32">
             {children}
           </main>

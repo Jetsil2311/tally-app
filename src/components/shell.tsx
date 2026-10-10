@@ -23,6 +23,7 @@ import { useI18n } from "@/i18n/client";
 import type { User } from "@/lib/types";
 
 import { CurrencyMenu } from "./currency-menu";
+import { AiMark } from "./ai-mark";
 import { Avatar } from "./people-ui";
 import { Menu, MenuItem } from "./menu";
 import { useQuickAdd } from "./quick-add";
@@ -54,12 +55,23 @@ export function Logo() {
   );
 }
 
-export function TopBar({ user, attention }: { user: Promise<User>; attention: Promise<number> }) {
+export function TopBar({
+  user,
+  attention,
+  aiUnseen,
+}: {
+  user: Promise<User>;
+  attention: Promise<number>;
+  aiUnseen: Promise<number>;
+}) {
   return (
     <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur-xl supports-[backdrop-filter]:bg-bg/70">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 pt-[env(safe-area-inset-top)] sm:px-6">
         <Logo />
         <div className="ml-auto flex items-center gap-1">
+          <Suspense fallback={<AssistantButton unseen={0} />}>
+            <AssistantButtonWithCount count={aiUnseen} />
+          </Suspense>
           <CurrencyMenu />
           <ThemeMenu />
           <Suspense fallback={<div className="skeleton ml-1 size-9 rounded-full" />}>
@@ -68,6 +80,32 @@ export function TopBar({ user, attention }: { user: Promise<User>; attention: Pr
         </div>
       </div>
     </header>
+  );
+}
+
+// The assistant, from every screen: the AI mark itself is the button
+function AssistantButtonWithCount({ count }: { count: Promise<number> }) {
+  return <AssistantButton unseen={use(count)} />;
+}
+
+function AssistantButton({ unseen }: { unseen: number }) {
+  const { t } = useI18n();
+  const pathname = usePathname();
+  const label = unseen > 0 ? `${t.ai.open} (${t.ai.newInsightsDot(unseen)})` : t.ai.open;
+  return (
+    <Link
+      href="/assistant"
+      aria-label={label}
+      title={label}
+      aria-current={pathname === "/assistant" ? "page" : undefined}
+      className={cn(
+        "relative inline-flex size-11 items-center justify-center rounded-full transition-[background-color,transform] hover:bg-surface-2 active:scale-95",
+        pathname === "/assistant" && "bg-surface-2",
+      )}
+    >
+      <AiMark size={22} />
+      {unseen > 0 ? <span aria-hidden className="absolute top-2 right-2 size-2.5 rounded-full bg-[var(--ai-2)] ring-2 ring-bg" /> : null}
+    </Link>
   );
 }
 

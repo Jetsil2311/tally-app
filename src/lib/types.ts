@@ -132,6 +132,8 @@ export interface Category {
   parentId: string | null;
   // Set = shared by that account's members; null = personal (only yours)
   accountId: string | null;
+  // Type in the AI's categorization taxonomy, e.g. "restaurants"
+  kind?: string | null;
 }
 
 export interface Transaction {
@@ -154,6 +156,69 @@ export interface Transaction {
   category: { id: string; name: string } | null;
   // null when the creator deleted their user
   createdBy: { id: string; name: string | null; imageUrl: string | null } | null;
+  // Clean merchant name from automatic categorization ("Starbucks" for "STARBUCKS #1234 MEX")
+  merchant?: string | null;
+  // How the category was set; null when there was nothing to categorize
+  categoryStatus?: CategoryStatus | null;
+}
+
+// manual: a person; rule: a saved merchant rule; ai: the AI, confidently;
+// review: the AI wasn't sure (categoryId holds its suggestion); pending:
+// not categorized yet, retried later
+export type CategoryStatus = "manual" | "rule" | "ai" | "review" | "pending";
+
+// ---------------------------------------------------------------------------
+// AI features. The numbers are always computed by the API's code; the AI only
+// classifies merchants and words messages.
+// ---------------------------------------------------------------------------
+
+export interface AiStatus {
+  enabled: boolean;
+  // disabled: no API key; not_allowed: not in the allow list; quota_exceeded
+  reason: "disabled" | "not_allowed" | "quota_exceeded" | null;
+  used: number;
+  limit: number;
+  resetsAt: string;
+  model: string;
+}
+
+export interface Insight {
+  id: string;
+  // insight = something noticed; suggestion = something to do
+  kind: "insight" | "suggestion";
+  // category_spike | category_rising | month_closed_negative |
+  // negative_month_projection | subscription_review | savings_progress
+  type: string;
+  period: string;
+  title: string;
+  message: string;
+  data: Record<string, unknown>;
+  writtenBy: "template" | "ai";
+  seenAt: string | null;
+  createdAt: string;
+}
+
+export interface FinancialProfile {
+  currency: string;
+  // Set by the user; null = estimated from recorded income
+  monthlyIncome: string | null;
+  incomeSource: "profile" | "estimated" | "none";
+  estimatedMonthlyIncome: string | null;
+  // Savings goal, % of income (0-90)
+  savingsRate: number | null;
+  savingsTarget: string | null;
+}
+
+export type Verdict = "comfortable" | "tight" | "not_recommended" | "insufficient_data";
+
+export interface ChatAnswer {
+  answer: string;
+  // null for a general question (no price in it)
+  verdict: Verdict | null;
+  // Every figure behind the answer, already formatted by the API
+  analysis: Record<string, unknown> | null;
+  disclaimer: string;
+  ai: { used: boolean; reason: string | null };
 }
 
 export interface TransactionPage {
