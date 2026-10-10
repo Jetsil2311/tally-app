@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 
 import { getI18n } from "@/i18n/server";
 import { api } from "@/lib/api";
-import type { ActionState, ChatAnswer, Insight } from "@/lib/types";
+import type { ActionState, Insight } from "@/lib/types";
 
 import { text, toActionState } from "./helpers";
 
@@ -13,18 +13,6 @@ import { text, toActionState } from "./helpers";
 
 // "Can I afford X?" or any question about this month. Never throws: the
 // chat shows the error as a reply.
-export async function askAssistant(message: string, accountId?: string): Promise<{ answer?: ChatAnswer; error?: string }> {
-  const question = message.trim().slice(0, 1000);
-  if (!question) return {};
-  try {
-    const answer = await api<ChatAnswer>("/chat", { method: "POST", body: { message: question, ...(accountId ? { accountId } : {}) } });
-    return { answer };
-  } catch (error) {
-    const state = await toActionState(error);
-    return { error: state.message };
-  }
-}
-
 export async function dismissInsight(id: string): Promise<ActionState> {
   try {
     await api(`/insights/${id}/dismiss`, { method: "POST" });

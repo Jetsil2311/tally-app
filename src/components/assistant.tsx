@@ -257,9 +257,10 @@ function ChatTurn({ turn }: { turn: Turn }) {
         <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full ai-surface">
           <AiMark size={16} />
         </span>
-        <div className="min-w-0 flex-1">
+        {/* aria-busy: screen readers get the finished answer, not every word */}
+        <div className="min-w-0 flex-1" aria-busy={turn.streaming || undefined}>
           {turn.answer ? (
-            <AnswerCard answer={turn.answer} />
+            <AnswerCard answer={turn.answer} streaming={turn.streaming} />
           ) : turn.error ? (
             <p role="alert" className="rounded-3xl bg-expense-soft px-4 py-3 text-sm text-expense">
               {turn.error}
@@ -288,7 +289,7 @@ const VERDICT_STYLE: Record<Verdict, { icon: typeof CheckCircle; chip: string; f
   insufficient_data: { icon: Question, chip: "bg-surface-2 text-ink-2", fill: "bg-ink-3" },
 };
 
-export function AnswerCard({ answer }: { answer: ChatAnswer }) {
+export function AnswerCard({ answer, streaming }: { answer: ChatAnswer; streaming?: boolean }) {
   const { t } = useI18n();
   const a = answer.analysis ?? {};
   const currency = typeof a.currency === "string" ? a.currency : undefined;
@@ -307,6 +308,22 @@ export function AnswerCard({ answer }: { answer: ChatAnswer }) {
   );
   const show = (value: unknown) =>
     typeof value === "boolean" ? (value ? t.ai.yes : t.ai.no) : Array.isArray(value) ? value.join(" · ") : String(value);
+
+  // A general question: a conversational reply, shown like any chat message.
+  // Its `analysis` is the data the AI was given, not a calculation to show.
+  if (!verdict) {
+    return (
+      <article className="rounded-3xl rounded-tl-lg bg-surface-2 px-4 py-3 sm:px-5">
+        <RichText text={answer.answer} streaming={streaming} />
+        {!streaming ? (
+          <p className="mt-3 text-xs leading-relaxed text-ink-3">
+            {answer.ai.used ? null : <span>{t.ai.wordedByTally} · </span>}
+            {answer.disclaimer}
+          </p>
+        ) : null}
+      </article>
+    );
+  }
 
   return (
     <article className="ai-surface overflow-hidden rounded-3xl">
@@ -358,9 +375,9 @@ export function AnswerCard({ answer }: { answer: ChatAnswer }) {
       ) : null}
 
       <div className={cn("space-y-3 px-4 pb-4 sm:px-5", verdict ? "border-t border-line/70 pt-4" : "pt-4")}>
-        <p className="text-[15px] leading-relaxed whitespace-pre-line">{answer.answer}</p>
+        <RichText text={answer.answer} streaming={streaming} />
 
-        {figures.length ? (
+        {figures.length && !streaming ? (
           <details className="group rounded-2xl bg-surface/70">
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-sm font-medium text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
               {t.ai.howWeGotThere}
@@ -379,12 +396,65 @@ export function AnswerCard({ answer }: { answer: ChatAnswer }) {
           </details>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          {answer.ai.used ? <AiTag>{t.ai.wordedByAi}</AiTag> : <span className="text-xs text-ink-3">{t.ai.wordedByTally}</span>}
-        </div>
-        <p className="text-xs leading-relaxed text-ink-3">{answer.disclaimer}</p>
+        {!streaming ? (
+          <>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              {answer.ai.used ? <AiTag>{t.ai.wordedByAi}</AiTag> : <span className="text-xs text-ink-3">{t.ai.wordedByTally}</span>}
+            </div>
+            <p className="text-xs leading-relaxed text-ink-3">{answer.disclaimer}</p>
+          </>
+        ) : null}
       </div>
     </article>
+  );
+}
+
+// The AI writes plain text with light Markdown: paragraphs, "- " or "1. "
+// lists and **bold**. Rendered as elements (never as HTML), so nothing in
+// an answer can inject markup.
+function RichText({ text, streaming }: { text: string; streaming?: boolean }) {
+  const blocks = text.trim().split(/\n{2,}/);
+  const caret = streaming ? <span aria-hidden className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-[var(--ai-2)] align-[-2px]" /> : null;
+  return (
+    <div className="space-y-2.5 text-[15px] leading-relaxed">
+      {blocks.map((block, i) => {
+        const lines = block.split("\n").filter((line) => line.trim());
+        const last = i === blocks.length - 1;
+        const bullet = /^\s*(?:[-*•]|\d+[.)])\s+/;
+        if (lines.length && lines.every((line) => bullet.test(line))) {
+          const ordered = /^\s*\d/.test(lines[0]!);
+          const List = ordered ? "ol" : "ul";
+          return (
+            <List key={i} className={cn("space-y-1 pl-5", ordered ? "list-decimal" : "list-disc marker:text-ink-3")}>
+              {lines.map((line, j) => (
+                <li key={j}>
+                  <Inline text={line.replace(bullet, "")} />
+                  {last && j === lines.length - 1 ? caret : null}
+                </li>
+              ))}
+            </List>
+          );
+        }
+        return (
+          <p key={i} className="whitespace-pre-line">
+            <Inline text={lines.join("\n")} />
+            {last ? caret : null}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function Inline({ text }: { text: string }) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
+      <strong key={i} className="font-semibold">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    ),
   );
 }
 

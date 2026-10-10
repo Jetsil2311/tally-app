@@ -218,7 +218,8 @@ export interface ChatAnswer {
   // Every figure behind the answer, already formatted by the API
   analysis: Record<string, unknown> | null;
   disclaimer: string;
-  ai: { used: boolean; reason: string | null };
+  // retried: the AI got a second try after quoting a figure it wasn't given
+  ai: { used: boolean; reason: string | null; retried?: boolean };
 }
 
 export interface TransactionPage {

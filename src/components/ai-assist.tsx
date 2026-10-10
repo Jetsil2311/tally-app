@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, use, useCallback, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 
-import { askAssistant } from "@/actions/ai";
 import { useI18n } from "@/i18n/client";
 import type { ChatAnswer } from "@/lib/types";
 
@@ -14,7 +14,45 @@ import { cn } from "./ui";
 // it with a question already asked, or prefilled for the user to finish, so
 // asking never means leaving what you were doing.
 
-export type Turn = { id: number; question: string; answer?: ChatAnswer; error?: string };
+// `streaming`: the answer is still arriving word by word
+export type Turn = { id: number; question: string; answer?: ChatAnswer; error?: string; streaming?: boolean };
+
+// The reply's language: the app's, with the browser's region when it matches
+// ("es" + "es-MX" → "es-MX"), so answers sound local
+function replyLocale(locale: string) {
+  try {
+    const browser = navigator.language;
+    if (browser.toLowerCase().startsWith(locale.toLowerCase())) return browser;
+  } catch {}
+  return locale;
+}
+
+// Reads the API's Server-Sent Events: `meta` (everything but the text),
+// then `delta`s with the text, then `done` (or `error`)
+type StreamEvent = { event: string; data: Record<string, unknown> | null };
+
+async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end: number;
+    while ((end = buffer.indexOf("\n\n")) !== -1) {
+      const block = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      let event = "message";
+      let data = "";
+      for (const line of block.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) data += line.slice(5).trim();
+      }
+      yield { event, data: data ? JSON.parse(data) : null };
+    }
+  }
+}
 
 interface AiContext {
   turns: Turn[];
@@ -36,7 +74,8 @@ interface AiContext {
 const Context = createContext<AiContext | null>(null);
 
 export function AiProvider({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const router = useRouter();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [accountId, setAccountId] = useState("");
@@ -44,23 +83,71 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const [pending, startTransition] = useTransition();
   const nextId = useRef(0);
 
+  const turnsRef = useRef<Turn[]>([]);
+  useEffect(() => {
+    turnsRef.current = turns;
+  }, [turns]);
+  const patch = (id: number, change: Partial<Turn>) =>
+    setTurns((list) => list.map((turn) => (turn.id === id ? { ...turn, ...change } : turn)));
+
   const send = useCallback(
     (question: string, scope: string) => {
       const text = question.trim();
       if (!text) return;
+      // Earlier turns, so follow-ups ("and last month?") have context
+      const history = turnsRef.current.flatMap((turn) =>
+        turn.answer && !turn.streaming
+          ? [
+              { role: "user" as const, content: turn.question },
+              { role: "assistant" as const, content: turn.answer.answer },
+            ]
+          : [],
+      );
       const id = ++nextId.current;
       setTurns((list) => [...list, { id, question: text }]);
       setDraft("");
       startTransition(async () => {
-        const result = await askAssistant(text, scope || undefined);
-        setTurns((list) =>
-          list.map((turn) =>
-            turn.id === id ? { ...turn, answer: result.answer, error: result.answer ? undefined : (result.error ?? t.ai.chatError) } : turn,
-          ),
-        );
+        try {
+          const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text, accountId: scope || undefined, history, locale: replyLocale(locale) }),
+          });
+          if (response.status === 401) {
+            router.push("/auth/expired");
+            return;
+          }
+          const type = response.headers.get("content-type") ?? "";
+          if (!response.ok || !response.body) {
+            const payload = await response.json().catch(() => null);
+            patch(id, { error: payload?.message ?? t.ai.chatError });
+            return;
+          }
+          // An API that doesn't stream: the whole answer at once
+          if (!type.includes("text/event-stream")) {
+            patch(id, { answer: (await response.json()) as ChatAnswer });
+            return;
+          }
+          let answer = null as ChatAnswer | null;
+          for await (const { event, data } of readEvents(response.body)) {
+            if (event === "meta") {
+              answer = { ...(data as unknown as Omit<ChatAnswer, "answer">), answer: "" };
+              patch(id, { answer, streaming: true });
+            } else if (event === "delta" && answer) {
+              answer = { ...answer, answer: answer.answer + String(data?.text ?? "") };
+              patch(id, { answer });
+            } else if (event === "error") {
+              patch(id, { streaming: false, error: answer?.answer ? undefined : String(data?.message ?? t.ai.chatError) });
+              return;
+            }
+          }
+          patch(id, { streaming: false, ...(answer ? {} : { error: t.ai.chatError }) });
+        } catch {
+          patch(id, { streaming: false, error: t.ai.chatError });
+        }
       });
     },
-    [t],
+    [t, locale, router],
   );
 
   const value = useMemo<AiContext>(
