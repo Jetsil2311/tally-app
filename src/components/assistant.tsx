@@ -143,7 +143,7 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={submit} className={cn("border-t border-line bg-surface", inSheet ? "sticky bottom-0 px-4 pt-3 pb-1 sm:px-6" : "p-3 sm:p-4")}>
+      <form onSubmit={submit} className={cn("border-t border-line bg-surface", inSheet ? "sheet-composer sticky px-4 pt-3 sm:px-6" : "p-3 sm:p-4")}>
         <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface-2 p-1.5 pl-4 transition-[border-color,box-shadow] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
           <label htmlFor={inSheet ? "assistant-sheet-input" : "assistant-input"} className="sr-only">
             {t.ai.ask}
@@ -244,6 +244,7 @@ function SheetChat({ accounts }: { accounts: Promise<Account[]> }) {
 
 function ChatTurn({ turn }: { turn: Turn }) {
   const { t } = useI18n();
+  const { ask } = useAi();
   return (
     <div className="space-y-3">
       {/* The question, on the right like any chat */}
@@ -260,7 +261,7 @@ function ChatTurn({ turn }: { turn: Turn }) {
         {/* aria-busy: screen readers get the finished answer, not every word */}
         <div className="min-w-0 flex-1" aria-busy={turn.streaming || undefined}>
           {turn.answer ? (
-            <AnswerCard answer={turn.answer} streaming={turn.streaming} />
+            <AnswerCard answer={turn.answer} streaming={turn.streaming} onRetry={() => ask(turn.question)} />
           ) : turn.error ? (
             <p role="alert" className="rounded-3xl bg-expense-soft px-4 py-3 text-sm text-expense">
               {turn.error}
@@ -289,7 +290,7 @@ const VERDICT_STYLE: Record<Verdict, { icon: typeof CheckCircle; chip: string; f
   insufficient_data: { icon: Question, chip: "bg-surface-2 text-ink-2", fill: "bg-ink-3" },
 };
 
-export function AnswerCard({ answer, streaming }: { answer: ChatAnswer; streaming?: boolean }) {
+export function AnswerCard({ answer, streaming, onRetry }: { answer: ChatAnswer; streaming?: boolean; onRetry?: () => void }) {
   const { t } = useI18n();
   const a = answer.analysis ?? {};
   const currency = typeof a.currency === "string" ? a.currency : undefined;
@@ -315,12 +316,8 @@ export function AnswerCard({ answer, streaming }: { answer: ChatAnswer; streamin
     return (
       <article className="rounded-3xl rounded-tl-lg bg-surface-2 px-4 py-3 sm:px-5">
         <RichText text={answer.answer} streaming={streaming} />
-        {!streaming ? (
-          <p className="mt-3 text-xs leading-relaxed text-ink-3">
-            {answer.ai.used ? null : <span>{t.ai.wordedByTally} · </span>}
-            {answer.disclaimer}
-          </p>
-        ) : null}
+        {!streaming && !answer.ai.used ? <Fallback reason={answer.ai.reason} onRetry={onRetry} /> : null}
+        {!streaming ? <p className="mt-3 text-xs leading-relaxed text-ink-3">{answer.disclaimer}</p> : null}
       </article>
     );
   }
@@ -406,6 +403,26 @@ export function AnswerCard({ answer, streaming }: { answer: ChatAnswer; streamin
         ) : null}
       </div>
     </article>
+  );
+}
+
+// Why this reply is Tally's template instead of the AI's, from the API's
+// `ai.reason`, plus a retry where trying again can help
+function Fallback({ reason, onRetry }: { reason: string | null; onRetry?: () => void }) {
+  const { t } = useI18n();
+  const why = reason ? (t.ai.fallbackReason[reason] ?? t.ai.fallbackReason.error) : t.ai.fallbackReason.error;
+  const retryable = !reason || ["invalid_figures", "provider_limit", "error"].includes(reason);
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-surface/70 px-3 py-2 text-xs text-ink-2">
+      <span className="min-w-0 flex-1">
+        {t.ai.wordedByTally}: {why}
+      </span>
+      {retryable && onRetry ? (
+        <button type="button" onClick={onRetry} className="font-medium text-ink underline-offset-4 hover:underline">
+          {t.ai.tryAgain}
+        </button>
+      ) : null}
+    </div>
   );
 }
 

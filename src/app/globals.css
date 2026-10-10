@@ -439,3 +439,12 @@ dialog.sheet:not([open])::backdrop {
     transform: translateY(-4px) scale(0.97);
   }
 }
+
+/* The assistant's input in the sheet: stuck to the very bottom, over the
+   sheet's own bottom padding, so messages never peek out below it */
+.sheet-composer {
+  --pad: max(1.5rem, env(safe-area-inset-bottom));
+  bottom: calc(-1 * var(--pad));
+  margin-bottom: calc(-1 * var(--pad));
+  padding-bottom: var(--pad);
+}
