@@ -157,7 +157,7 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
             rows={1}
             maxLength={1000}
             placeholder={t.ai.placeholder}
-            className="max-h-40 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-base text-ink placeholder:text-ink-3 focus:outline-none"
+            className="max-h-40 min-h-11 flex-1 resize-none bg-transparent py-2.5 text-base text-ink placeholder:text-ink-3 focus:outline-none no-focus-ring"
             style={{ fieldSizing: "content" } as React.CSSProperties}
           />
           <button
