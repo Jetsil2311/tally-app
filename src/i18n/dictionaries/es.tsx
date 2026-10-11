@@ -67,6 +67,11 @@ export const es: Dictionary = {
     settings: "Ajustes",
     goals: "Metas de ahorro",
     achievements: "Logros",
+    more: "Más",
+    add: "Agregar",
+    groupPlan: "Planear",
+    groupYou: "Tú",
+    waiting: (n: number) => `${n} pendientes`,
     signOut: "Cerrar sesión",
     primary: "Principal",
     skipToContent: "Ir al contenido",
@@ -106,6 +111,16 @@ export const es: Dictionary = {
   },
 
   home: {
+    total: "Total",
+    glance: {
+      kept: "Lo que te quedó este mes",
+      in: "Lo que entró este mes",
+      out: "Lo que salió este mes",
+      projected: "Gasto a fin de mes a este ritmo",
+      today: "Gastado hoy",
+      vsLast: (month: string) => `gasto vs. ${month}`,
+      barLabel: (pct: string) => `${pct} del ingreso del mes gastado`,
+    },
     quickActions: "Acciones rápidas",
     newAccountShort: "Cuenta",
     askAiShort: "Asistente",

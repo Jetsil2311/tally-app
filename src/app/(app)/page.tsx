@@ -1,4 +1,4 @@
-import { ArrowRight, CaretDown, CaretUp, Check, Repeat, Sparkle, Tag, TrendDown, TrendUp, Wallet, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Check, CreditCard, Repeat, Sparkle, Tag, Wallet, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -7,6 +7,7 @@ import { Busy } from "@/components/busy";
 import { AccountCard } from "@/components/account-card";
 import { HomeQuickActions, OpenQuickAdd } from "@/components/actions-bar";
 import { CashFlowChart, CategoryBars, SpendingCalendar } from "@/components/charts";
+import { MonthGlance } from "@/components/month-glance";
 import { Money } from "@/components/preferences";
 import { StatusPill, TypeBadge } from "@/components/recurring-manager";
 import { TransactionRow } from "@/components/transaction-row";
@@ -35,9 +36,9 @@ import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { ApiError } from "@/lib/api";
 import { currentMonthKey, dayKey, daysInMonth, monthLabel, monthRange, shiftMonth, todayParts } from "@/lib/dates";
-import { change, isTransfer, rollUpCategories, savingsRate, totalsFromSummary } from "@/lib/insights";
+import { change, isTransfer, rollUpCategories, totalsFromSummary } from "@/lib/insights";
 import { sumBalances, txCents } from "@/lib/convert";
-import { percent, toCents } from "@/lib/money";
+import { toCents } from "@/lib/money";
 import { relativeDue } from "@/lib/recurring";
 import { getPreferences, requestTime } from "@/lib/session";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -145,7 +146,6 @@ async function Home() {
   const projected = Math.round(dailyAverage * totalDays);
   const spentToday = days[today] ?? 0;
   const expenseChange = change(totals.expense, prev.expense);
-  const rate = savingsRate(totals.income, totals.expense);
 
   const topCategories = rollUpCategories(totals.byCategory, categories, "expense");
   const uncategorized = month.rows.filter((tx) => !tx.category && tx.source !== "opening");
@@ -174,82 +174,50 @@ async function Home() {
           <span aria-hidden className="pointer-events-none absolute -right-24 -bottom-32 size-80 rounded-full bg-white/10 blur-3xl" />
           <span aria-hidden className="pointer-events-none absolute top-0 right-0 h-full w-1/2 bg-[radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.18),transparent_55%)]" />
           <div className="relative flex h-full flex-col">
-            <h2 id="net-title" className="text-sm text-white/75">
-              {t.home.netAcross(accounts.length)}
+            <h2 id="net-title" className="text-sm font-medium text-white/75" title={t.home.netAcross(accounts.length)}>
+              {t.home.total}
+              <span className="sr-only">: {t.home.netAcross(accounts.length)}</span>
             </h2>
             <Money cents={netWorth} approximate={net.approximate} className="mt-2 block truncate text-[clamp(2rem,11vw,2.75rem)] leading-none font-semibold tracking-tighter sm:text-[56px]" />
-            <dl className="mt-6 grid grid-cols-2 [&>div]:min-w-0 gap-4 sm:max-w-md lg:mt-auto lg:pt-6">
-              <div>
-                <dt className="text-sm text-white/70">{t.home.cashAndDebit}</dt>
+            {/* Where it is: cash/debit and what's owed on cards, as icon + amount */}
+            <dl className="mt-8 flex flex-wrap gap-2 lg:mt-auto lg:pt-8">
+              <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/12 py-1.5 pr-4 pl-1.5 backdrop-blur-sm" title={t.home.cashAndDebit}>
+                <dt className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15">
+                  <Wallet size={17} weight="fill" aria-hidden />
+                  <span className="sr-only">{t.home.cashAndDebit}</span>
+                </dt>
                 <dd>
-                  <Money cents={available} approximate={availableSum.approximate} className="block truncate text-lg font-medium" />
+                  <Money cents={available} approximate={availableSum.approximate} className="block truncate font-medium" />
                 </dd>
               </div>
-              <div>
-                <dt className="text-sm text-white/70">{t.home.creditOwed}</dt>
-                <dd>
-                  <Money cents={Math.abs(owed)} approximate={owedSum.approximate} className="block truncate text-lg font-medium" />
-                </dd>
-              </div>
+              {owed !== 0 ? (
+                <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/12 py-1.5 pr-4 pl-1.5 backdrop-blur-sm" title={t.home.creditOwed}>
+                  <dt className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15">
+                    <CreditCard size={17} weight="fill" aria-hidden />
+                    <span className="sr-only">{t.home.creditOwed}</span>
+                  </dt>
+                  <dd>
+                    <Money cents={-Math.abs(owed)} sign approximate={owedSum.approximate} className="block truncate font-medium" />
+                  </dd>
+                </div>
+              ) : null}
             </dl>
-            <p className="mt-8 inline-flex w-fit items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm backdrop-blur-sm lg:mt-auto">
-              {totals.net >= 0 ? <TrendUp size={16} weight="bold" /> : <TrendDown size={16} weight="bold" />}
-              <Money cents={totals.net} sign className="font-medium" />
-              <span className="text-white/75">{t.home.netThisMonth}</span>
-            </p>
           </div>
         </section>
 
         {/* This month at a glance */}
-        <Card className="rise flex flex-col p-6 sm:p-7 lg:col-span-5" style={{ "--i": 2 } as React.CSSProperties}>
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-[17px] font-semibold tracking-tight">{t.home.thisMonth}</h2>
-            <Link href="/insights" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
-              {t.common.details}
-            </Link>
-          </div>
-          <dl className="mt-5 grid grid-cols-2 [&>div]:min-w-0 gap-x-4 gap-y-5">
-            <div>
-              <dt className="text-sm text-ink-2">{t.home.moneyIn}</dt>
-              <dd>
-                <Money cents={totals.income} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl text-income" />
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-ink-2">{t.home.moneyOut}</dt>
-              <dd>
-                <Money cents={totals.expense} className="block truncate text-xl font-semibold tracking-tight sm:text-2xl" />
-              </dd>
-              {expenseChange !== null ? (
-                <dd className="mt-0.5 text-xs text-ink-2">
-                  {expenseChange > 0 ? (
-                    <CaretUp size={11} weight="fill" className="mr-0.5 inline align-[-1px]" aria-hidden />
-                  ) : (
-                    <CaretDown size={11} weight="fill" className="mr-0.5 inline align-[-1px]" aria-hidden />
-                  )}
-                  {t.home.versus(percent(Math.abs(expenseChange), locale), monthLabel(shiftMonth(monthKey, -1), "short", false, locale))}
-                </dd>
-              ) : null}
-            </div>
-            <div>
-              <dt className="text-sm text-ink-2">{t.home.leftOver}</dt>
-              <dd>
-                <Money cents={totals.net} sign className={cn("text-lg font-medium", totals.net < 0 ? "text-expense" : "text-ink")} />
-              </dd>
-              {rate !== null ? <dd className="text-xs text-ink-2">{t.home.savedOfIncome(percent(rate, locale))}</dd> : null}
-            </div>
-            <div>
-              <dt className="text-sm text-ink-2">{t.home.spentToday}</dt>
-              <dd>
-                <Money cents={spentToday} className="text-lg font-medium" />
-              </dd>
-              <dd className="text-xs text-ink-2">{t.home.perDay(<Money cents={Math.round(dailyAverage)} />)}</dd>
-            </div>
-          </dl>
-          <p className="mt-auto pt-5 text-sm leading-relaxed text-ink-2">
-            {t.home.pace(<Money cents={projected} className="font-medium text-ink" />, monthLabel(monthKey, "long", false, locale))}
-          </p>
-        </Card>
+        <MonthGlance
+          month={capitalize(monthLabel(monthKey, "long", false, locale))}
+          income={totals.income}
+          expense={totals.expense}
+          net={totals.net}
+          projected={projected}
+          today={spentToday}
+          change={expenseChange}
+          prevMonth={monthLabel(shiftMonth(monthKey, -1), "long", false, locale)}
+          t={t}
+          locale={locale}
+        />
       </div>
 
       {attentionStack}

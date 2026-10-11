@@ -68,6 +68,11 @@ export const en = {
     settings: "Settings",
     goals: "Savings goals",
     achievements: "Achievements",
+    more: "More",
+    add: "Add entry",
+    groupPlan: "Plan",
+    groupYou: "You",
+    waiting: (n: number) => `${n} waiting`,
     signOut: "Sign out",
     primary: "Primary",
     skipToContent: "Skip to content",
@@ -107,6 +112,16 @@ export const en = {
   },
 
   home: {
+    total: "Total",
+    glance: {
+      kept: "What you kept this month",
+      in: "Money in this month",
+      out: "Money out this month",
+      projected: "Spending by month end at this pace",
+      today: "Spent today",
+      vsLast: (month: string) => `spending vs ${month}`,
+      barLabel: (pct: string) => `${pct} of this month's income spent`,
+    },
     quickActions: "Quick actions",
     newAccountShort: "Account",
     askAiShort: "Ask AI",

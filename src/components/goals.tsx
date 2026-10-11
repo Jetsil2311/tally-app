@@ -2,6 +2,7 @@
 
 import {
   Airplane,
+  ArrowRight,
   ArrowCounterClockwise,
   Archive,
   ArrowDown,
@@ -626,8 +627,13 @@ export function GoalsGlance({ goals }: { goals: SavingsGoal[] }) {
         <h2 id="goals-glance" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
           <PiggyBank size={20} className="text-accent" aria-hidden /> {t.goals.title}
         </h2>
-        <Link href="/goals" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
-          {active.length ? t.common.seeAll : t.goals.newGoal}
+        <Link
+          href="/goals"
+          aria-label={t.common.seeAll}
+          title={t.common.seeAll}
+          className="-mr-2 flex size-10 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+        >
+          <ArrowRight size={18} />
         </Link>
       </div>
       {active.length ? (
@@ -652,7 +658,12 @@ export function GoalsGlance({ goals }: { goals: SavingsGoal[] }) {
           ))}
         </ul>
       ) : (
-        <p className="text-sm leading-relaxed text-ink-2">{t.goals.emptyHint}</p>
+        <Link
+          href="/goals?new=1"
+          className="flex flex-1 items-center justify-center gap-3 rounded-3xl border border-dashed border-line-strong px-4 py-6 text-[15px] font-medium text-ink-2 transition-colors hover:border-accent hover:text-accent"
+        >
+          <Plus size={20} weight="bold" aria-hidden /> {t.goals.newGoal}
+        </Link>
       )}
     </Card>
   );

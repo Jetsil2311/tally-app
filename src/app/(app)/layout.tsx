@@ -4,7 +4,7 @@ import { AiProvider } from "@/components/ai-assist";
 import { AssistantSheet } from "@/components/assistant";
 import { PreferencesProvider } from "@/components/preferences";
 import { QuickAddProvider } from "@/components/quick-add";
-import { Dock, TopBar, TopBarSkeleton } from "@/components/shell";
+import { Dock, Sidebar, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
 import { ViewerProvider } from "@/components/people-ui";
 import { getAccounts, getAttention, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
@@ -60,11 +60,15 @@ async function Shell({ children }: { children: React.ReactNode }) {
           >
             {t.nav.skipToContent}
           </a>
-          <TopBar user={user} attention={attention} aiUnseen={aiUnseen} />
-          <main id="main" className="mx-auto w-full max-w-6xl px-4 pt-2 pb-36 sm:px-6 sm:pb-32">
+          <Sidebar attention={attention} />
+          {/* Desktop: the sidebar takes the left 15rem */}
+          <div className="lg:pl-60">
+          <TopBar user={user} aiUnseen={aiUnseen} />
+          <main id="main" className="mx-auto w-full max-w-6xl px-4 pt-2 pb-36 sm:px-6 sm:pb-32 lg:pb-12">
             {children}
           </main>
-          <Dock />
+          </div>
+          <Dock attention={attention} />
           <AssistantSheet accounts={accounts} />
         </QuickAddProvider>
         </AiProvider>
@@ -78,6 +82,9 @@ async function Shell({ children }: { children: React.ReactNode }) {
 function ShellFallback() {
   return (
     <>
+      {/* The sidebar's place on desktop, so nothing jumps when it arrives */}
+      <div aria-hidden className="fixed inset-y-0 left-0 hidden w-60 border-r border-line bg-bg lg:block" />
+      <div className="lg:pl-60">
       <TopBarSkeleton />
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-6 sm:px-6">
         <div className="skeleton h-9 w-56" />
@@ -86,6 +93,7 @@ function ShellFallback() {
           <div className="skeleton h-56 rounded-3xl" />
         </div>
         <div className="skeleton h-40 rounded-3xl" />
+      </div>
       </div>
     </>
   );

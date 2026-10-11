@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowRight,
   Bank,
   Cards,
   ChatCircleDots,
@@ -216,35 +217,56 @@ export function BadgesGlance({ badges }: { badges: Badge[] }) {
   return (
     <Card className="rise flex flex-col p-6" style={{ "--i": 5 } as React.CSSProperties} aria-labelledby="badges-glance">
       <BadgeWatcher badges={badges} />
-      <div className="mb-4 flex items-baseline justify-between gap-3">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <h2 id="badges-glance" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
           <Medal size={20} className="text-accent" aria-hidden /> {t.badges.title}
         </h2>
-        <Link href="/achievements" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
-          {t.common.seeAll}
+        <Link
+          href="/achievements"
+          aria-label={t.common.seeAll}
+          title={t.common.seeAll}
+          className="-mr-2 flex size-10 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+        >
+          <ArrowRight size={18} />
         </Link>
       </div>
-      <p className="tabular text-sm text-ink-2">{t.badges.countOf(earned.length, badges.length)}</p>
+      {/* Collected so far: a bar and n/total */}
+      <div className="flex items-center gap-3" title={t.badges.countOf(earned.length, badges.length)}>
+        <div
+          role="progressbar"
+          aria-label={t.badges.collected}
+          aria-valuemin={0}
+          aria-valuemax={badges.length}
+          aria-valuenow={earned.length}
+          className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-3"
+        >
+          <span
+            className="block h-full rounded-full bg-accent"
+            style={{ width: `${badges.length ? Math.max((earned.length / badges.length) * 100, earned.length ? 3 : 0) : 0}%` }}
+          />
+        </div>
+        <span className="tabular shrink-0 text-sm font-semibold">
+          {earned.length}
+          <span className="font-normal text-ink-3">/{badges.length}</span>
+        </span>
+      </div>
       {earned.length ? (
-        <ul className="mt-3 flex -space-x-2" aria-label={t.badges.latest}>
-          {earned.slice(0, 6).map((badge) => (
-            <li key={badge.key} title={text(badge).name} className="rounded-full ring-4 ring-surface">
+        <ul className="mt-4 flex flex-wrap gap-2" aria-label={t.badges.latest}>
+          {earned.slice(0, 8).map((badge) => (
+            <li key={badge.key} title={text(badge).name}>
               <BadgeMedal badge={badge} size="sm" />
               <span className="sr-only">{text(badge).name}</span>
             </li>
           ))}
         </ul>
       ) : null}
+      {/* The next one to get: its medal, locked, and what to do */}
       {next ? (
         <div className="mt-auto pt-4">
-          <div className="flex items-center gap-3 rounded-2xl bg-surface-2 p-3">
+          <Link href="/achievements" className="flex items-center gap-3 rounded-2xl bg-surface-2 p-3 transition-colors hover:bg-surface-3">
             <BadgeMedal badge={next} size="sm" />
-            <p className="min-w-0 text-sm leading-snug">
-              <span className="text-ink-2">{t.badges.nextUp} </span>
-              <span className="font-medium">{text(next).name}</span>
-              <span className="block truncate text-ink-2">{text(next).hint}</span>
-            </p>
-          </div>
+            <span className="min-w-0 truncate text-sm">{text(next).hint}</span>
+          </Link>
         </div>
       ) : null}
     </Card>
