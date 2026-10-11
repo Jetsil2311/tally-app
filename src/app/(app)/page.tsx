@@ -13,6 +13,8 @@ import { TransactionRow } from "@/components/transaction-row";
 import { buttonClass, Card, cn, EmptyState, SectionTitle, Skeleton } from "@/components/ui";
 import {
   getAccounts,
+  getBadges,
+  getGoals,
   getAllTransactions,
   getCategories,
   getCurrentUser,
@@ -26,7 +28,9 @@ import {
   getUpcoming,
 } from "@/lib/data";
 import { NeedsAttention } from "@/components/approvals";
+import { BadgesGlance } from "@/components/badges";
 import { CategoryReview } from "@/components/category-review";
+import { GoalsGlance } from "@/components/goals";
 import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { ApiError } from "@/lib/api";
@@ -290,6 +294,16 @@ async function Home() {
         </div>
       </section>
 
+      {/* Savings goals and achievements: streamed, so Home doesn't wait on them */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
+        <Suspense fallback={<Skeleton className="h-56 rounded-3xl" />}>
+          <HomeGoals />
+        </Suspense>
+        <Suspense fallback={<Skeleton className="h-56 rounded-3xl" />}>
+          <HomeBadges />
+        </Suspense>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <Card className="rise p-6 lg:col-span-7" style={{ "--i": 4 } as React.CSSProperties} aria-labelledby="flow-title">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -514,4 +528,13 @@ function HomeSkeleton() {
       </div>
     </Busy>
   );
+}
+
+async function HomeGoals() {
+  return <GoalsGlance goals={await getGoals()} />;
+}
+
+async function HomeBadges() {
+  const badges = await getBadges();
+  return badges.length ? <BadgesGlance badges={badges} /> : null;
 }

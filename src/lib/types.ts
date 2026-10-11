@@ -335,3 +335,45 @@ export type ActionState = {
   // Extra payload, e.g. the id of what was created (for "Undo")
   data?: Record<string, string>;
 };
+
+export type BadgeCategory = "onboarding" | "accounts" | "transactions" | "recurring" | "social" | "ai" | "goals";
+
+// A milestone (cosmetic). `name`/`description` come from the API in Spanish;
+// the dashboard shows its own translation by `key` when it has one.
+export interface Badge {
+  key: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: BadgeCategory;
+  earned: boolean;
+  earnedAt: string | null;
+}
+
+export type GoalStatus = "active" | "completed" | "archived";
+
+// A digital piggy bank: a target plus amounts set aside toward it. No money
+// moves and no account balance changes.
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  // One emoji, or null
+  icon: string | null;
+  targetAmount: string;
+  saved: string;
+  currency: string;
+  // 0–100+, above 100 when more than the target was saved
+  progress: number;
+  status: GoalStatus;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface GoalContribution {
+  id: string;
+  goalId: string;
+  // Negative = a withdrawal
+  amount: string;
+  note: string | null;
+  createdAt: string;
+}

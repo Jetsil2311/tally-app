@@ -4,6 +4,8 @@ import {
   ChartLineUp,
   Gear,
   House,
+  Medal,
+  PiggyBank,
   Plus,
   Receipt,
   Repeat,
@@ -147,6 +149,12 @@ function UserMenu({ user: userPromise, attention: attentionPromise }: { user: Pr
                   <span className="tabular rounded-full bg-accent px-2 py-px text-xs font-semibold text-accent-ink">{attention}</span>
                 ) : null}
               </span>
+            </MenuItem>
+            <MenuItem icon={<PiggyBank size={18} />} onClick={() => (close(), router.push("/goals"))}>
+              {t.nav.goals}
+            </MenuItem>
+            <MenuItem icon={<Medal size={18} />} onClick={() => (close(), router.push("/achievements"))}>
+              {t.nav.achievements}
             </MenuItem>
             <MenuItem icon={<Repeat size={18} />} onClick={() => (close(), router.push("/recurring"))}>
               {t.nav.recurring}

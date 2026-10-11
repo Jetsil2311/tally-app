@@ -9,6 +9,7 @@ import type {
   AiStatus,
   ApiKey,
   AuditPage,
+  Badge,
   Category,
   Connection,
   FinancialProfile,
@@ -17,6 +18,7 @@ import type {
   ManagedProfile,
   Member,
   RecurringPayment,
+  SavingsGoal,
   Summary,
   Transaction,
   TransactionPage,
@@ -269,3 +271,9 @@ export const getToReview = cache(async () => {
   ]);
   return { review: review.data, pending: pending.data };
 });
+
+// Badges and savings goals: optional everywhere (an API without them, or
+// an error, shows as none instead of breaking the page)
+export const getBadges = cache(async () => optional<Badge[]>(api<Badge[]>("/badges"), []));
+
+export const getGoals = cache(async () => optional<SavingsGoal[]>(api<SavingsGoal[]>("/goals"), []));

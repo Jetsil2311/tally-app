@@ -453,3 +453,36 @@ dialog.sheet:not([open])::backdrop {
   margin-bottom: calc(-1 * var(--pad));
   padding-bottom: var(--pad);
 }
+
+/* "You reached this goal!": a short pop, the one celebratory motion in the
+   goals screen. Shown as is under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .goal-celebrate {
+    animation: goal-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .goal-celebrate svg {
+    animation: goal-wiggle 700ms ease-out 120ms both;
+  }
+}
+@keyframes goal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes goal-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(-14deg) scale(1.12);
+  }
+  60% {
+    transform: rotate(10deg);
+  }
+}
