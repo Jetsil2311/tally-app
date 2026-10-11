@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, ArrowUp, CaretDown, CaretUp, FlagCheckered, PiggyBank, Sun, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowDown, ArrowRight, ArrowUp, CaretDown, CaretUp, CheckCircle, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -6,11 +6,11 @@ import type { Dictionary } from "@/i18n/dictionaries";
 import { Money } from "./preferences";
 import { Card, cn } from "./ui";
 
-// This month without reading: what you kept is the big number; money in and
-// out are told apart by arrow, sign and color (the same arrows as the Expense
-// and Income buttons); one bar shows how much of what came in has gone out,
-// with a flag where spending lands by month end at this pace. Every figure
-// still has its words for screen readers and as a tooltip.
+// This month in a glance. Short plain words where an icon can't say it
+// ("Left", "In", "Out", "Today"), and color does the rest: the bar is a
+// picture of the two numbers under it (orange = out, green = what's left of
+// what came in), so it needs no legend. Pace is a sentence, red only when
+// you're on track to spend more than came in.
 export function MonthGlance({
   month,
   income,
@@ -36,11 +36,8 @@ export function MonthGlance({
   locale: string;
 }) {
   const g = t.home.glance;
-  const kept = net >= 0;
-  // The bar is what came in; spent fills it from the left. Over budget, it's
-  // all spent; the flag marks the month-end projection.
+  const left = net >= 0;
   const spentShare = income > 0 ? Math.min(expense / income, 1) : expense > 0 ? 1 : 0;
-  const projectedShare = income > 0 ? Math.min(projected / income, 1) : null;
   const overPace = income > 0 && projected > income;
   const pct = (n: number) => new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 0 }).format(n);
 
@@ -60,73 +57,49 @@ export function MonthGlance({
         </Link>
       </div>
 
-      {/* What you kept: the one number */}
-      <div className="mt-4 flex items-center gap-3" title={g.kept}>
-        <span
-          aria-hidden
-          className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", kept ? "bg-income-soft text-income" : "bg-expense-soft text-expense")}
-        >
-          {kept ? <PiggyBank size={22} weight="fill" /> : <WarningCircle size={22} weight="fill" />}
-        </span>
-        <p className="min-w-0">
-          <span className="sr-only">{g.kept}: </span>
-          <Money
-            cents={net}
-            sign
-            className={cn("block truncate text-[34px] leading-none font-semibold tracking-tight", kept ? "text-ink" : "text-expense")}
-          />
-        </p>
-      </div>
+      {/* What's left: the one number */}
+      <p className="mt-3 text-sm font-medium text-ink-2">{g.left}</p>
+      <Money
+        cents={net}
+        sign
+        className={cn("mt-0.5 block truncate text-[36px] leading-none font-semibold tracking-tight", left ? "text-income" : "text-expense")}
+      />
 
-      {/* In → out: one bar. The track is what came in (green: still
-          yours); solid = spent so far; faded = what's still coming at this
-          pace, to the month-end flag. Over pace, it turns red. */}
+      {/* The two numbers below, as one bar: orange went out, green is left */}
       <div
         role="img"
         aria-label={g.barLabel(pct(income > 0 ? expense / income : 0))}
-        className={cn("relative mt-5 h-3 overflow-hidden rounded-full", income > 0 ? "bg-income/35" : "bg-surface-3")}
+        className={cn("relative mt-5 h-3 overflow-hidden rounded-full", income > 0 ? "bg-income" : "bg-surface-3")}
       >
-        {projectedShare !== null && projectedShare > spentShare ? (
+        {spentShare > 0 ? (
           <span
-            className="absolute inset-y-0 left-0 rounded-full opacity-70"
-            style={{
-              width: `${projectedShare * 100}%`,
-              // Stripes: a forecast, not money already gone
-              backgroundImage: `repeating-linear-gradient(135deg, var(${overPace ? "--expense" : "--chart-expense"}) 0 3px, transparent 3px 7px)`,
-            }}
+            className="absolute inset-y-0 left-0 rounded-full bg-chart-expense ring-2 ring-surface"
+            style={{ width: `${spentShare * 100}%` }}
           />
         ) : null}
-        <span
-          className={cn("absolute inset-y-0 left-0 rounded-full", spentShare >= 1 ? "bg-expense" : "bg-chart-expense")}
-          style={{ width: `${spentShare * 100}%` }}
-        />
       </div>
 
-      {/* In and out: arrows, signs and colors say which is which */}
-      <dl className="mt-5 grid grid-cols-2 gap-3">
-        <div className="flex min-w-0 items-center gap-2.5 rounded-2xl bg-surface-2 p-3" title={g.in}>
-          <dt className="shrink-0">
-            <span className="flex size-9 items-center justify-center rounded-full bg-income-soft text-income">
-              <ArrowDown size={18} weight="bold" aria-hidden />
+      <dl className="mt-4 grid grid-cols-2 gap-3">
+        <div className="min-w-0">
+          <dt className="flex items-center gap-1.5 text-sm font-medium text-ink-2">
+            <span className="flex size-5 items-center justify-center rounded-full bg-income text-surface">
+              <ArrowDown size={12} weight="bold" aria-hidden />
             </span>
-            <span className="sr-only">{g.in}</span>
+            {g.in}
           </dt>
-          <dd className="min-w-0">
-            <Money cents={income} sign className="block truncate text-lg font-semibold tracking-tight text-income" />
+          <dd className="mt-1">
+            <Money cents={income} sign className="block truncate text-xl font-semibold tracking-tight" />
           </dd>
         </div>
-        <div className="flex min-w-0 items-center gap-2.5 rounded-2xl bg-surface-2 p-3" title={g.out}>
-          <dt className="shrink-0">
-            <span className="flex size-9 items-center justify-center rounded-full bg-expense-soft text-expense">
-              <ArrowUp size={18} weight="bold" aria-hidden />
+        <div className="min-w-0">
+          <dt className="flex items-center gap-1.5 text-sm font-medium text-ink-2">
+            <span className="flex size-5 items-center justify-center rounded-full bg-chart-expense text-surface">
+              <ArrowUp size={12} weight="bold" aria-hidden />
             </span>
-            <span className="sr-only">{g.out}</span>
-          </dt>
-          <dd className="min-w-0">
-            <Money cents={-expense} sign className="block truncate text-lg font-semibold tracking-tight" />
+            {g.out}
             {change !== null && change !== 0 ? (
               <span
-                className={cn("flex items-center gap-0.5 text-xs font-medium", change > 0 ? "text-expense" : "text-income")}
+                className={cn("ml-auto flex items-center gap-0.5 text-xs", change > 0 ? "text-expense" : "text-income")}
                 title={g.vsLast(prevMonth)}
               >
                 {change > 0 ? <CaretUp size={11} weight="fill" aria-hidden /> : <CaretDown size={11} weight="fill" aria-hidden />}
@@ -134,31 +107,38 @@ export function MonthGlance({
                 <span className="sr-only"> {g.vsLast(prevMonth)}</span>
               </span>
             ) : null}
+          </dt>
+          <dd className="mt-1">
+            <Money cents={-expense} sign className="block truncate text-xl font-semibold tracking-tight" />
           </dd>
         </div>
       </dl>
 
-      {/* Pace and today, as icon + number */}
-      <dl className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-2 pt-5 text-sm">
-        <div className={cn("flex items-center gap-1.5", overPace ? "text-expense" : "text-ink-2")} title={g.projected}>
-          <dt>
-            <FlagCheckered size={16} weight="fill" aria-hidden />
-            <span className="sr-only">{g.projected}</span>
-          </dt>
-          <dd>
-            <Money cents={projected} approximate className="font-medium" />
-          </dd>
-        </div>
-        <div className="flex items-center gap-1.5 text-ink-2" title={g.today}>
-          <dt>
-            <Sun size={16} weight="fill" aria-hidden />
-            <span className="sr-only">{g.today}</span>
-          </dt>
-          <dd>
-            <Money cents={today} className="font-medium" />
-          </dd>
-        </div>
-      </dl>
+      {/* Pace: a sentence, red only when it's a problem */}
+      <div className="mt-auto pt-5">
+        {expense > 0 ? (
+          <p
+            className={cn(
+              "flex items-start gap-2 rounded-2xl px-3 py-2.5 text-sm leading-snug",
+              overPace ? "bg-expense-soft text-expense" : "bg-surface-2 text-ink-2",
+            )}
+          >
+            {overPace ? (
+              <WarningCircle size={18} weight="fill" className="mt-px shrink-0" aria-hidden />
+            ) : (
+              <CheckCircle size={18} weight="fill" className="mt-px shrink-0 text-income" aria-hidden />
+            )}
+            <span>
+              {overPace
+                ? g.overPace(<Money cents={projected} approximate className="font-semibold" />)
+                : g.onPace(<Money cents={projected} approximate className="font-semibold text-ink" />)}
+            </span>
+          </p>
+        ) : null}
+        <p className="mt-3 text-sm text-ink-2">
+          {g.today} <Money cents={today > 0 ? -today : 0} sign={today > 0} className="font-medium text-ink" />
+        </p>
+      </div>
     </Card>
   );
 }
