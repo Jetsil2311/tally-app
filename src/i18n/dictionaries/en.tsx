@@ -1051,6 +1051,10 @@ export const en = {
     targetLabel: "How much do you want to save?",
     namePlaceholder: "Trip to Japan",
     iconLabel: "Icon",
+    icons: {
+      beach: "Vacation", plane: "Travel", home: "Home", car: "Car", school: "Education", laptop: "Computer", phone: "Phone",
+      music: "Music", gift: "Gift", ring: "Wedding", pet: "Pet", health: "Health", safety: "Emergency fund", piggy: "Savings",
+    } as Record<string, string>,
     nameRequired: "Give the goal a name.",
     created: "Goal created",
     updated: "Goal updated",

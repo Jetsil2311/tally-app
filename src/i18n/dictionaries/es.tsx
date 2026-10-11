@@ -1039,6 +1039,10 @@ export const es: Dictionary = {
     targetLabel: "¿Cuánto quieres ahorrar?",
     namePlaceholder: "Viaje a Japón",
     iconLabel: "Ícono",
+    icons: {
+      beach: "Vacaciones", plane: "Viaje", home: "Casa", car: "Auto", school: "Estudios", laptop: "Computadora", phone: "Teléfono",
+      music: "Música", gift: "Regalo", ring: "Boda", pet: "Mascota", health: "Salud", safety: "Fondo de emergencia", piggy: "Ahorro",
+    } as Record<string, string>,
     nameRequired: "Ponle un nombre a la meta.",
     created: "Meta creada",
     updated: "Meta actualizada",

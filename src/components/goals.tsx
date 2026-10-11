@@ -1,16 +1,30 @@
 "use client";
 
 import {
+  Airplane,
   ArrowCounterClockwise,
   Archive,
   ArrowDown,
   ArrowUp,
+  Car,
   Confetti,
+  DeviceMobile,
+  Diamond,
+  Gift,
+  GraduationCap,
+  Guitar,
+  Heartbeat,
+  House,
+  Laptop,
+  Lifebuoy,
+  PawPrint,
   PencilSimple,
   PiggyBank,
   Plus,
   Target,
   Trash,
+  Umbrella,
+  type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useActionState, useEffect, useState, useTransition } from "react";
@@ -33,9 +47,25 @@ import { submitWith } from "./use-form-action";
 
 type Panel = { kind: "new" } | { kind: "edit"; goal: SavingsGoal } | { kind: "detail"; goal: SavingsGoal; mode?: "deposit" | "withdraw" };
 
-// Picked from, not typed: one emoji per goal. Shown as the goal's own
-// content (the user's choice), not as an interface icon.
-const GOAL_ICONS = ["🏖️", "✈️", "🏠", "🚗", "🎓", "💻", "📱", "🎸", "🎁", "💍", "🐶", "🩺", "🛟", "🐷"];
+// A goal's icon, picked from these. The API keeps it as a short text
+// (≤ 8 characters), so the key is stored, never an emoji; anything else
+// (e.g. an emoji set by another client) shows the default target icon.
+const GOAL_ICONS: Record<string, PhosphorIcon> = {
+  beach: Umbrella,
+  plane: Airplane,
+  home: House,
+  car: Car,
+  school: GraduationCap,
+  laptop: Laptop,
+  phone: DeviceMobile,
+  music: Guitar,
+  gift: Gift,
+  ring: Diamond,
+  pet: PawPrint,
+  health: Heartbeat,
+  safety: Lifebuoy,
+  piggy: PiggyBank,
+};
 
 export function GoalsManager({ goals, openNew, openGoalId }: { goals: SavingsGoal[]; openNew?: boolean; openGoalId?: string }) {
   const { t } = useI18n();
@@ -221,16 +251,17 @@ function GoalCard({ goal, index, onOpen }: { goal: SavingsGoal; index: number; o
 }
 
 export function GoalIcon({ icon, done, size = "md" }: { icon: string | null; done?: boolean; size?: "md" | "lg" }) {
+  const Glyph = (icon && GOAL_ICONS[icon]) || Target;
   return (
     <span
       aria-hidden
       className={cn(
         "flex shrink-0 items-center justify-center rounded-2xl",
-        size === "lg" ? "size-16 text-[32px]" : "size-12 text-2xl",
-        done ? "bg-income-soft" : "bg-surface-2",
+        size === "lg" ? "size-16" : "size-12",
+        done ? "bg-income-soft text-income" : "bg-accent-soft text-accent",
       )}
     >
-      {icon ?? <Target size={size === "lg" ? 30 : 22} className="text-ink-2" />}
+      <Glyph size={size === "lg" ? 30 : 22} weight="duotone" />
     </span>
   );
 }
@@ -494,7 +525,8 @@ function GoalForm({ goal, onDone }: { goal?: SavingsGoal; onDone: () => void }) 
   const { t } = useI18n();
   const toast = useToast();
   const { currency: preferred } = usePreferences();
-  const [icon, setIcon] = useState(goal?.icon ?? "");
+  // Only a known key: an emoji from elsewhere is dropped when saved here
+  const [icon, setIcon] = useState(goal?.icon && GOAL_ICONS[goal.icon] ? goal.icon : "");
   const [currency, setCurrency] = useState(goal?.currency ?? preferred);
 
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
@@ -542,22 +574,23 @@ function GoalForm({ goal, onDone }: { goal?: SavingsGoal; onDone: () => void }) 
           {t.goals.iconLabel} <span className="font-normal text-ink-3">· {t.common.optional}</span>
         </legend>
         <div role="radiogroup" aria-label={t.goals.iconLabel} className="grid grid-cols-7 gap-2">
-          {GOAL_ICONS.map((emoji) => {
-            const checked = icon === emoji;
+          {Object.entries(GOAL_ICONS).map(([key, Glyph]) => {
+            const checked = icon === key;
             return (
               <button
-                key={emoji}
+                key={key}
                 type="button"
                 role="radio"
                 aria-checked={checked}
-                onClick={() => setIcon(checked ? "" : emoji)}
+                aria-label={t.goals.icons[key] ?? key}
+                title={t.goals.icons[key] ?? key}
+                onClick={() => setIcon(checked ? "" : key)}
                 className={cn(
-                  "flex aspect-square min-h-11 items-center justify-center rounded-2xl border text-2xl transition-[background-color,border-color,transform] active:scale-95",
-                  checked ? "border-accent bg-accent-soft" : "border-line bg-surface-2 hover:border-line-strong",
+                  "flex aspect-square min-h-11 items-center justify-center rounded-2xl border transition-[background-color,border-color,color,transform] active:scale-95",
+                  checked ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface-2 text-ink-2 hover:border-line-strong hover:text-ink",
                 )}
               >
-                <span aria-hidden>{emoji}</span>
-                <span className="sr-only">{emoji}</span>
+                <Glyph size={22} weight={checked ? "fill" : "regular"} aria-hidden />
               </button>
             );
           })}

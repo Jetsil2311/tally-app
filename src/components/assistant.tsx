@@ -29,6 +29,7 @@ import { isValidElement, Suspense, use, useActionState, useEffect, useRef, useSt
 import { dismissInsight, generateInsights, markInsightsSeen, saveFinancialProfile } from "@/actions/ai";
 import { useI18n } from "@/i18n/client";
 import { currencySymbol } from "@/lib/money";
+import { stripEmoji } from "@/lib/text";
 import type { Account, ActionState, AiStatus, ChatAnswer, FinancialProfile, Insight, Verdict } from "@/lib/types";
 
 import { AskAiButton, useAi, type Turn } from "./ai-assist";
@@ -515,7 +516,7 @@ function RichText({ text, streaming }: { text: string; streaming?: boolean }) {
   return (
     <div className="space-y-3 text-[15px] leading-relaxed break-words">
       <Markdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
-        {text}
+        {stripEmoji(text)}
       </Markdown>
       {streaming ? <span aria-hidden className="-mt-2 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-[var(--ai-2)]" /> : null}
     </div>
@@ -685,8 +686,8 @@ function InsightItem({ insight, isNew }: { insight: Insight; isNew: boolean }) {
           ) : null}
           {insight.writtenBy === "ai" ? <AiTag /> : null}
         </p>
-        <p className="mt-1 text-[15px] font-medium leading-snug">{insight.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-ink-2">{insight.message}</p>
+        <p className="mt-1 text-[15px] font-medium leading-snug">{stripEmoji(insight.title)}</p>
+        <p className="mt-1 text-sm leading-relaxed text-ink-2">{stripEmoji(insight.message)}</p>
         <AskAiButton size="xs" className="mt-2.5" label={t.ai.askAboutThis} ask={t.ai.askAboutInsight(insight.title)} />
       </div>
       <IconButton

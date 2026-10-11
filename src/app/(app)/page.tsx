@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Repeat, Sparkle, Tag, TrendDown, TrendUp, Wallet, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CaretDown, CaretUp, Check, Repeat, Sparkle, Tag, TrendDown, TrendUp, Wallet, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -222,7 +222,11 @@ async function Home() {
               </dd>
               {expenseChange !== null ? (
                 <dd className="mt-0.5 text-xs text-ink-2">
-                  {expenseChange > 0 ? "▲" : "▼"}{" "}
+                  {expenseChange > 0 ? (
+                    <CaretUp size={11} weight="fill" className="mr-0.5 inline align-[-1px]" aria-hidden />
+                  ) : (
+                    <CaretDown size={11} weight="fill" className="mr-0.5 inline align-[-1px]" aria-hidden />
+                  )}
                   {t.home.versus(percent(Math.abs(expenseChange), locale), monthLabel(shiftMonth(monthKey, -1), "short", false, locale))}
                 </dd>
               ) : null}
