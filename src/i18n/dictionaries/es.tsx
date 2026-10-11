@@ -103,6 +103,9 @@ export const es: Dictionary = {
   },
 
   home: {
+    quickActions: "Acciones rápidas",
+    newAccountShort: "Cuenta",
+    askAiShort: "Asistente",
     greeting: (hour: number, name?: string) => {
       const base = hour < 5 ? "Buenas noches" : hour < 12 ? "Buenos días" : hour < 20 ? "Buenas tardes" : "Buenas noches";
       return name ? `${base}, ${name}` : base;
@@ -957,6 +960,13 @@ export const es: Dictionary = {
     homeTitle: "Asistente",
     homeAsk: "Pregunta por una compra…",
     seeAll: "Ver todo",
+    fastActions: "Pídele al asistente que lo haga",
+    actions: {
+      expense: { label: "Registrar gasto", prompt: "Registra un gasto de $" },
+      income: { label: "Registrar ingreso", prompt: "Registra un ingreso de $" },
+      account: { label: "Crear cuenta", prompt: "Crea una cuenta de débito llamada " },
+      category: { label: "Crear categoría", prompt: "Crea la categoría " },
+    },
     copy: "Copiar",
     copied: "Copiado",
     tryAgain: "Intentar de nuevo",

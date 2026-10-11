@@ -220,6 +220,8 @@ export interface ChatAnswer {
   disclaimer: string;
   // retried: the AI got a second try after quoting a figure it wasn't given
   ai: { used: boolean; reason: string | null; retried?: boolean };
+  // Set when the assistant created something (newer APIs)
+  action?: { type: string; id?: string } | null;
 }
 
 export interface TransactionPage {

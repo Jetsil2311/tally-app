@@ -104,6 +104,9 @@ export const en = {
   },
 
   home: {
+    quickActions: "Quick actions",
+    newAccountShort: "Account",
+    askAiShort: "Ask AI",
     greeting: (hour: number, name?: string) => {
       const base = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
       return name ? `${base}, ${name}` : base;
@@ -969,6 +972,13 @@ export const en = {
     homeTitle: "Assistant",
     homeAsk: "Ask about a purchase…",
     seeAll: "See all",
+    fastActions: "Ask the assistant to do it",
+    actions: {
+      expense: { label: "Add expense", prompt: "Add an expense of $" },
+      income: { label: "Add income", prompt: "Add an income of $" },
+      account: { label: "Create account", prompt: "Create a debit account called " },
+      category: { label: "Create category", prompt: "Create the category " },
+    },
     copy: "Copy",
     copied: "Copied",
     tryAgain: "Try again",

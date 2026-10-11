@@ -29,6 +29,14 @@ function replyLocale(locale: string) {
 
 // Reads the API's Server-Sent Events: `meta` (everything but the text),
 // then `delta`s with the text, then `done` (or `error`)
+// The assistant can create accounts, categories and transactions. When it
+// did, the screens behind it are out of date: refresh them. An `action`
+// field is used when the API sends one; until then, its own success line
+// (written by server code, never by the AI) is the signal.
+function didSomething(answer: ChatAnswer) {
+  return Boolean(answer.action) || (!answer.verdict && answer.answer.startsWith("Listo, "));
+}
+
 type StreamEvent = { event: string; data: Record<string, unknown> | null };
 
 async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
@@ -125,7 +133,9 @@ export function AiProvider({ children }: { children: ReactNode }) {
           }
           // An API that doesn't stream: the whole answer at once
           if (!type.includes("text/event-stream")) {
-            patch(id, { answer: (await response.json()) as ChatAnswer });
+            const whole = (await response.json()) as ChatAnswer;
+            patch(id, { answer: whole });
+            if (didSomething(whole)) router.refresh();
             return;
           }
           let answer = null as ChatAnswer | null;
@@ -142,6 +152,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
             }
           }
           patch(id, { streaming: false, ...(answer ? {} : { error: t.ai.chatError }) });
+          if (answer && didSomething(answer)) router.refresh();
         } catch {
           patch(id, { streaming: false, error: t.ai.chatError });
         }

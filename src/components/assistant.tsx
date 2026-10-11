@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowDown,
   ArrowUp,
   CaretDown,
   Check,
@@ -11,8 +12,10 @@ import {
   PiggyBank,
   Question,
   Repeat,
+  Tag,
   TrendDown,
   TrendUp,
+  Wallet,
   WarningCircle,
   X,
   XCircle,
@@ -79,6 +82,15 @@ export function Assistant({
 // Chat
 // ---------------------------------------------------------------------------
 
+// What the assistant can do, not just answer (the API carries them out with
+// the same checks as the app's own forms)
+const FAST_ACTIONS = [
+  { key: "expense", icon: ArrowUp },
+  { key: "income", icon: ArrowDown },
+  { key: "account", icon: Wallet },
+  { key: "category", icon: Tag },
+] as const;
+
 // The conversation lives in AiProvider: the same one shows on /assistant and
 // in the sheet that any screen opens, so it carries across both.
 function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean }) {
@@ -107,6 +119,18 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
   const submit = (event: FormEvent) => {
     event.preventDefault();
     ask(draft);
+  };
+
+  // Fast actions: start the instruction for the assistant to carry out, with
+  // the cursor where the details go
+  const prefill = (text: string) => {
+    setDraft(text);
+    requestAnimationFrame(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      input.focus();
+      input.setSelectionRange(text.length, text.length);
+    });
   };
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     // Enter sends; Shift+Enter is a new line
@@ -148,6 +172,23 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
       </div>
 
       <form onSubmit={submit} className={cn("border-t border-line bg-surface", inSheet ? "sheet-composer sticky px-4 pt-3 sm:px-6" : "p-3 sm:p-4")}>
+        <div
+          role="group"
+          aria-label={t.ai.fastActions}
+          className={cn("no-scrollbar mb-2.5 flex gap-2 overflow-x-auto pb-0.5", inSheet ? "-mx-4 px-4 sm:-mx-6 sm:px-6" : "-mx-3 px-3 sm:-mx-4 sm:px-4")}
+        >
+          {FAST_ACTIONS.map(({ key, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => prefill(t.ai.actions[key].prompt)}
+              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 text-sm text-ink transition-[border-color,transform] hover:border-line-strong active:scale-[0.97]"
+            >
+              <Icon size={15} weight="bold" className="text-ink-2" aria-hidden />
+              {t.ai.actions[key].label}
+            </button>
+          ))}
+        </div>
         <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface-2 p-1.5 pl-4 transition-[border-color,box-shadow] focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
           <label htmlFor={inSheet ? "assistant-sheet-input" : "assistant-input"} className="sr-only">
             {t.ai.ask}
@@ -792,141 +833,5 @@ function StatusCard({ status }: { status: AiStatus | null }) {
       ) : null}
       <p className="mt-4 text-xs leading-relaxed text-ink-3">{t.ai.privacy}</p>
     </Card>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Home: ask about a purchase, and the newest insights
-// ---------------------------------------------------------------------------
-
-export function HomeAssistant({
-  insights,
-  suggestions,
-  aiEnabled,
-}: {
-  insights: Insight[];
-  // Questions worked out from this month's numbers (an upcoming bill, the
-  // biggest category), asked in one tap
-  suggestions: string[];
-  aiEnabled: boolean;
-}) {
-  const { t } = useI18n();
-  const toast = useToast();
-  const { open } = useAi();
-  const [draft, setDraft] = useState("");
-  const [checking, startCheck] = useTransition();
-  const latest = insights.slice(0, 3);
-  const unseen = insights.filter((insight) => !insight.seenAt).length;
-
-  // Opens the assistant over Home with the question already asked
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const question = draft.trim();
-    if (!question) return;
-    open({ ask: question });
-    setDraft("");
-  };
-
-  return (
-    <section className="rise ai-surface rounded-3xl p-5 sm:p-6" style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="home-ai-title">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-8">
-        <div className="min-w-0">
-          <div className="flex items-center justify-between gap-3">
-            <h2 id="home-ai-title" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
-              <AiMark size={20} /> {t.ai.homeTitle}
-              {!aiEnabled ? <span className="text-xs font-normal text-ink-3">· {t.ai.templatesOnly}</span> : null}
-            </h2>
-            <Link href="/assistant" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
-              {t.ai.seeAll}
-            </Link>
-          </div>
-          <p className="mt-1 text-sm leading-relaxed text-ink-2">{t.ai.homeLead}</p>
-          <form onSubmit={submit} className="mt-4 flex gap-2">
-            <label htmlFor="home-ask" className="sr-only">
-              {t.ai.ask}
-            </label>
-            <Input
-              id="home-ask"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={t.ai.homeAsk}
-              autoComplete="off"
-              maxLength={1000}
-              className="min-w-0 bg-surface"
-            />
-            <button
-              type="submit"
-              disabled={!draft.trim()}
-              aria-label={t.ai.ask}
-              className="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink transition-[transform,opacity] hover:bg-accent-hover active:scale-95 disabled:opacity-40"
-            >
-              <ArrowUp size={20} weight="bold" />
-            </button>
-          </form>
-          {suggestions.length ? (
-            <div className="mt-3">
-              <p className="mb-2 text-xs font-medium text-ink-3">{t.ai.suggestedQuestions}</p>
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((question) => (
-                  <AskAiButton key={question} size="xs" label={question} ask={question} className="max-w-full" />
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="min-w-0 lg:border-l lg:border-line/70 lg:pl-8">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold">
-              {t.ai.insightsTitle}
-              {unseen ? <span className="ml-1.5 font-normal text-ink-3">· {t.ai.newInsightsDot(unseen)}</span> : null}
-            </h3>
-            <button
-              type="button"
-              disabled={checking}
-              onClick={() =>
-                startCheck(async () => {
-                  const result = await generateInsights("weekly");
-                  toast(result.message ?? t.common.done, { tone: result.ok ? "success" : "error" });
-                })
-              }
-              className="inline-flex items-center gap-1.5 text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline disabled:opacity-50"
-            >
-              <ClockCounterClockwise size={15} aria-hidden /> {checking ? t.ai.checking : t.ai.checkNow}
-            </button>
-          </div>
-          {latest.length ? (
-            <ul className="space-y-3">
-              {latest.map((insight) => {
-                const Icon = INSIGHT_ICONS[insight.type] ?? ChatCircleDots;
-                return (
-                  <li key={insight.id} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-surface text-ink-2" aria-hidden>
-                      <Icon size={16} weight="bold" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-2 text-[15px] font-medium leading-snug">
-                        <span className="min-w-0">{insight.title}</span>
-                        {!insight.seenAt ? <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-label={t.ai.newLabel} /> : null}
-                      </p>
-                      <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-ink-2">{insight.message}</p>
-                      <button
-                        type="button"
-                        onClick={() => open({ ask: t.ai.askAboutInsight(insight.title) })}
-                        className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-ink underline-offset-4 hover:underline"
-                      >
-                        <AiMark size={13} /> {t.ai.askAboutThis}
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="rounded-2xl bg-surface/70 px-4 py-3 text-sm leading-relaxed text-ink-2">{t.ai.noInsightsHint}</p>
-          )}
-        </div>
-      </div>
-    </section>
   );
 }
