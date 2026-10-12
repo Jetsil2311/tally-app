@@ -148,10 +148,10 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
       <div className={cn("flex-1 space-y-5", inSheet ? "px-6 pb-4" : "p-4 sm:p-6")} aria-live="polite">
         {turns.length === 0 ? (
           <div className={inSheet ? "py-2" : "py-4 sm:py-8"}>
-            {inSheet ? null : (
-              <p className="text-[22px] leading-tight font-semibold tracking-tight sm:text-2xl">{t.ai.heroTitle}</p>
-            )}
-            <p className={cn("max-w-[52ch] text-[15px] leading-relaxed text-ink-2", !inSheet && "mt-2")}>{t.ai.heroBody}</p>
+            {/* Buck says hi: the mascot, big, over his greeting */}
+            <AiMark size={inSheet ? 52 : 72} className="buck-hello mb-3" />
+            <p className={cn("leading-tight font-semibold tracking-tight", inSheet ? "text-lg" : "text-[22px] sm:text-2xl")}>{t.ai.heroTitle}</p>
+            <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-ink-2">{t.ai.heroBody}</p>
             <div className="mt-5 flex flex-col items-start gap-2">
               {t.ai.prompts.map((prompt) => (
                 <button
