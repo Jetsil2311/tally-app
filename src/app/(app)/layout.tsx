@@ -2,12 +2,13 @@ import { Suspense } from "react";
 
 import { AiProvider } from "@/components/ai-assist";
 import { AssistantSheet } from "@/components/assistant";
+import { BadgeCelebrator } from "@/components/badges";
 import { PreferencesProvider } from "@/components/preferences";
 import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, Sidebar, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
 import { ViewerProvider } from "@/components/people-ui";
-import { getAccounts, getAttention, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
+import { getAccounts, getAttention, getBadges, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
 import { I18nProvider } from "@/i18n/client";
 import { getI18n } from "@/i18n/server";
 import { getPreferences } from "@/lib/session";
@@ -40,6 +41,9 @@ async function Shell({ children }: { children: React.ReactNode }) {
   const categories = getCategories();
   const attention = getAttention().then(({ invitations, requests }) => invitations.length + requests.length);
   // New insights from the assistant, for the dot on its button
+  // Badges after every change (each action refreshes the shell): new ones
+  // pop up as a celebration
+  const badges = getBadges();
   const aiUnseen = getInsights().then((list) => list.filter((insight) => !insight.seenAt).length);
 
   return (
@@ -70,6 +74,9 @@ async function Shell({ children }: { children: React.ReactNode }) {
           </div>
           <Dock attention={attention} />
           <AssistantSheet accounts={accounts} />
+          <Suspense fallback={null}>
+            <BadgeCelebrator badges={badges} />
+          </Suspense>
         </QuickAddProvider>
         </AiProvider>
       </ToastProvider>

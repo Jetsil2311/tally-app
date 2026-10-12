@@ -1093,6 +1093,8 @@ export const en = {
     countOf: (n: number, total: number) => `${n} of ${total} collected`,
     nextUp: "Next up:",
     unlocked: (name: string) => `New achievement: ${name}`,
+    newBadge: "New achievement",
+    great: "Nice!",
     categories: {
       onboarding: "Getting started",
       accounts: "Accounts & currencies",

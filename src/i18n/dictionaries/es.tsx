@@ -1081,6 +1081,8 @@ export const es: Dictionary = {
     countOf: (n: number, total: number) => `${n} de ${total} conseguidos`,
     nextUp: "Siguiente:",
     unlocked: (name: string) => `Nuevo logro: ${name}`,
+    newBadge: "Nuevo logro",
+    great: "¡Genial!",
     categories: {
       onboarding: "Primeros pasos",
       accounts: "Cuentas y monedas",

@@ -28,13 +28,13 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { use, useEffect, useId, useRef, useState } from "react";
 
 import { useI18n } from "@/i18n/client";
 import type { Badge, BadgeCategory } from "@/lib/types";
 
+import { useViewer } from "./people-ui";
 import { usePreferences } from "./preferences";
-import { useToast } from "./toast";
 import { Card, cn } from "./ui";
 
 // Badges: small milestones, one per feature. Cosmetic only (nothing is
@@ -86,10 +86,10 @@ function useBadgeText() {
   return (badge: Badge) => t.badges.catalog[badge.key] ?? { name: badge.name, hint: badge.description };
 }
 
-export function BadgeMedal({ badge, size = "md" }: { badge: Badge; size?: "sm" | "md" | "lg" }) {
+export function BadgeMedal({ badge, size = "md" }: { badge: Badge; size?: "sm" | "md" | "lg" | "xl" }) {
   const Glyph = ICONS[badge.key] ?? Medal;
-  const dims = size === "lg" ? "size-16" : size === "sm" ? "size-9" : "size-14";
-  const glyph = size === "lg" ? 30 : size === "sm" ? 17 : 26;
+  const dims = size === "xl" ? "size-28" : size === "lg" ? "size-16" : size === "sm" ? "size-9" : "size-14";
+  const glyph = size === "xl" ? 56 : size === "lg" ? 30 : size === "sm" ? 17 : 26;
   return (
     <span
       aria-hidden
@@ -124,7 +124,6 @@ export function BadgeCase({ badges }: { badges: Badge[] }) {
 
   return (
     <>
-      <BadgeWatcher badges={badges} />
       <header className="rise pt-2">
         <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.badges.title}</h1>
         <p className="mt-1 max-w-[56ch] text-sm leading-relaxed text-ink-2">{t.badges.intro}</p>
@@ -216,7 +215,6 @@ export function BadgesGlance({ badges }: { badges: Badge[] }) {
   const next = badges.find((b) => !b.earned);
   return (
     <Card className="rise flex flex-col p-6" style={{ "--i": 5 } as React.CSSProperties} aria-labelledby="badges-glance">
-      <BadgeWatcher badges={badges} />
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 id="badges-glance" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight">
           <Medal size={20} className="text-accent" aria-hidden /> {t.badges.title}
@@ -273,30 +271,154 @@ export function BadgesGlance({ badges }: { badges: Badge[] }) {
   );
 }
 
-// Celebrates badges earned since this browser last looked. The first visit
-// only remembers what's there (no burst of toasts for old ones).
-const SEEN_KEY = "tally:badges-seen";
+// ---------------------------------------------------------------------------
+// The celebration: a new badge pops up in the middle of the screen
+// ---------------------------------------------------------------------------
 
-function BadgeWatcher({ badges }: { badges: Badge[] }) {
-  const { t } = useI18n();
-  const toast = useToast();
-  const text = useBadgeText();
+// Mounted once in the app shell with a fresh badges list after every change
+// (each Server Action refreshes the shell). Anything earned since this
+// browser last looked is celebrated, one at a time. On the first visit,
+// only badges earned in the last few minutes pop up (a new user's first
+// ones); older ones are remembered quietly.
+const RECENT_MS = 15 * 60 * 1000;
+
+export function BadgeCelebrator({ badges: badgesPromise }: { badges: Promise<Badge[]> }) {
+  const badges = use(badgesPromise);
+  const viewer = useViewer();
+  const [queue, setQueue] = useState<Badge[]>([]);
+  const [total, setTotal] = useState(0);
+  const key = `tally:badges-seen:${viewer.id}`;
+
   useEffect(() => {
-    const earned = badges.filter((b) => b.earned).map((b) => b.key);
+    const earned = badges.filter((b) => b.earned);
+    if (!earned.length) return;
     let seen: string[] | null = null;
     try {
-      seen = JSON.parse(localStorage.getItem(SEEN_KEY) ?? "null");
+      seen = JSON.parse(localStorage.getItem(key) ?? "null");
     } catch {}
+    const now = Date.now();
+    const fresh = Array.isArray(seen)
+      ? earned.filter((b) => !seen!.includes(b.key))
+      : earned.filter((b) => b.earnedAt && now - new Date(b.earnedAt).getTime() < RECENT_MS);
     try {
-      localStorage.setItem(SEEN_KEY, JSON.stringify(earned));
+      localStorage.setItem(key, JSON.stringify(earned.map((b) => b.key)));
     } catch {}
-    if (!Array.isArray(seen)) return;
-    const fresh = badges.filter((b) => b.earned && !seen!.includes(b.key));
-    for (const badge of fresh.slice(0, 3)) {
-      toast(t.badges.unlocked(text(badge).name), { tone: "success" });
-    }
-    // Once per set of badges, not on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [badges.map((b) => (b.earned ? b.key : "")).join()]);
-  return null;
+    if (!fresh.length) return;
+    // Oldest first, so they arrive in the order they were earned
+    fresh.sort((a, b) => (a.earnedAt ?? "").localeCompare(b.earnedAt ?? ""));
+    // What was seen lives in localStorage, readable only after mount: the
+    // effect is where the comparison has to happen
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setQueue((current) => [...current, ...fresh.filter((b) => !current.some((c) => c.key === b.key))]);
+    setTotal((n) => n + fresh.length);
+  }, [badges, key]);
+
+  const current = queue[0];
+  const shown = total - queue.length + 1;
+  const next = () =>
+    setQueue((list) => {
+      const rest = list.slice(1);
+      if (!rest.length) setTotal(0);
+      return rest;
+    });
+
+  return current ? <Celebration key={current.key} badge={current} position={total > 1 ? `${shown} / ${total}` : null} onClose={next} /> : null;
+}
+
+const CONFETTI_COLORS = ["var(--ai-1)", "var(--ai-2)", "var(--ai-3)", "var(--income)", "var(--accent)"];
+
+function Celebration({ badge, position, onClose }: { badge: Badge; position: string | null; onClose: () => void }) {
+  const { t } = useI18n();
+  const text = useBadgeText();
+  const ref = useRef<HTMLDialogElement>(null);
+  const okRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  // Fixed per badge (not random on every render): angle, distance, color
+  const [pieces] = useState(() =>
+    Array.from({ length: 22 }, (_, i) => ({
+      angle: (360 / 22) * i + ((i * 37) % 15),
+      distance: 90 + ((i * 53) % 70),
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      size: 6 + (i % 3) * 2,
+      round: i % 2 === 0,
+    })),
+  );
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    // Opening a dialog focuses its first control; the main one is "Nice!"
+    okRef.current?.focus({ focusVisible: false } as FocusOptions);
+    // A tiny buzz on phones that support it: the "you got something" feeling
+    try {
+      navigator.vibrate?.([14, 50, 22]);
+    } catch {}
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      className="badge-celebration m-auto w-[min(22rem,calc(100vw-2rem))] overflow-visible rounded-[2rem] border-0 bg-transparent p-0 text-ink backdrop:bg-black/55 backdrop:backdrop-blur-sm"
+    >
+      <div className="ai-surface relative flex flex-col items-center rounded-[2rem] px-6 pt-10 pb-6 text-center">
+        {/* The burst behind the medal */}
+        <div aria-hidden className="pointer-events-none absolute top-[4.5rem] left-1/2 size-0">
+          <span className="badge-glow absolute -top-20 -left-20 size-40 rounded-full" />
+          {pieces.map((piece, i) => (
+            <span
+              key={i}
+              className="badge-confetti absolute"
+              style={
+                {
+                  "--angle": `${piece.angle}deg`,
+                  "--distance": `${piece.distance}px`,
+                  "--delay": `${(i % 6) * 25}ms`,
+                  width: piece.size,
+                  height: piece.round ? piece.size : piece.size * 1.8,
+                  borderRadius: piece.round ? "999px" : "2px",
+                  background: piece.color,
+                } as React.CSSProperties
+              }
+            />
+          ))}
+        </div>
+
+        <div className="badge-pop relative">
+          <BadgeMedal badge={badge} size="xl" />
+        </div>
+
+        <p className="mt-6 flex items-center gap-1.5 text-sm font-semibold text-ink-2">
+          <Medal size={16} weight="fill" className="text-accent" aria-hidden />
+          {t.badges.newBadge}
+          {position ? <span className="tabular font-normal text-ink-3">· {position}</span> : null}
+        </p>
+        <h2 id={titleId} className="mt-1.5 text-[28px] leading-tight font-semibold tracking-tight">
+          {text(badge).name}
+        </h2>
+
+        <div className="mt-7 grid w-full grid-cols-2 gap-2">
+          <Link
+            href="/achievements"
+            onClick={onClose}
+            className="flex min-h-12 items-center justify-center rounded-full border border-line bg-surface px-4 text-[15px] font-medium transition-colors hover:border-line-strong"
+          >
+            {t.badges.title}
+          </Link>
+          <button
+            ref={okRef}
+            type="button"
+            onClick={onClose}
+            className="min-h-12 rounded-full bg-accent px-4 text-[15px] font-semibold text-accent-ink transition-[transform,background-color] hover:bg-accent-hover active:scale-[0.98]"
+          >
+            {t.badges.great}
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
 }
