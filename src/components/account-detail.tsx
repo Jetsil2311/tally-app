@@ -20,6 +20,7 @@ import { inviteMember, leaveAccount, loadAuditLog, removeMember, updateMember } 
 import { useI18n } from "@/i18n/client";
 import { currencySymbol, formatMoney } from "@/lib/money";
 import { assignableRoles, canAddTransactions, canManage, isOwner } from "@/lib/permissions";
+import { formatAmountText, formatMoneyInput } from "@/lib/amount-input";
 import type {
   Account,
   ActionState,
@@ -341,7 +342,8 @@ function DependentSettings({
             inputMode="decimal"
             autoComplete="off"
             placeholder="0.00"
-            defaultValue={limit ?? ""}
+            defaultValue={formatAmountText(limit ?? "")}
+            onChange={formatMoneyInput}
             className="tabular pl-9"
             aria-invalid={Boolean(error)}
           />

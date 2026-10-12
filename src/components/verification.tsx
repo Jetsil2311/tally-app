@@ -9,6 +9,7 @@ import { toLocalInputValue } from "@/lib/dates";
 import { currencySymbol } from "@/lib/money";
 import { canVerify } from "@/lib/permissions";
 import type { Account, Transaction } from "@/lib/types";
+import { formatAmountText, formatMoneyInput } from "@/lib/amount-input";
 
 import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { useQuickAdd } from "./quick-add";
@@ -60,8 +61,8 @@ export function VerifyActions({ tx, onDone, compact }: { tx: Transaction; onDone
                 id={`verify-amount-${tx.id}`}
                 inputMode="decimal"
                 autoComplete="off"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                defaultValue={formatAmountText(tx.amount)}
+                onChange={(e) => setAmount(formatMoneyInput(e).raw)}
                 className="tabular pl-9"
               />
             </div>

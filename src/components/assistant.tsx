@@ -31,6 +31,7 @@ import { useI18n } from "@/i18n/client";
 import { currencySymbol } from "@/lib/money";
 import { stripEmoji } from "@/lib/text";
 import type { Account, ActionState, AiStatus, ChatAnswer, FinancialProfile, Insight, Verdict } from "@/lib/types";
+import { formatAmountText, formatMoneyInput } from "@/lib/amount-input";
 
 import { AskAiButton, useAi, type Turn } from "./ai-assist";
 import { AiMark, AiTag } from "./ai-mark";
@@ -753,8 +754,8 @@ function PlanCard({ profile }: { profile: FinancialProfile | null }) {
               inputMode="decimal"
               autoComplete="off"
               placeholder={profile.estimatedMonthlyIncome ?? "0.00"}
-              value={income}
-              onChange={(e) => setIncome(e.target.value)}
+              defaultValue={formatAmountText(profile?.monthlyIncome ?? "")}
+              onChange={(e) => setIncome(formatMoneyInput(e).raw)}
               className="tabular pl-9"
               aria-invalid={Boolean(errors.monthlyIncome)}
             />

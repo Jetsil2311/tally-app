@@ -31,6 +31,7 @@ import { categoryLabel, isSystemCategory } from "@/lib/insights";
 import { currencySymbol } from "@/lib/money";
 import { canAddTransactions, canDeleteTransaction, canEditTransaction, canReview, canVerify } from "@/lib/permissions";
 import type { Account, ActionState, Category, Transaction, TransactionType } from "@/lib/types";
+import { formatAmountText, formatMoneyInput } from "@/lib/amount-input";
 
 import { AccountIcon } from "./account-icon";
 import { AiMark } from "./ai-mark";
@@ -281,14 +282,15 @@ export function AmountInput({
             autoFocus
             required
             placeholder="0.00"
-            defaultValue={defaultValue}
+            // Shown as "1,234.50"; the server reads it either way
+            defaultValue={formatAmountText(defaultValue)}
             aria-invalid={Boolean(shownError)}
             aria-describedby={shownError ? "amount-message" : undefined}
             onChange={(e) => {
               setShownError(undefined);
-              onValueChange?.(e.target.value);
+              onValueChange?.(formatMoneyInput(e).raw);
             }}
-            className="tabular max-w-[9ch] bg-transparent text-center text-5xl font-semibold tracking-tight text-ink placeholder:text-ink-3/60 focus:outline-none"
+            className="tabular max-w-[min(11ch,100%)] bg-transparent text-center text-5xl font-semibold tracking-tight text-ink placeholder:text-ink-3/60 focus:outline-none"
             style={{ fieldSizing: "content", minWidth: "4ch" } as React.CSSProperties}
           />
         </div>

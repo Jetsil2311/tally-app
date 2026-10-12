@@ -10,6 +10,7 @@ import { useI18n } from "@/i18n/client";
 import { currencyName, currencySymbol } from "@/lib/money";
 import { canAddTransactions, canManage, isOwner } from "@/lib/permissions";
 import type { Account, AccountType, ActionState } from "@/lib/types";
+import { formatMoneyInput } from "@/lib/amount-input";
 
 import { AccountCard } from "./account-card";
 import { ACCOUNT_TYPES, AccountIcon } from "./account-icon";
@@ -351,7 +352,16 @@ export function AccountForm({ account, onDone }: { account?: Account; onDone: ()
         >
           <div className="relative">
             <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-2">{currencySymbol(currency, locale)}</span>
-            <Input id="account-opening" name="opening" inputMode="decimal" placeholder="0.00" className="pl-9 tabular" aria-invalid={Boolean(errors.opening)} />
+            <Input
+              id="account-opening"
+              name="opening"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0.00"
+              onChange={formatMoneyInput}
+              className="pl-9 tabular"
+              aria-invalid={Boolean(errors.opening)}
+            />
           </div>
         </Field>
       ) : null}
