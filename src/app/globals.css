@@ -626,3 +626,26 @@ dialog.sheet:not([open])::backdrop {
     border: 1px solid ButtonText;
   }
 }
+
+/* Landing hero: the cards around the phone drift a few pixels, each on its
+   own rhythm, so the scene feels alive. Still under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .float-a {
+    animation: float-y 6s ease-in-out infinite;
+  }
+  .float-b {
+    animation: float-y 7s ease-in-out 1.2s infinite;
+  }
+  .float-c {
+    animation: float-y 6.5s ease-in-out 0.6s infinite;
+  }
+}
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}

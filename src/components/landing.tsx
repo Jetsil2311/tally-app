@@ -2,45 +2,49 @@
 
 import {
   AppleLogo,
+  ArrowDown,
   ArrowRight,
-  ArrowsClockwise,
+  ArrowsLeftRight,
+  ArrowUp,
   BellRinging,
   Broom,
   CalendarBlank,
   Camera,
   CaretDown,
-  ChartPieSlice,
   ChartLineUp,
+  ChartPieSlice,
+  Check,
   CreditCard,
   CurrencyCircleDollar,
   DownloadSimple,
+  Globe,
   GooglePlayLogo,
-  Keyboard,
   LockKey,
   LockSimple,
   PiggyBank,
+  Repeat,
   Scales,
   ShieldCheck,
   SquaresFour,
   Tag,
+  UploadSimple,
   UserCircle,
   UsersThree,
   Wallet,
+  WarningCircle,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 
 import { useI18n } from "@/i18n/client";
-import type { Account, Badge, Budget, ChatAnswer, MemberRole, SavingsGoal } from "@/lib/types";
+import type { Badge, Budget, ChatAnswer, MemberRole, SavingsGoal } from "@/lib/types";
 
-import { AccountCard } from "./account-card";
 import { AiMark } from "./ai-mark";
 import { AnswerCard } from "./assistant";
 import { BadgeMedal } from "./badges";
 import { BudgetMeter } from "./budgets";
 import { GoalIcon, GoalMeter } from "./goals";
-import { CashFlowChart } from "./charts";
-import { AvatarStack, RoleBadge, RoleIcon, TxStatusPill } from "./people-ui";
-import { Money, useMoney } from "./preferences";
+import { Avatar, AvatarStack, RoleBadge, RoleIcon } from "./people-ui";
+import { Money } from "./preferences";
 import { buttonClass, cn } from "./ui";
 
 // The public landing page. Every product visual is a real Tally component
@@ -52,26 +56,11 @@ export const STORE_LINKS = { ios: "#", android: "#" } as const;
 
 type Example = { currency: string };
 
-function exampleAccount(id: string, name: string, type: Account["type"], balance: string, currency: string): Account {
-  return {
-    id,
-    name,
-    type,
-    isActive: true,
-    currency,
-    balance,
-    unverified: { income: "0", expense: "0", count: 0 },
-    projectedBalance: balance,
-    preferredBalance: null,
-    myRole: "owner",
-    memberCount: 1,
-  };
-}
 
 export function Landing({ currency, year }: Example & { year: number }) {
   const { t } = useI18n();
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh overflow-x-clip bg-bg">
       <a
         href="#main"
         className="sr-only z-60 rounded-full bg-ink px-4 py-2 text-surface focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -81,7 +70,7 @@ export function Landing({ currency, year }: Example & { year: number }) {
       <Nav />
       <main id="main">
         <Hero currency={currency} />
-        <Features currency={currency} />
+        <Highlights currency={currency} />
         <AiSection />
         <Sharing currency={currency} />
         <Privacy />
@@ -91,6 +80,533 @@ export function Landing({ currency, year }: Example & { year: number }) {
       <Footer year={year} />
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Hero: what it is in one line, then a picture of the app with what makes it
+// different floating around it (Buck, budget alerts, receipts, achievements).
+// The first 10 seconds should be enough to get it.
+// ---------------------------------------------------------------------------
+
+function Hero({ currency }: Example) {
+  const { t } = useI18n();
+  const l = t.landing;
+  const trust = [
+    { icon: LockKey, label: l.trust.noBank },
+    { icon: Globe, label: l.trust.anyCurrency },
+    { icon: UsersThree, label: l.trust.shared },
+  ];
+  return (
+    <section className="relative">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-24 -z-0 h-[640px] bg-[radial-gradient(50%_55%_at_75%_35%,var(--accent-soft),transparent_70%)]"
+      />
+      <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 pt-8 pb-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-6 lg:pt-14 lg:pb-20">
+        <div className="min-w-0 text-center lg:text-left">
+          <p className="rise ai-chip inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 text-sm font-medium">
+            <AiMark size={16} /> {l.heroEyebrow}
+          </p>
+          <h1
+            className="rise mt-5 text-[clamp(2.6rem,8vw,4.5rem)] leading-[1] font-semibold tracking-tighter"
+            style={{ "--i": 1 } as React.CSSProperties}
+          >
+            {l.heroTitle}
+          </h1>
+          <p
+            className="rise mx-auto mt-5 max-w-[34ch] text-xl leading-snug text-ink-2 lg:mx-0"
+            style={{ "--i": 2 } as React.CSSProperties}
+          >
+            {l.heroBody}
+          </p>
+          <div className="rise mt-8 flex flex-col items-center gap-4 lg:items-start" style={{ "--i": 3 } as React.CSSProperties}>
+            <Link href="/login" className={cn(buttonClass("primary", "lg"), "w-full sm:w-fit sm:px-8")}>
+              {l.getStarted} <ArrowRight size={18} weight="bold" />
+            </Link>
+            <StoreButtons className="w-full justify-center sm:w-auto lg:justify-start" />
+          </div>
+          <ul className="rise mt-8 flex flex-wrap justify-center gap-x-6 gap-y-3 text-[15px] text-ink-2 lg:justify-start" style={{ "--i": 4 } as React.CSSProperties}>
+            {trust.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-2">
+                <Icon size={18} weight="duotone" className="text-accent" aria-hidden /> {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <HeroScene currency={currency} />
+      </div>
+    </section>
+  );
+}
+
+// The phone shows Home as it really looks; the cards around it are moments
+// from the app, each one a differentiator. A picture, not a UI: inert.
+function HeroScene({ currency }: Example) {
+  const { t } = useI18n();
+  const l = t.landing;
+  const g = t.home.glance;
+  const income = 4120;
+  const spent = 1843.3;
+  const callout = "absolute z-10 rounded-2xl border border-line bg-surface p-3 shadow-float";
+  return (
+    <div className="rise relative min-w-0" style={{ "--i": 3 } as React.CSSProperties} role="img" aria-label={l.previewLabel}>
+      <div inert aria-hidden className="relative mx-auto h-[520px] w-full max-w-[30rem] sm:h-[570px]">
+        {/* The phone */}
+        {/* A light hairline on the bezel keeps the phone's edge visible on a dark page */}
+        <div className="absolute top-10 left-1/2 w-[16.5rem] -translate-x-1/2 rounded-[2.6rem] bg-[#16181e] p-2 shadow-float ring-1 ring-white/15 sm:w-[18.5rem]">
+          <div className="relative h-[465px] overflow-hidden rounded-[2.15rem] bg-bg px-3.5 pt-9 sm:h-[505px]">
+            <span className="absolute top-2.5 left-1/2 h-5 w-20 -translate-x-1/2 rounded-full bg-[#16181e]" />
+            <p className="px-1 text-[13px] text-ink-2">{l.phoneMonth}</p>
+            <p className="px-1 text-[19px] leading-tight font-semibold tracking-tight">{l.phoneGreeting}</p>
+
+            {/* Total, like Home's blue card */}
+            <div className="mt-3 rounded-[1.4rem] bg-[linear-gradient(150deg,#2b48e8_0%,#1e33b8_55%,#16257f_100%)] p-4 text-white">
+              <p className="text-[11px] font-medium text-white/75">{t.home.total}</p>
+              <Money value={8462.4} currency={currency} className="block text-[28px] leading-none font-semibold tracking-tighter" />
+              <div className="mt-3 flex gap-1.5">
+                <span className="flex items-center gap-1 rounded-full bg-white/15 py-1 pr-2.5 pl-1.5 text-[11px]">
+                  <Wallet size={12} weight="fill" /> <Money value={9074.49} currency={currency} />
+                </span>
+                <span className="flex items-center gap-1 rounded-full bg-white/15 py-1 pr-2.5 pl-1.5 text-[11px]">
+                  <CreditCard size={12} weight="fill" /> <Money value={-612.09} currency={currency} sign />
+                </span>
+              </div>
+            </div>
+
+            {/* This month, like Home's card */}
+            <div className="mt-3 rounded-[1.4rem] border border-line bg-surface p-4">
+              <p className="text-[11px] font-medium text-ink-2">{g.left}</p>
+              <Money value={income - spent} currency={currency} sign className="block text-[24px] leading-none font-semibold tracking-tight text-income" />
+              <div className="relative mt-3 h-2 overflow-hidden rounded-full bg-income">
+                <span className="absolute inset-y-0 left-0 rounded-full bg-chart-expense ring-2 ring-surface" style={{ width: `${(spent / income) * 100}%` }} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                <p>
+                  <span className="flex items-center gap-1 text-ink-2">
+                    <span className="flex size-3.5 items-center justify-center rounded-full bg-income text-surface">
+                      <ArrowDown size={8} weight="bold" />
+                    </span>
+                    {g.in}
+                  </span>
+                  <Money value={income} currency={currency} sign className="text-[14px] font-semibold" />
+                </p>
+                <p>
+                  <span className="flex items-center gap-1 text-ink-2">
+                    <span className="flex size-3.5 items-center justify-center rounded-full bg-chart-expense text-surface">
+                      <ArrowUp size={8} weight="bold" />
+                    </span>
+                    {g.out}
+                  </span>
+                  <Money value={-spent} currency={currency} sign className="text-[14px] font-semibold" />
+                </p>
+              </div>
+            </div>
+
+            {/* Quick actions, like Home's first row */}
+            <div className="mt-3 grid grid-cols-4 gap-1.5">
+              {[
+                { icon: ArrowUp, tone: "bg-accent text-accent-ink" },
+                { icon: ArrowDown, tone: "bg-income-soft text-income" },
+                { icon: ArrowsLeftRight, tone: "bg-surface-3 text-ink" },
+                { icon: null, tone: "ai-chip" },
+              ].map(({ icon: Icon, tone }, i) => (
+                <span key={i} className={cn("flex aspect-square items-center justify-center rounded-2xl", tone)}>
+                  {Icon ? <Icon size={18} weight="bold" /> : <AiMark size={20} />}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Buck: ask before you buy */}
+        <div className={cn(callout, "float-a top-0 left-0 w-[12.5rem] sm:w-[14rem]")}>
+          <p className="rounded-2xl rounded-br-md bg-ink px-3 py-2 text-[12px] leading-snug text-surface">{l.calloutAsk}</p>
+          <p className="mt-2 flex items-center gap-1.5 rounded-full bg-warn-soft px-2.5 py-1 text-[12px] font-semibold text-warn">
+            <AiMark size={14} /> {t.ai.verdict.tight.label}
+          </p>
+        </div>
+
+        {/* A budget speaks up */}
+        <div className={cn(callout, "float-b top-[44%] right-0 w-[11.5rem] border-expense/30 sm:w-[13rem]")}>
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-expense">
+            <WarningCircle size={16} weight="fill" /> {l.calloutBudget}
+          </p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">
+            <span className="block h-full w-full rounded-full bg-expense" />
+          </div>
+        </div>
+
+        {/* A receipt, read by Buck */}
+        <div className={cn(callout, "float-c bottom-24 left-0 flex w-[12rem] items-center gap-2.5 sm:bottom-28 sm:w-[13.5rem]")}>
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl ai-surface">
+            <Camera size={18} />
+          </span>
+          <span className="min-w-0">
+            <span className="flex items-center gap-1 text-[11px] text-ink-2">
+              <AiMark size={11} /> {l.calloutReceipt}
+            </span>
+            <span className="flex items-baseline gap-1.5">
+              <Money value={-248.5} currency={currency} sign className="text-[15px] font-semibold" />
+              <span className="truncate text-[12px] text-ink-2">{l.exampleFood}</span>
+            </span>
+          </span>
+        </div>
+
+        {/* An achievement pops up */}
+        <div className={cn(callout, "float-a right-2 bottom-4 flex items-center gap-2.5 pr-4 sm:right-4")}>
+          <BadgeMedal badge={EXAMPLE_BADGE} size="sm" />
+          <span>
+            <span className="block text-[11px] text-ink-2">{t.badges.newBadge}</span>
+            <span className="block text-[14px] font-semibold">{t.badges.catalog.first_deposit?.name}</span>
+          </span>
+        </div>
+      </div>
+      <p className="mt-2 text-center text-xs text-ink-3">{l.exampleData}</p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Why Tally: six differentiators, each a small picture with a few words
+// ---------------------------------------------------------------------------
+
+function Highlights({ currency }: Example) {
+  const { t } = useI18n();
+  const h = t.landing.highlights;
+  const tile = "reveal flex flex-col rounded-3xl border border-line bg-surface p-5";
+  const stage = "flex h-40 items-center justify-center overflow-hidden rounded-2xl bg-surface-2 px-4";
+  return (
+    <section id="features" className="scroll-mt-20 border-t border-line/70 bg-surface-2/40">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
+        <h2 className="reveal text-center text-[clamp(1.875rem,4.5vw,3rem)] leading-tight font-semibold tracking-tight">
+          {t.landing.highlightsTitle}
+        </h2>
+
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Ask Buck */}
+          <article className={tile}>
+            <div inert aria-hidden className={cn(stage, "ai-surface flex-col items-stretch justify-center gap-2")}>
+              <p className="self-end rounded-2xl rounded-br-md bg-ink px-3 py-2 text-[13px] text-surface">{t.landing.calloutAsk}</p>
+              <p className="flex items-center gap-2 self-start rounded-2xl rounded-bl-md bg-surface px-3 py-2 text-[13px] font-semibold">
+                <AiMark size={16} />
+                <span className="text-income">{t.ai.verdict.comfortable.label}</span>
+              </p>
+            </div>
+            <Highlight icon={<AiMark size={20} />} title={h.ask.title} line={h.ask.line} />
+          </article>
+
+          {/* Receipt -> entry */}
+          <article className={tile}>
+            <div inert aria-hidden className={cn(stage, "gap-3")}>
+              <div className="w-20 rotate-[-4deg] rounded-md bg-white px-2 pt-2 pb-3 text-[#12141a] shadow-soft">
+                <div className="mx-auto h-1.5 w-10 rounded bg-[#12141a]/70" />
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="mt-1.5 flex justify-between gap-1">
+                    <span className="h-1 w-8 rounded bg-[#12141a]/25" />
+                    <span className="h-1 w-3 rounded bg-[#12141a]/25" />
+                  </div>
+                ))}
+                <div className="mt-2 flex justify-between border-t border-dashed border-[#12141a]/30 pt-1.5">
+                  <span className="h-1.5 w-6 rounded bg-[#12141a]/60" />
+                  <span className="h-1.5 w-5 rounded bg-[#12141a]/60" />
+                </div>
+              </div>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full ai-surface">
+                <AiMark size={16} />
+              </span>
+              <div className="min-w-0 rounded-2xl bg-surface px-3 py-2.5 shadow-soft">
+                <p className="truncate text-[13px] font-medium">{t.landing.exampleFood}</p>
+                <Money value={-248.5} currency={currency} sign className="text-[15px] font-semibold" />
+              </div>
+            </div>
+            <Highlight icon={<Camera size={20} />} title={h.receipt.title} line={h.receipt.line} />
+          </article>
+
+          {/* Budgets that warn */}
+          <article className={tile}>
+            <div inert aria-hidden className={cn(stage, "flex-col items-stretch gap-3")}>
+              {[exampleBudget("food", t.landing.exampleFood, 3000, 1240, currency), exampleBudget("fun", t.landing.exampleFun, 1200, 1320, currency)].map((budget) => (
+                <div key={budget.id}>
+                  <p className="flex justify-between text-[13px]">
+                    <span className="font-medium">{budget.category}</span>
+                    {budget.overBudget ? <WarningCircle size={16} weight="fill" className="text-expense" /> : null}
+                  </p>
+                  <BudgetMeter budget={budget} className="mt-1.5" />
+                </div>
+              ))}
+            </div>
+            <Highlight icon={<ChartPieSlice size={20} />} title={h.budgets.title} line={h.budgets.line} />
+          </article>
+
+          {/* Shared and fair */}
+          <article className={tile}>
+            <div inert aria-hidden className={cn(stage, "gap-3")}>
+              <Avatar person={{ name: t.landing.exampleMembers[0], imageUrl: null }} size={44} />
+              <span className="flex flex-col items-center">
+                <Money value={350} currency={currency} className="text-[15px] font-semibold" />
+                <ArrowRight size={22} weight="bold" className="text-accent" />
+              </span>
+              <Avatar person={{ name: t.landing.exampleMembers[1], imageUrl: null }} size={44} />
+              <span className="ml-1 flex size-8 items-center justify-center rounded-full bg-income text-surface">
+                <Check size={16} weight="bold" />
+              </span>
+            </div>
+            <Highlight icon={<Scales size={20} />} title={h.together.title} line={h.together.line} />
+          </article>
+
+          {/* Cards and MSI */}
+          <article className={tile}>
+            <div inert aria-hidden className={cn(stage, "flex-col items-stretch gap-3")}>
+              <div className="flex items-center justify-between gap-2">
+                <Money value={1884.5} currency={currency} className="text-[19px] font-semibold tracking-tight" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-warn-soft px-2.5 py-1 text-[12px] font-medium text-warn">
+                  <CalendarBlank size={13} weight="fill" /> {t.landing.exampleDue}
+                </span>
+              </div>
+              <div>
+                <p className="flex justify-between text-[12px]">
+                  <span className="font-medium">{t.landing.exampleMsi}</span>
+                  <span className="tabular text-ink-2">4/12</span>
+                </p>
+                <div className="mt-1.5 flex gap-0.5">
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <span key={i} className={cn("h-2 flex-1 rounded-full", i < 4 ? "bg-income" : "bg-surface-3")} />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Highlight icon={<CreditCard size={20} />} title={h.cards.title} line={h.cards.line} />
+          </article>
+
+          {/* Goals and achievements */}
+          <article className={tile}>
+            <div inert aria-hidden className={cn(stage, "gap-4")}>
+              <div className="min-w-0 flex-1 rounded-2xl bg-surface p-3 shadow-soft">
+                <p className="flex items-center gap-2 text-[13px] font-medium">
+                  <GoalIcon icon="plane" />
+                  <span className="truncate">{t.landing.exampleGoal}</span>
+                </p>
+                <GoalMeter goal={exampleGoal(currency, t.landing.exampleGoal)} className="mt-3" />
+              </div>
+              <BadgeMedal badge={EXAMPLE_BADGE} />
+            </div>
+            <Highlight icon={<PiggyBank size={20} />} title={h.goals.title} line={h.goals.line} />
+          </article>
+        </div>
+
+        {/* Everything else, as chips */}
+        <ul className="reveal mx-auto mt-8 flex max-w-4xl flex-wrap justify-center gap-2">
+          {[
+            { icon: Repeat, label: t.landing.also.recurring },
+            { icon: ChartLineUp, label: t.landing.also.reports },
+            { icon: Tag, label: t.landing.also.categories },
+            { icon: CurrencyCircleDollar, label: t.landing.also.currencies },
+            { icon: UploadSimple, label: t.landing.also.import },
+            { icon: DownloadSimple, label: t.landing.also.export },
+            { icon: LockSimple, label: t.landing.also.private },
+            { icon: Broom, label: t.landing.also.chores },
+          ].map(({ icon: Icon, label }) => (
+            <li key={label} className="flex min-h-10 items-center gap-2 rounded-full border border-line bg-surface px-4 text-[15px]">
+              <Icon size={17} className="text-accent" aria-hidden /> {label}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Highlight({ icon, title, line }: { icon: React.ReactNode; title: string; line: string }) {
+  return (
+    <div className="mt-4 flex items-start gap-3 px-1">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent" aria-hidden>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-lg leading-snug font-semibold tracking-tight">{title}</h3>
+        <p className="mt-0.5 text-[15px] leading-snug text-ink-2">{line}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Buck: the real answer card, and four things he does
+// ---------------------------------------------------------------------------
+
+function AiSection() {
+  const { t } = useI18n();
+  const example: ChatAnswer = {
+    answer: t.landing.aiExampleAnswer,
+    verdict: "tight",
+    analysis: {
+      currency: "MXN",
+      price: "9120.00",
+      margin: "12400.00",
+      precio: "$9,120.00",
+      precioOriginal: "US$500.00",
+      tipoDeCambio: "1 USD = 18.2400 MXN",
+      margenDelMes: "$12,400.00",
+      quedariaDespues: "$3,280.00",
+    },
+    disclaimer: t.landing.aiExampleDisclaimer,
+    ai: { used: true, reason: null },
+  };
+  const icons = [Tag, Camera, BellRinging, ShieldCheck];
+  return (
+    <section id="assistant" className="scroll-mt-20">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-24">
+        <div className="reveal min-w-0">
+          <AiMark size={56} className="buck-hello" />
+          <h2 className="mt-4 text-[clamp(1.875rem,4.5vw,3rem)] leading-tight font-semibold tracking-tight">{t.landing.aiTitle}</h2>
+          <p className="mt-3 max-w-[40ch] text-lg leading-snug text-ink-2">{t.landing.aiBody}</p>
+          <ul className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {t.landing.aiPoints.map((point, i) => {
+              const Icon = icons[i] ?? Tag;
+              return (
+                <li key={point} className="flex items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3.5 text-[15px] font-medium">
+                  <Icon size={20} className="shrink-0 text-accent" aria-hidden /> {point}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* The question, then Tally's real answer card */}
+        <div inert className="reveal min-w-0 space-y-3" aria-hidden>
+          <div className="flex justify-end">
+            <p className="max-w-[85%] rounded-3xl rounded-br-lg bg-ink px-4 py-2.5 text-[15px] text-surface">{t.landing.aiExampleQuestion}</p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full ai-surface">
+              <AiMark size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <AnswerCard answer={example} />
+            </div>
+          </div>
+          <p className="pt-1 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sharing: one shared account, as the app shows it, and the roles as chips
+// ---------------------------------------------------------------------------
+
+const ROLES: MemberRole[] = ["owner", "admin", "member", "viewer", "dependent"];
+
+function Sharing({ currency }: Example) {
+  const { t } = useI18n();
+  const icons = [Broom, Scales, LockSimple, UserCircle];
+  const people = t.landing.exampleMembers.map((name) => ({ name, imageUrl: null }));
+  return (
+    <section id="sharing" className="scroll-mt-20 border-y border-line/70 bg-surface-2/40">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-24">
+        {/* A shared account: members, a chore, who owes whom */}
+        <div inert aria-hidden className="reveal order-2 min-w-0 rounded-3xl border border-line bg-surface p-5 shadow-float lg:order-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[17px] font-semibold">{t.landing.exampleAccount}</p>
+            <AvatarStack people={people} size={32} />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {[
+              { name: people[0].name, role: "owner" as const },
+              { name: people[1].name, role: "admin" as const },
+              { name: people[2].name, role: "dependent" as const },
+            ].map((row) => (
+              <span key={row.name} className="flex items-center gap-1.5 rounded-full bg-surface-2 py-1 pr-1 pl-1">
+                <Avatar person={{ name: row.name, imageUrl: null }} size={24} />
+                <span className="text-[13px] font-medium">{row.name.split(" ")[0]}</span>
+                <RoleBadge role={row.role} />
+              </span>
+            ))}
+          </div>
+          <div className="mt-4 space-y-2">
+            <p className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3 py-2.5">
+              <span className="flex size-8 items-center justify-center rounded-full bg-income text-surface">
+                <Check size={15} weight="bold" />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{t.landing.exampleChore}</span>
+              <Money value={50} currency={currency} sign className="font-semibold text-income" />
+            </p>
+            <p className="flex items-center gap-3 rounded-2xl bg-accent-soft px-3 py-2.5">
+              <Scales size={20} className="shrink-0 text-accent" />
+              <span className="min-w-0 flex-1 truncate text-[15px]">
+                {people[1].name.split(" ")[0]} → {people[0].name.split(" ")[0]}
+              </span>
+              <Money value={350} currency={currency} className="font-semibold" />
+            </p>
+            <p className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3 py-2.5">
+              <LockSimple size={20} weight="fill" className="shrink-0 text-ink-3" />
+              <span className="min-w-0 flex-1 truncate text-[15px] text-ink-2">{t.landing.examplePrivate}</span>
+              <Money value={-180} currency={currency} sign className="font-semibold" />
+            </p>
+          </div>
+          <p className="mt-3 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
+        </div>
+
+        <div className="reveal order-1 min-w-0 lg:order-2">
+          <h2 className="text-[clamp(1.875rem,4.5vw,3rem)] leading-tight font-semibold tracking-tight">{t.landing.sharingTitle}</h2>
+          <p className="mt-3 max-w-[40ch] text-lg leading-snug text-ink-2">{t.landing.sharingBody}</p>
+          <ul className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {t.landing.sharingPoints.map((point, i) => {
+              const Icon = icons[i] ?? UsersThree;
+              return (
+                <li key={point} className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-[15px] font-medium">
+                  <Icon size={20} className="shrink-0 text-accent" aria-hidden /> {point}
+                </li>
+              );
+            })}
+          </ul>
+          {/* The five roles, as the app labels them */}
+          <ul className="mt-6 flex flex-wrap gap-2" aria-label={t.landing.rolesLabel}>
+            {ROLES.map((role) => (
+              <li key={role} className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm" title={t.roles[role].hint}>
+                <RoleIcon role={role} size={15} /> {t.roles[role].label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Privacy: four promises, icon + a few words
+// ---------------------------------------------------------------------------
+
+function Privacy() {
+  const { t } = useI18n();
+  const icons = [LockKey, ShieldCheck, AiMarkIcon, DownloadSimple];
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
+      <h2 className="reveal text-center text-[clamp(1.875rem,4.5vw,3rem)] leading-tight font-semibold tracking-tight">{t.landing.privacyTitle}</h2>
+      <ul className="reveal mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {t.landing.privacyPoints.map((point, i) => {
+          const Icon = icons[i] ?? LockKey;
+          return (
+            <li key={point.title} className="rounded-3xl border border-line bg-surface p-5">
+              <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent" aria-hidden>
+                <Icon size={22} />
+              </span>
+              <h3 className="mt-4 text-[17px] leading-snug font-semibold">{point.title}</h3>
+              <p className="mt-1 text-[15px] leading-snug text-ink-2">{point.body}</p>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+// The AI mark, sized like the other icons in the privacy grid
+function AiMarkIcon({ size = 20 }: { size?: number }) {
+  return <AiMark size={size} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,219 +691,6 @@ export function StoreButtons({ className }: { className?: string }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Hero: asymmetric split, real components on the right
-// ---------------------------------------------------------------------------
-
-const POINTS = [
-  { key: "2026-05", income: 412000, expense: 298550 },
-  { key: "2026-06", income: 412000, expense: 351210 },
-  { key: "2026-07", income: 468000, expense: 302940 },
-  { key: "2026-08", income: 412000, expense: 389120 },
-  { key: "2026-09", income: 437500, expense: 276880 },
-  { key: "2026-10", income: 412000, expense: 184330 },
-] as const;
-
-function Hero({ currency }: Example) {
-  const { t } = useI18n();
-  return (
-    <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 pt-10 pb-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:pt-16 lg:pb-24">
-      <div className="min-w-0">
-        <h1 className="rise text-[clamp(2.5rem,7vw,4rem)] leading-[1.02] font-semibold tracking-tighter">{t.landing.heroTitle}</h1>
-        <p className="rise mt-5 max-w-[46ch] text-lg leading-relaxed text-ink-2" style={{ "--i": 1 } as React.CSSProperties}>
-          {t.landing.heroBody}
-        </p>
-        <div className="rise mt-8 flex flex-col gap-4" style={{ "--i": 2 } as React.CSSProperties}>
-          <Link href="/login" className={cn(buttonClass("primary", "lg"), "w-full sm:w-fit")}>
-            {t.landing.getStarted} <ArrowRight size={18} weight="bold" />
-          </Link>
-          <StoreButtons />
-        </div>
-      </div>
-
-      {/* Real components, example data. Inert: it's a picture, not a UI */}
-      <div className="rise relative min-w-0" style={{ "--i": 3 } as React.CSSProperties} aria-label={t.landing.previewLabel} role="img">
-        <div inert className="relative">
-          <span aria-hidden className="absolute -inset-6 -z-10 rounded-[40px] bg-[radial-gradient(60%_60%_at_70%_30%,var(--accent-soft),transparent)]" />
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <AccountCard
-              className="-rotate-2"
-              account={exampleAccount("a", t.login.exampleAccounts.debit, "debit", "2841.37", currency)}
-            />
-            <AccountCard
-              className="translate-y-6 rotate-2"
-              account={exampleAccount("b", t.login.exampleAccounts.credit, "creditCard", "-612.09", currency)}
-            />
-          </div>
-          <div className="relative mt-10 rounded-3xl border border-line bg-surface p-5 shadow-float sm:p-6">
-            <p className="mb-7 text-[15px] font-semibold">{t.home.cashFlow}</p>
-            <CashFlowChart points={[...POINTS]} height={140} highlight="2026-10" />
-          </div>
-          <p className="absolute -bottom-5 left-4 inline-flex items-center gap-2 rounded-full ai-surface px-3.5 py-2 text-sm font-medium shadow-soft sm:left-8">
-            <AiMark size={16} /> {t.ai.verdict.tight.label}
-          </p>
-        </div>
-        <p className="mt-10 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Features: asymmetric bento (8 cells: 4+2 / 2+2+2 / 2+2+2)
-// ---------------------------------------------------------------------------
-
-function Features({ currency }: Example) {
-  const { t } = useI18n();
-  const f = t.landing.features;
-  return (
-    <section id="features" className="scroll-mt-20 border-t border-line/70 bg-surface-2/40">
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-        <div className="reveal max-w-[60ch]">
-          <h2 className="text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold tracking-tight">{t.landing.featuresTitle}</h2>
-          <p className="mt-4 text-lg leading-relaxed text-ink-2">{t.landing.featuresBody}</p>
-        </div>
-
-        <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-6">
-          {/* Accounts: the wide cell, with real account cards */}
-          <article className="reveal flex flex-col overflow-hidden rounded-3xl border border-line bg-surface p-6 md:col-span-4">
-            <Wallet size={26} className="text-accent" aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.accounts.title}</h3>
-            <p className="mt-2 max-w-[48ch] text-ink-2">{f.accounts.body}</p>
-            <div inert className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <AccountCard account={exampleAccount("c", t.accountTypes.cash.label, "cash", "640.00", currency)} />
-              <AccountCard account={exampleAccount("d", t.login.exampleAccounts.debit, "debit", "2841.37", currency)} />
-              <AccountCard account={exampleAccount("e", t.login.exampleAccounts.credit, "creditCard", "-612.09", "USD")} />
-            </div>
-          </article>
-
-          {/* Capture: accent-tinted cell with the keyboard shortcut */}
-          <article className="reveal flex flex-col rounded-3xl bg-accent p-6 text-accent-ink md:col-span-2">
-            <Keyboard size={26} aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.capture.title}</h3>
-            <p className="mt-2 opacity-85">{f.capture.body}</p>
-            <p className="mt-auto flex items-center gap-3 pt-8 text-sm">
-              <kbd className="flex size-12 items-center justify-center rounded-2xl bg-accent-ink/15 text-xl font-semibold">N</kbd>
-              {t.landing.keyHint}
-            </p>
-          </article>
-
-          {/* Recurring + verification, with real status pills */}
-          <article className="reveal flex flex-col rounded-3xl border border-line bg-surface p-6 md:col-span-2">
-            <ArrowsClockwise size={26} className="text-accent" aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.recurring.title}</h3>
-            <p className="mt-2 text-ink-2">{f.recurring.body}</p>
-            <ul inert className="mt-6 space-y-2 text-[15px]">
-              {[
-                { name: t.landing.exampleRent, amount: -8500, status: "unverified" as const },
-                { name: t.landing.exampleStreaming, amount: -219, status: "approved" as const },
-                { name: t.landing.exampleSalary, amount: 41200, status: "unverified" as const },
-              ].map((row) => (
-                <li key={row.name} className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3 py-2.5">
-                  <span className="min-w-0 flex-1 truncate font-medium">{row.name}</span>
-                  <TxStatusPill status={row.status} />
-                  <Money value={row.amount} currency={currency} sign className={cn("font-semibold", row.amount > 0 && "text-income")} />
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          {/* Currencies: a conversion, as Tally shows it */}
-          <article className="reveal flex flex-col rounded-3xl border border-line bg-surface p-6 md:col-span-2">
-            <CurrencyCircleDollar size={26} className="text-accent" aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.currency.title}</h3>
-            <p className="mt-2 text-ink-2">{f.currency.body}</p>
-            <div inert className="mt-auto pt-6">
-              <div className="rounded-3xl bg-expense-soft px-4 py-5 text-center">
-                <Money value={-10} currency="USD" sign className="text-3xl font-semibold tracking-tight" />
-                <p className="mt-1 text-sm text-ink-2">
-                  ≈ <Money value={182.4} currency="MXN" className="font-medium text-ink" /> · 1 USD = 18.24 MXN
-                </p>
-              </div>
-            </div>
-          </article>
-
-          {/* Insights: a tinted cell with the chart */}
-          <article className="reveal flex flex-col rounded-3xl bg-income-soft p-6 md:col-span-2">
-            <ChartLineUp size={26} className="text-income" aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.insights.title}</h3>
-            <p className="mt-2 mb-6 text-ink-2">{f.insights.body}</p>
-            <div inert className="mt-auto rounded-2xl bg-surface p-4 pt-8">
-              <CashFlowChart points={[...POINTS]} height={110} highlight="2026-10" />
-            </div>
-          </article>
-
-          {/* Plan: budgets, goals and cards, each with the real meters */}
-          <article className="reveal flex flex-col rounded-3xl border border-line bg-surface p-6 md:col-span-2">
-            <ChartPieSlice size={26} className="text-accent" aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.budgets.title}</h3>
-            <p className="mt-2 text-ink-2">{f.budgets.body}</p>
-            <ul inert className="mt-auto space-y-3 pt-6 text-[15px]">
-              {[
-                exampleBudget("food", t.landing.exampleFood, 3000, 1240, currency),
-                exampleBudget("fun", t.landing.exampleFun, 1200, 1050, currency),
-                exampleBudget("ride", t.landing.exampleRides, 800, 920, currency),
-              ].map((budget) => (
-                <li key={budget.id}>
-                  <p className="flex justify-between gap-3">
-                    <span className="truncate font-medium">{budget.category}</span>
-                    <Money value={budget.remaining} currency={currency} className={cn("text-sm", budget.overBudget ? "font-semibold text-expense" : "text-ink-2")} />
-                  </p>
-                  <BudgetMeter budget={budget} className="mt-1.5" />
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article className="reveal flex flex-col rounded-3xl bg-accent-soft p-6 md:col-span-2">
-            <PiggyBank size={26} className="text-accent" aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.goals.title}</h3>
-            <p className="mt-2 text-ink-2">{f.goals.body}</p>
-            <div inert className="mt-auto flex items-center gap-4 rounded-2xl bg-surface p-4 pt-4" aria-hidden>
-              <GoalIcon icon="plane" />
-              <div className="min-w-0 flex-1">
-                <p className="flex justify-between gap-2 text-[15px]">
-                  <span className="truncate font-medium">{t.landing.exampleGoal}</span>
-                  <span className="tabular text-ink-2">68%</span>
-                </p>
-                <GoalMeter goal={exampleGoal(currency, t.landing.exampleGoal)} className="mt-2" />
-              </div>
-              <BadgeMedal badge={EXAMPLE_BADGE} size="sm" />
-            </div>
-          </article>
-
-          <article className="reveal flex flex-col rounded-3xl border border-line bg-surface p-6 md:col-span-2">
-            <CreditCard size={26} className="text-accent" aria-hidden />
-            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.cards.title}</h3>
-            <p className="mt-2 text-ink-2">{f.cards.body}</p>
-            <div inert className="mt-auto space-y-4 pt-6" aria-hidden>
-              <div className="flex items-center justify-between gap-3">
-                <Money value={1884.5} currency={currency} className="text-2xl font-semibold tracking-tight" />
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn">
-                  <CalendarBlank size={15} weight="fill" /> {t.landing.exampleDue}
-                </span>
-              </div>
-              <div>
-                <p className="flex justify-between text-sm">
-                  <span className="font-medium">{t.landing.exampleMsi}</span>
-                  <span className="tabular text-ink-2">
-                    <span className="font-semibold text-ink">4</span>/12
-                  </span>
-                </p>
-                <div className="mt-2 flex gap-0.5">
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <span key={i} className={cn("h-2 flex-1 rounded-full", i < 4 ? "bg-income" : "bg-surface-3")} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // Example data for the Plan cells
 function exampleBudget(id: string, category: string, limit: number, spent: number, currency: string): Budget {
   return {
@@ -430,203 +733,6 @@ const EXAMPLE_BADGE: Badge = {
   earned: true,
   earnedAt: null,
 };
-
-// ---------------------------------------------------------------------------
-// AI: the real answer card on the left, the story on the right
-// ---------------------------------------------------------------------------
-
-function AiSection() {
-  const { t } = useI18n();
-  const example: ChatAnswer = {
-    answer: t.landing.aiExampleAnswer,
-    verdict: "tight",
-    analysis: {
-      currency: "MXN",
-      price: "9120.00",
-      margin: "12400.00",
-      precio: "$9,120.00",
-      precioOriginal: "US$500.00",
-      tipoDeCambio: "1 USD = 18.2400 MXN",
-      margenDelMes: "$12,400.00",
-      quedariaDespues: "$3,280.00",
-    },
-    disclaimer: t.landing.aiExampleDisclaimer,
-    ai: { used: true, reason: null },
-  };
-  const icons = [Tag, Camera, BellRinging, ShieldCheck];
-  return (
-    <section id="assistant" className="scroll-mt-20">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-28">
-        {/* Example conversation: the question, then Tally's real answer card */}
-        <div inert className="reveal order-2 min-w-0 space-y-3 lg:order-1" aria-hidden>
-          <div className="flex justify-end">
-            <p className="max-w-[85%] rounded-3xl rounded-br-lg bg-ink px-4 py-2.5 text-[15px] text-surface">{t.landing.aiExampleQuestion}</p>
-          </div>
-          <div className="flex items-start gap-2.5">
-            <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full ai-surface">
-              <AiMark size={16} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <AnswerCard answer={example} />
-            </div>
-          </div>
-          <p className="pt-1 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
-        </div>
-
-        <div className="reveal order-1 min-w-0 lg:order-2">
-          <p className="inline-flex items-center gap-2 text-sm font-semibold">
-            <AiMark size={18} />
-            <span className="ai-text">{t.landing.aiEyebrow}</span>
-          </p>
-          <h2 className="mt-3 text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold tracking-tight">{t.landing.aiTitle}</h2>
-          <p className="mt-4 max-w-[52ch] text-lg leading-relaxed text-ink-2">{t.landing.aiBody}</p>
-          <dl className="mt-8 space-y-6">
-            {t.landing.aiPoints.map((point, i) => {
-              const Icon = icons[i] ?? Tag;
-              return (
-                <div key={point.title} className="flex gap-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-surface-2 text-ink" aria-hidden>
-                    <Icon size={20} />
-                  </span>
-                  <div>
-                    <dt className="font-semibold">{point.title}</dt>
-                    <dd className="mt-1 text-ink-2">{point.body}</dd>
-                  </div>
-                </div>
-              );
-            })}
-          </dl>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sharing: centered header, the role ladder, then the three family points
-// ---------------------------------------------------------------------------
-
-const ROLES: MemberRole[] = ["owner", "admin", "member", "viewer", "dependent"];
-
-function Sharing({ currency }: Example) {
-  const { t } = useI18n();
-  const icons = [Broom, Scales, LockSimple, UserCircle, ArrowsClockwise];
-  const people = t.landing.exampleMembers.map((name) => ({ name, imageUrl: null }));
-  const format = useMoney();
-  return (
-    <section id="sharing" className="scroll-mt-20 border-y border-line/70 bg-surface-2/40">
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-        <div className="reveal mx-auto max-w-[60ch] text-center">
-          <h2 className="text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold tracking-tight">{t.landing.sharingTitle}</h2>
-          <p className="mt-4 text-lg leading-relaxed text-ink-2">{t.landing.sharingBody}</p>
-        </div>
-
-        {/* The five roles, from full control to view only. Scrolls sideways on phones. */}
-        <div className="reveal no-scrollbar -mx-4 mt-12 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0">
-          {ROLES.map((role) => (
-            <article key={role} className="w-64 shrink-0 snap-start rounded-3xl border border-line bg-surface p-5 lg:w-auto">
-              <span className="flex size-11 items-center justify-center rounded-full bg-accent-soft text-accent" aria-hidden>
-                <RoleIcon role={role} size={20} />
-              </span>
-              <h3 className="mt-4 font-semibold">{t.roles[role].label}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-ink-2">{t.roles[role].hint}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-12 grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <ul className="reveal space-y-6">
-            {t.landing.sharingPoints.map((point, i) => {
-              const Icon = icons[i] ?? UsersThree;
-              return (
-                <li key={point.title} className="flex gap-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-surface text-ink" aria-hidden>
-                    <Icon size={20} />
-                  </span>
-                  <div>
-                    <h3 className="font-semibold">{point.title}</h3>
-                    <p className="mt-1 text-ink-2">{point.body}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* A shared account's members, as the account page shows them */}
-          <div inert className="reveal rounded-3xl border border-line bg-surface p-5" aria-hidden>
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-semibold">{t.landing.exampleAccount}</p>
-              <AvatarStack people={people} size={32} />
-            </div>
-            <ul className="mt-4 divide-y divide-line">
-              {[
-                { name: people[0].name, role: "owner" as const, note: null },
-                { name: people[1].name, role: "admin" as const, note: null },
-                { name: people[2].name, role: "dependent" as const, note: t.members.limitSummary(format(1500, { currency })) },
-              ].map((row) => (
-                <li key={row.name} className="flex items-center gap-3 py-3">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{row.name}</span>
-                    {row.note ? <span className="block text-sm text-ink-2">{row.note}</span> : null}
-                  </span>
-                  <RoleBadge role={row.role} />
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 flex items-center gap-2 rounded-2xl bg-warn-soft px-3 py-2.5 text-sm">
-              <TxStatusPill status="pending" className="bg-surface" />
-              <span className="min-w-0 truncate text-ink-2">{people[2].name}</span>
-              <Money value={-420} currency={currency} sign className="ml-auto font-semibold" />
-            </p>
-            {/* Who owes whom, settled in one line */}
-            <p className="mt-2 flex items-center gap-2 rounded-2xl bg-accent-soft px-3 py-2.5 text-sm">
-              <Scales size={18} className="shrink-0 text-accent" />
-              <span className="min-w-0 truncate">
-                {people[1].name.split(" ")[0]} → {people[0].name.split(" ")[0]}
-              </span>
-              <Money value={350} currency={currency} className="ml-auto font-semibold" />
-            </p>
-            <p className="mt-3 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Privacy: a plain 2x2 grid, no cards
-// ---------------------------------------------------------------------------
-
-function Privacy() {
-  const { t } = useI18n();
-  const icons = [LockKey, ShieldCheck, AiMarkIcon, DownloadSimple];
-  return (
-    <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-      <h2 className="reveal max-w-[24ch] text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold tracking-tight">
-        {t.landing.privacyTitle}
-      </h2>
-      <dl className="reveal mt-10 grid grid-cols-1 gap-x-12 gap-y-8 sm:grid-cols-2">
-        {t.landing.privacyPoints.map((point, i) => {
-          const Icon = icons[i] ?? LockKey;
-          return (
-            <div key={point.title} className="border-t border-line pt-6">
-              <dt className="flex items-center gap-2.5 font-semibold">
-                <Icon size={20} aria-hidden /> {point.title}
-              </dt>
-              <dd className="mt-2 max-w-[48ch] text-ink-2">{point.body}</dd>
-            </div>
-          );
-        })}
-      </dl>
-    </section>
-  );
-}
-
-// The AI mark, sized like the other icons in the privacy grid
-function AiMarkIcon({ size = 20 }: { size?: number }) {
-  return <AiMark size={size} />;
-}
 
 // ---------------------------------------------------------------------------
 // Download: the one full-colour band, same brand gradient as the app's hero card
