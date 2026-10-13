@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { fromLocalInputValue } from "@/lib/dates";
 import { TRANSFER_CATEGORY, isTransferCategory } from "@/lib/insights";
 import { getPreferences } from "@/lib/session";
-import type { ActionState, Category, Transaction, TransactionType } from "@/lib/types";
+import type { ActionState, Budget, Category, Transaction, TransactionType } from "@/lib/types";
 
 import { parseAmount, text, toActionState } from "./helpers";
 
@@ -24,6 +24,16 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
   // rate it was recorded with (fixing a 10 USD charge to 12 USD)
   const currency = text(formData, "currency");
   const originalCurrency = text(formData, "originalCurrency");
+  // Tags come as one comma-separated field from the chip input
+  const tags = text(formData, "tags")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+  const notes = text(formData, "notes");
+  // Only sent where it means something (a shared account), so "off" is
+  // only written when the switch was there
+  const privacy = formData.has("isPrivate") ? text(formData, "isPrivate") === "on" : undefined;
   const { timeZone } = await getPreferences();
   const date = fromLocalInputValue(text(formData, "date"), timeZone);
   const { t } = await getI18n();
@@ -45,18 +55,22 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
     categoryId: categoryId || null,
     description: description || null,
     ...(currency && (!id || currency !== originalCurrency) ? { currency } : {}),
+    tags,
+    notes: notes || null,
+    ...(privacy !== undefined ? { isPrivate: privacy } : {}),
   };
 
   try {
     const saved = id
-      ? await api<Transaction & { approvalReason?: ApprovalReason }>(`/transactions/${id}`, { method: "PATCH", body })
-      : await api<Transaction & { approvalReason?: ApprovalReason }>("/transactions", {
+      ? await api<Transaction & { approvalReason?: ApprovalReason; nudges?: Budget[] }>(`/transactions/${id}`, { method: "PATCH", body })
+      : await api<Transaction & { approvalReason?: ApprovalReason; nudges?: Budget[] }>("/transactions", {
           method: "POST",
           // POST doesn't accept nulls: leave empty fields out
           body: {
             ...body,
             categoryId: body.categoryId ?? undefined,
             description: body.description ?? undefined,
+            notes: body.notes ?? undefined,
             source: "manual",
           },
         });
@@ -73,7 +87,10 @@ export async function saveTransaction(_prev: ActionState, formData: FormData): P
           : type === "income"
             ? t.transactions.incomeAdded
             : t.transactions.expenseAdded;
-    return { ok: true, message, data: { id: saved.id, status: saved.status } };
+    // Budgets this expense just pushed over ("Proactive Buck"): the sheet
+    // shows them right away
+    const over = (saved.nudges ?? []).map((budget) => budget.category ?? t.budgets.overall);
+    return { ok: true, message, data: { id: saved.id, status: saved.status, nudges: over.join("\u0000") } };
   } catch (error) {
     return toActionState(error);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowCounterClockwise, Archive, PencilSimple, Plus, Receipt, UsersThree, Wallet } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Archive, CreditCard, PencilSimple, Plus, Receipt, UsersThree, Wallet } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, use, useActionState, useState, useTransition } from "react";
@@ -10,7 +10,7 @@ import { useI18n } from "@/i18n/client";
 import { currencyName, currencySymbol } from "@/lib/money";
 import { canAddTransactions, canManage, isOwner } from "@/lib/permissions";
 import type { Account, AccountType, ActionState } from "@/lib/types";
-import { formatMoneyInput } from "@/lib/amount-input";
+import { formatAmountText, formatMoneyInput } from "@/lib/amount-input";
 
 import { AccountCard } from "./account-card";
 import { ACCOUNT_TYPES, AccountIcon } from "./account-icon";
@@ -341,6 +341,53 @@ export function AccountForm({ account, onDone }: { account?: Account; onDone: ()
           ))}
         </Select>
       </Field>
+
+      {/* Cards: limit and billing cycle, so Tally can say what to pay and by when */}
+      {type === "creditCard" ? (
+        <fieldset className="grid grid-cols-1 gap-4 rounded-3xl border border-line p-4 sm:grid-cols-3">
+          <legend className="flex items-center gap-1.5 px-1 text-sm font-medium">
+            <CreditCard size={16} aria-hidden /> {t.accounts.cycle.title}
+          </legend>
+          <Field label={t.accounts.cycle.limit} htmlFor="account-limit" optional error={errors.creditLimit}>
+            <div className="relative">
+              <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-2">{currencySymbol(currency, locale)}</span>
+              <Input
+                id="account-limit"
+                name="creditLimit"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0.00"
+                defaultValue={formatAmountText(account?.creditLimit ?? "")}
+                onChange={formatMoneyInput}
+                className="pl-9 tabular"
+                aria-invalid={Boolean(errors.creditLimit)}
+              />
+            </div>
+          </Field>
+          <Field label={t.accounts.cycle.cutoff} htmlFor="account-cutoff" optional error={errors.statementDay}>
+            <Select id="account-cutoff" name="statementDay" defaultValue={account?.statementDay ?? ""}>
+              <option value="">–</option>
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={t.accounts.cycle.daysToPay} htmlFor="account-due" optional>
+            <Input
+              id="account-due"
+              name="paymentDueDays"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={60}
+              defaultValue={account?.paymentDueDays ?? 20}
+              className="tabular"
+            />
+          </Field>
+        </fieldset>
+      ) : null}
 
       {!account ? (
         <Field

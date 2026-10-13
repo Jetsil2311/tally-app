@@ -59,7 +59,13 @@ export function AccountDetail({
   profiles,
   now,
   movements,
+  side,
+  main,
 }: {
+  // Streamed cards that only apply to some accounts (card cycle, who owes
+  // whom, chores), rendered by the page
+  side?: React.ReactNode;
+  main?: React.ReactNode;
   // The latest entries on this account
   movements: TransactionPage;
   // Request time from the server, for "2 hours ago" without a clock read in render
@@ -134,6 +140,7 @@ export function AccountDetail({
           <div className="rise" style={{ "--i": 1 } as React.CSSProperties}>
             <AccountCard account={account} />
           </div>
+          {side}
           <Card className="rise p-3 sm:p-4" style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="members-title">
             <div className="px-3 pt-2">
               <SectionTitle
@@ -165,6 +172,7 @@ export function AccountDetail({
         </div>
 
         <div className="flex flex-col gap-5 lg:col-span-7">
+          {main}
           <Movements account={account} page={movements} />
           {audit ? <History accountId={account.id} first={audit} members={members} now={now} /> : null}
         </div>

@@ -10,15 +10,20 @@ import type {
   ApiKey,
   AuditPage,
   Badge,
+  Budget,
+  CardCycle,
+  Chore,
   Category,
   Connection,
   FinancialProfile,
   Insight,
+  Installments,
   Invitation,
   ManagedProfile,
   Member,
   RecurringPayment,
   SavingsGoal,
+  Settlement,
   Summary,
   Transaction,
   TransactionPage,
@@ -63,6 +68,8 @@ export interface TransactionFilters {
   categoryId?: string;
   createdById?: string;
   search?: string;
+  // Comma-separated; entries must have all of them
+  tags?: string;
 }
 
 export async function getTransactionPage(filters: TransactionFilters & { limit?: number; cursor?: string }) {
@@ -277,3 +284,25 @@ export const getToReview = cache(async () => {
 export const getBadges = cache(async () => optional<Badge[]>(api<Badge[]>("/badges"), []));
 
 export const getGoals = cache(async () => optional<SavingsGoal[]>(api<SavingsGoal[]>("/goals"), []));
+
+// Budgets, card cycles, installment plans, settlements and chores: optional
+// readers, so a missing or failing one never takes a page down
+export const getBudgets = cache(async (accountId?: string) =>
+  optional<Budget[]>(api<Budget[]>("/budgets", { query: { accountId } }), []),
+);
+
+export const getCardCycle = cache(async (accountId: string) =>
+  optional<CardCycle | null>(api<CardCycle>(`/accounts/${accountId}/cycle`), null),
+);
+
+export const getInstallments = cache(async (months = 12) =>
+  optional<Installments | null>(api<Installments>("/recurring-payments/installments", { query: { months } }), null),
+);
+
+export const getSettlement = cache(async (accountId: string, from?: string, to?: string) =>
+  optional<Settlement | null>(api<Settlement>(`/accounts/${accountId}/settlement`, { query: { from, to } }), null),
+);
+
+export const getChores = cache(async (accountId: string) =>
+  optional<Chore[]>(api<Chore[]>(`/accounts/${accountId}/chores`), []),
+);

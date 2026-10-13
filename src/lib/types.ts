@@ -62,6 +62,10 @@ export interface Account {
   // Your role on it; accounts are shared between members
   myRole: MemberRole;
   memberCount: number;
+  // Credit cards with a billing cycle: cutoff day, days to pay after it, limit
+  statementDay?: number | null;
+  paymentDueDays?: number | null;
+  creditLimit?: string | null;
 }
 
 export interface Member {
@@ -160,6 +164,10 @@ export interface Transaction {
   merchant?: string | null;
   // How the category was set; null when there was nothing to categorize
   categoryStatus?: CategoryStatus | null;
+  tags?: string[];
+  notes?: string | null;
+  // Only its creator sees it; still counts in the balance, not in settlements
+  isPrivate?: boolean;
 }
 
 // manual: a person; rule: a saved merchant rule; ai: the AI, confidently;
@@ -302,6 +310,8 @@ export interface RecurringPayment {
   category: { id: string; name: string } | null;
   createdBy: { id: string; name: string | null } | null;
   next: Forecast | null;
+  // Set for an MSI / installment plan: that many monthly charges in total
+  totalInstallments?: number | null;
 }
 
 export interface Occurrence extends Forecast {
@@ -376,4 +386,84 @@ export interface GoalContribution {
   amount: string;
   note: string | null;
   createdAt: string;
+}
+
+// A monthly spending limit, per category or overall (categoryId null);
+// on an account (shared) or personal. Figures are for this month.
+export interface Budget {
+  id: string;
+  accountId: string | null;
+  categoryId: string | null;
+  category: string | null;
+  currency: string;
+  rollover: boolean;
+  // What was set; `limit` adds last month's leftover when rollover is on
+  amount: string;
+  limit: string;
+  spent: string;
+  remaining: string;
+  progress: number;
+  overBudget: boolean;
+}
+
+export interface CardCycle {
+  statementDay: number;
+  paymentDueDays: number;
+  creditLimit: string | null;
+  currency: string;
+  cycleStart: string;
+  cycleEnd: string;
+  paymentDueDate: string;
+  // Negative once the due date has passed
+  daysUntilDue: number;
+  spentThisCycle: string;
+  paidThisCycle: string;
+  balanceToPay: string;
+}
+
+export interface Installments {
+  months: { month: string; committed: Record<string, string> }[];
+  plans: {
+    id: string;
+    name: string;
+    accountId: string;
+    amount: string;
+    currency: string;
+    totalInstallments: number;
+    nextDueDate: string;
+    endDate: string | null;
+  }[];
+}
+
+export interface Settlement {
+  currency: string;
+  totalShared: string;
+  fairShare: string;
+  entries: { userId: string; name: string | null; paid: string; balance: string }[];
+  transfers: { fromUserId: string; fromName: string | null; toUserId: string; toName: string | null; amount: string }[];
+}
+
+export type ChoreStatus = "pending" | "done" | "approved" | "rejected";
+
+export interface Chore {
+  id: string;
+  accountId: string;
+  title: string;
+  reward: string;
+  status: ChoreStatus;
+  assignedToId: string;
+  assignedTo: { id: string; name: string | null };
+  createdBy: { id: string; name: string | null } | null;
+  completedAt: string | null;
+  reviewedAt: string | null;
+  transactionId: string | null;
+  createdAt: string;
+}
+
+export interface ReceiptDraft {
+  merchant: string | null;
+  amount: string | number | null;
+  date: string | null;
+  categoryHint: string | null;
+  confidence: "high" | "medium" | "low";
 }

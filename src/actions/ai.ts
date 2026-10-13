@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 
 import { getI18n } from "@/i18n/server";
 import { api } from "@/lib/api";
-import type { ActionState, Insight } from "@/lib/types";
+import type { ActionState, Insight, ReceiptDraft } from "@/lib/types";
 
 import { text, toActionState } from "./helpers";
 
@@ -95,5 +95,17 @@ export async function categorizePending(): Promise<ActionState> {
     return { ok: true, message: t.ai.categorizedSome(categorized, attempted) };
   } catch (error) {
     return toActionState(error);
+  }
+}
+
+// A receipt photo -> a draft entry (nothing is saved). `image` is base64
+// without the data: prefix; the browser shrinks the photo first.
+export async function scanReceipt(image: string, mimeType: string): Promise<{ draft?: ReceiptDraft; error?: string }> {
+  try {
+    const draft = await api<ReceiptDraft>("/ai/receipt-scan", { method: "POST", body: { image, mimeType } });
+    return { draft };
+  } catch (error) {
+    const state = await toActionState(error);
+    return { error: state.message };
   }
 }

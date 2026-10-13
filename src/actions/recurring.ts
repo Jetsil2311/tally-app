@@ -24,6 +24,8 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
   const interval = Number(text(formData, "interval") || "1");
   const startDate = text(formData, "startDate");
   const endDate = text(formData, "endDate");
+  // MSI: a fixed number of monthly charges instead of an end date (new only)
+  const installments = Number(text(formData, "installments")) || 0;
   const accountId = text(formData, "accountId");
   const categoryId = text(formData, "categoryId");
   const description = text(formData, "description");
@@ -81,13 +83,14 @@ export async function saveRecurring(_prev: ActionState, formData: FormData): Pro
           name,
           type,
           amount,
-          frequency,
-          interval,
+          // MSI is always monthly, one charge per month
+          frequency: installments >= 2 ? "monthly" : frequency,
+          interval: installments >= 2 ? 1 : interval,
           startDate,
           accountId,
           ...(currency ? { currency } : {}),
           requiresVerification,
-          ...(endDate ? { endDate } : {}),
+          ...(installments >= 2 ? { installments } : endDate ? { endDate } : {}),
           ...(categoryId ? { categoryId } : {}),
           ...(description ? { description } : {}),
         },

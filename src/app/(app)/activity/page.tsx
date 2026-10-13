@@ -14,6 +14,7 @@ import { Card, cn, EmptyState, Skeleton } from "@/components/ui";
 import { capitalize } from "@/i18n/format";
 import { getI18n } from "@/i18n/server";
 import { activityHref, type ActivityQuery } from "@/lib/activity-query";
+import { ActivityFiles } from "@/components/activity-files";
 import { ApprovalQueue } from "@/components/approvals";
 import { txCents } from "@/lib/convert";
 import { CategoryReview } from "@/components/category-review";
@@ -76,6 +77,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
     filter: single(params.filter) === "uncategorized" ? "uncategorized" : undefined,
     status: (["pending", "rejected", "unverified"] as const).find((s) => s === single(params.status)),
     by: single(params.by) || undefined,
+    tag: single(params.tag) || undefined,
   };
 
   const range = month === "all" ? {} : monthRange(month, timeZone);
@@ -96,6 +98,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
         categoryId: query.category,
         createdById: query.by,
         search: query.q,
+        tags: query.tag,
       },
       month === "all" ? 600 : 2000,
     ),
@@ -136,7 +139,25 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
   const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   const today = dayKey(now, timeZone);
   const yesterday = dayKey(new Date(now.getTime() - 86_400_000), timeZone);
-  const filtered = Boolean(query.q || query.type || query.account || query.category || query.filter || query.status || query.by);
+  const filtered = Boolean(query.q || query.type || query.account || query.category || query.filter || query.status || query.by || query.tag);
+  // Tags on screen, most used first: tap one to see only those entries
+  const tagCounts = new Map<string, number>();
+  for (const tx of rows) for (const tag of tx.tags ?? []) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([tag]) => tag).slice(0, 12);
+  // The same filters, for the CSV / PDF download
+  const exportQuery = new URLSearchParams(
+    Object.entries({
+      from: "from" in range ? range.from : undefined,
+      to: "to" in range ? range.to : undefined,
+      type: query.type,
+      status: query.status,
+      accountId: query.account,
+      categoryId: query.category,
+      createdById: query.by,
+      search: query.q,
+      tags: query.tag,
+    }).filter((entry): entry is [string, string] => Boolean(entry[1])),
+  ).toString();
 
   return (
     <>
@@ -147,7 +168,14 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
       ) : null}
       {!query.status ? <ApprovalQueue pending={pending.data} accounts={accounts} /> : null}
 
-      <ActivityFilters query={query} accounts={accounts} categories={categories} people={people} />
+      <ActivityFilters
+        query={query}
+        accounts={accounts}
+        categories={categories}
+        people={people}
+        tags={query.tag && !tags.includes(query.tag) ? [query.tag, ...tags] : tags}
+        files={<ActivityFiles exportQuery={exportQuery} accounts={accounts} />}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <MonthSwitcher month={month} current={current} query={query} t={t} locale={locale} />

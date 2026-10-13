@@ -10,6 +10,8 @@ export interface ActivityQuery {
   status?: "pending" | "rejected" | "unverified";
   // Who added the entries (a user id)
   by?: string;
+  // A tag ("work"), without the #
+  tag?: string;
 }
 
 export function activityHref(query: ActivityQuery) {

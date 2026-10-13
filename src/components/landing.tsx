@@ -4,17 +4,25 @@ import {
   AppleLogo,
   ArrowRight,
   ArrowsClockwise,
+  BellRinging,
+  Broom,
+  CalendarBlank,
+  Camera,
   CaretDown,
+  ChartPieSlice,
   ChartLineUp,
+  CreditCard,
   CurrencyCircleDollar,
+  DownloadSimple,
   GooglePlayLogo,
   Keyboard,
   LockKey,
+  LockSimple,
+  PiggyBank,
+  Scales,
   ShieldCheck,
-  SignOut,
   SquaresFour,
   Tag,
-  TrendUp,
   UserCircle,
   UsersThree,
   Wallet,
@@ -22,11 +30,14 @@ import {
 import Link from "next/link";
 
 import { useI18n } from "@/i18n/client";
-import type { Account, ChatAnswer, MemberRole } from "@/lib/types";
+import type { Account, Badge, Budget, ChatAnswer, MemberRole, SavingsGoal } from "@/lib/types";
 
 import { AccountCard } from "./account-card";
 import { AiMark } from "./ai-mark";
 import { AnswerCard } from "./assistant";
+import { BadgeMedal } from "./badges";
+import { BudgetMeter } from "./budgets";
+import { GoalIcon, GoalMeter } from "./goals";
 import { CashFlowChart } from "./charts";
 import { AvatarStack, RoleBadge, RoleIcon, TxStatusPill } from "./people-ui";
 import { Money, useMoney } from "./preferences";
@@ -223,7 +234,7 @@ function Hero({ currency }: Example) {
 }
 
 // ---------------------------------------------------------------------------
-// Features: asymmetric bento (5 items, 5 cells: 4+2 / 2+2+2)
+// Features: asymmetric bento (8 cells: 4+2 / 2+2+2 / 2+2+2)
 // ---------------------------------------------------------------------------
 
 function Features({ currency }: Example) {
@@ -305,11 +316,120 @@ function Features({ currency }: Example) {
               <CashFlowChart points={[...POINTS]} height={110} highlight="2026-10" />
             </div>
           </article>
+
+          {/* Plan: budgets, goals and cards, each with the real meters */}
+          <article className="reveal flex flex-col rounded-3xl border border-line bg-surface p-6 md:col-span-2">
+            <ChartPieSlice size={26} className="text-accent" aria-hidden />
+            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.budgets.title}</h3>
+            <p className="mt-2 text-ink-2">{f.budgets.body}</p>
+            <ul inert className="mt-auto space-y-3 pt-6 text-[15px]">
+              {[
+                exampleBudget("food", t.landing.exampleFood, 3000, 1240, currency),
+                exampleBudget("fun", t.landing.exampleFun, 1200, 1050, currency),
+                exampleBudget("ride", t.landing.exampleRides, 800, 920, currency),
+              ].map((budget) => (
+                <li key={budget.id}>
+                  <p className="flex justify-between gap-3">
+                    <span className="truncate font-medium">{budget.category}</span>
+                    <Money value={budget.remaining} currency={currency} className={cn("text-sm", budget.overBudget ? "font-semibold text-expense" : "text-ink-2")} />
+                  </p>
+                  <BudgetMeter budget={budget} className="mt-1.5" />
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="reveal flex flex-col rounded-3xl bg-accent-soft p-6 md:col-span-2">
+            <PiggyBank size={26} className="text-accent" aria-hidden />
+            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.goals.title}</h3>
+            <p className="mt-2 text-ink-2">{f.goals.body}</p>
+            <div inert className="mt-auto flex items-center gap-4 rounded-2xl bg-surface p-4 pt-4" aria-hidden>
+              <GoalIcon icon="plane" />
+              <div className="min-w-0 flex-1">
+                <p className="flex justify-between gap-2 text-[15px]">
+                  <span className="truncate font-medium">{t.landing.exampleGoal}</span>
+                  <span className="tabular text-ink-2">68%</span>
+                </p>
+                <GoalMeter goal={exampleGoal(currency, t.landing.exampleGoal)} className="mt-2" />
+              </div>
+              <BadgeMedal badge={EXAMPLE_BADGE} size="sm" />
+            </div>
+          </article>
+
+          <article className="reveal flex flex-col rounded-3xl border border-line bg-surface p-6 md:col-span-2">
+            <CreditCard size={26} className="text-accent" aria-hidden />
+            <h3 className="mt-4 text-xl font-semibold tracking-tight">{f.cards.title}</h3>
+            <p className="mt-2 text-ink-2">{f.cards.body}</p>
+            <div inert className="mt-auto space-y-4 pt-6" aria-hidden>
+              <div className="flex items-center justify-between gap-3">
+                <Money value={1884.5} currency={currency} className="text-2xl font-semibold tracking-tight" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-warn-soft px-3 py-1.5 text-sm font-medium text-warn">
+                  <CalendarBlank size={15} weight="fill" /> {t.landing.exampleDue}
+                </span>
+              </div>
+              <div>
+                <p className="flex justify-between text-sm">
+                  <span className="font-medium">{t.landing.exampleMsi}</span>
+                  <span className="tabular text-ink-2">
+                    <span className="font-semibold text-ink">4</span>/12
+                  </span>
+                </p>
+                <div className="mt-2 flex gap-0.5">
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <span key={i} className={cn("h-2 flex-1 rounded-full", i < 4 ? "bg-income" : "bg-surface-3")} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
     </section>
   );
 }
+
+// Example data for the Plan cells
+function exampleBudget(id: string, category: string, limit: number, spent: number, currency: string): Budget {
+  return {
+    id,
+    accountId: null,
+    categoryId: id,
+    category,
+    currency,
+    rollover: false,
+    amount: limit.toFixed(2),
+    limit: limit.toFixed(2),
+    spent: spent.toFixed(2),
+    remaining: (limit - spent).toFixed(2),
+    progress: Math.round((spent / limit) * 100),
+    overBudget: spent > limit,
+  };
+}
+
+function exampleGoal(currency: string, name: string): SavingsGoal {
+  return {
+    id: "g",
+    name,
+    icon: "plane",
+    targetAmount: "25000.00",
+    saved: "17000.00",
+    currency,
+    progress: 68,
+    status: "active",
+    completedAt: null,
+    createdAt: "2026-01-01T00:00:00Z",
+  };
+}
+
+const EXAMPLE_BADGE: Badge = {
+  key: "first_deposit",
+  name: "",
+  description: "",
+  icon: "",
+  category: "goals",
+  earned: true,
+  earnedAt: null,
+};
 
 // ---------------------------------------------------------------------------
 // AI: the real answer card on the left, the story on the right
@@ -333,7 +453,7 @@ function AiSection() {
     disclaimer: t.landing.aiExampleDisclaimer,
     ai: { used: true, reason: null },
   };
-  const icons = [Tag, TrendUp, ShieldCheck];
+  const icons = [Tag, Camera, BellRinging, ShieldCheck];
   return (
     <section id="assistant" className="scroll-mt-20">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-28">
@@ -390,7 +510,7 @@ const ROLES: MemberRole[] = ["owner", "admin", "member", "viewer", "dependent"];
 
 function Sharing({ currency }: Example) {
   const { t } = useI18n();
-  const icons = [UserCircle, UsersThree, ArrowsClockwise];
+  const icons = [Broom, Scales, LockSimple, UserCircle, ArrowsClockwise];
   const people = t.landing.exampleMembers.map((name) => ({ name, imageUrl: null }));
   const format = useMoney();
   return (
@@ -458,6 +578,14 @@ function Sharing({ currency }: Example) {
               <span className="min-w-0 truncate text-ink-2">{people[2].name}</span>
               <Money value={-420} currency={currency} sign className="ml-auto font-semibold" />
             </p>
+            {/* Who owes whom, settled in one line */}
+            <p className="mt-2 flex items-center gap-2 rounded-2xl bg-accent-soft px-3 py-2.5 text-sm">
+              <Scales size={18} className="shrink-0 text-accent" />
+              <span className="min-w-0 truncate">
+                {people[1].name.split(" ")[0]} → {people[0].name.split(" ")[0]}
+              </span>
+              <Money value={350} currency={currency} className="ml-auto font-semibold" />
+            </p>
             <p className="mt-3 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
           </div>
         </div>
@@ -472,7 +600,7 @@ function Sharing({ currency }: Example) {
 
 function Privacy() {
   const { t } = useI18n();
-  const icons = [LockKey, ShieldCheck, AiMarkIcon, SignOut];
+  const icons = [LockKey, ShieldCheck, AiMarkIcon, DownloadSimple];
   return (
     <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
       <h2 className="reveal max-w-[24ch] text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold tracking-tight">

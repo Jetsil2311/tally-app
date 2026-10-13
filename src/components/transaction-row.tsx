@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownLeft, ArrowsLeftRight, ArrowUpRight, Repeat } from "@phosphor-icons/react";
+import { ArrowDownLeft, ArrowsLeftRight, ArrowUpRight, LockSimple, Repeat } from "@phosphor-icons/react";
 
 import { useI18n } from "@/i18n/client";
 import { categoryLabel, isSystemCategory, isTransferCategory } from "@/lib/insights";
@@ -67,6 +67,14 @@ export function TransactionRow({ tx, showDate = false }: { tx: Transaction; show
           {tx.source === "recurring" ? (
             <Repeat size={14} weight="bold" className="shrink-0 text-ink-3" aria-label={t.transactionRow.recurring} role="img" />
           ) : null}
+          {tx.isPrivate ? (
+            <LockSimple size={14} weight="fill" className="shrink-0 text-ink-3" aria-label={t.quickAdd.private} role="img" />
+          ) : null}
+          {tx.tags?.slice(0, 2).map((tag) => (
+            <span key={tag} className="hidden shrink-0 rounded-full bg-accent-soft px-2 py-px text-xs font-medium text-accent sm:inline">
+              #{tag}
+            </span>
+          ))}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-ink-2">
           {tx.status !== "approved" ? <TxStatusPill status={tx.status} /> : null}

@@ -5,6 +5,7 @@ import {
   ArrowDownLeft,
   ArrowUp,
   ArrowUpRight,
+  CalendarDots,
   CheckCircle,
   CreditCard,
   DotsThreeVertical,
@@ -43,6 +44,7 @@ import type {
   ActionState,
   Category,
   Forecast,
+  Installments,
   Occurrence,
   RecurringFrequency,
   RecurringPayment,
@@ -56,8 +58,10 @@ import { Menu, MenuItem } from "./menu";
 import { useViewer, ViewOnlyTag } from "./people-ui";
 import { Money, usePreferences } from "./preferences";
 import { AmountInput, ConversionPreview } from "./quick-add";
+import { unformatAmount } from "@/lib/amount-input";
 import { AskAiButton, useAi } from "./ai-assist";
 import { AiMark } from "./ai-mark";
+import { MsiCard } from "./msi";
 import { NewCategoryChip } from "./new-category";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
@@ -84,7 +88,10 @@ export function RecurringManager({
   categories,
   today,
   rates,
+  installments,
 }: {
+  // MSI plans and what they commit in coming months; null when there are none
+  installments?: Installments | null;
   payments: RecurringPayment[];
   upcoming: Upcoming;
   accounts: Account[];
@@ -125,6 +132,8 @@ export function RecurringManager({
           ) : null}
         </div>
       </header>
+
+      {installments?.plans.length ? <MsiCard installments={installments} /> : null}
 
       {payments.length === 0 ? (
         <Card className="rise" style={{ "--i": 1 } as React.CSSProperties}>
@@ -729,6 +738,9 @@ function RecurringForm({
   const [every, setEvery] = useState(String(payment?.interval ?? 1));
   const [startDate, setStartDate] = useState(payment ? dateOnly(payment.startDate) : today);
   const [hasEnd, setHasEnd] = useState(Boolean(payment?.endDate));
+  // MSI (meses sin intereses): a purchase paid in N equal monthly charges.
+  // 0 = off. The amount typed is then the total price.
+  const [msi, setMsi] = useState(0);
 
   const activeAccounts = accounts.filter((a) => a.isActive || a.id === payment?.accountId);
   const [accountId, setAccountId] = useState(
@@ -758,6 +770,12 @@ function RecurringForm({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
+    // MSI: the amount typed is the total; the API charges it monthly
+    if (msi >= 2) {
+      const total = Number(unformatAmount(String(formData.get("amount") ?? "")));
+      if (total > 0) formData.set("amount", (Math.round((total / msi) * 100) / 100).toFixed(2));
+      formData.set("installments", String(msi));
+    }
     const result = await saveRecurring(prev, formData);
     if (result.ok) {
       toast(result.message ?? t.common.saved);
@@ -857,6 +875,53 @@ function RecurringForm({
         />
       </Field>
 
+      {/* MSI: N monthly payments of a purchase, instead of a repeating schedule */}
+      {!payment && type === "expense" ? (
+        <div className="space-y-3 rounded-3xl border border-line p-4">
+          <label className="flex cursor-pointer items-center justify-between gap-4">
+            <span className="flex items-center gap-3 text-[15px] font-medium">
+              <CalendarDots size={20} className="text-accent" aria-hidden />
+              {r.msi}
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={msi > 0}
+              onChange={(e) => setMsi(e.target.checked ? 6 : 0)}
+              className="switch"
+              aria-label={r.msi}
+            />
+          </label>
+          {msi > 0 ? (
+            <>
+              <div role="radiogroup" aria-label={r.msiMonths} className="grid grid-cols-6 gap-2">
+                {[3, 6, 9, 12, 18, 24].map((months) => (
+                  <button
+                    key={months}
+                    type="button"
+                    role="radio"
+                    aria-checked={msi === months}
+                    onClick={() => setMsi(months)}
+                    className={cn(
+                      "tabular min-h-11 rounded-2xl border text-[15px] font-semibold transition-colors",
+                      msi === months ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface-2 hover:border-line-strong",
+                    )}
+                  >
+                    {months}
+                  </button>
+                ))}
+              </div>
+              {Number(amountText) > 0 ? (
+                <p className="tabular text-center text-[17px] font-semibold">
+                  {msi} × <Money value={Number(amountText) / msi} currency={currency} />
+                </p>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      {msi ? null : (
       <fieldset className="space-y-3">
         <legend className="mb-3 text-sm font-medium">{r.repeats}</legend>
         <Segmented
@@ -889,6 +954,7 @@ function RecurringForm({
           {errors.interval ?? r.intervalHint[frequency]}
         </p>
       </fieldset>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={payment ? r.firstDueDate : r.nextDueDate} htmlFor="recurring-start" error={errors.startDate}>
@@ -903,6 +969,7 @@ function RecurringForm({
             className={inputClass}
           />
         </Field>
+        {msi ? null : (
         <Field
           label={r.lastDate}
           htmlFor="recurring-end"
@@ -939,6 +1006,7 @@ function RecurringForm({
             </button>
           )}
         </Field>
+        )}
       </div>
 
       {preview ? (

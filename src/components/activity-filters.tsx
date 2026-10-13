@@ -19,7 +19,13 @@ export function ActivityFilters({
   accounts,
   categories,
   people,
+  tags,
+  files,
 }: {
+  // Tags on the entries shown, most used first
+  tags: string[];
+  // The download / import button
+  files: React.ReactNode;
   query: ActivityQuery;
   accounts: Account[];
   categories: Category[];
@@ -85,7 +91,31 @@ export function ActivityFilters({
             <span className="flex size-5 items-center justify-center rounded-full bg-surface text-xs text-ink">{active}</span>
           ) : null}
         </button>
+        {files}
       </div>
+
+      {tags.length ? (
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t.quickAdd.tags}>
+          {tags.map((tag) => {
+            const on = query.tag === tag;
+            return (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={on}
+                onClick={() => go({ tag: on ? undefined : tag })}
+                className={cn(
+                  "inline-flex min-h-9 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-medium transition-colors",
+                  on ? "bg-accent text-accent-ink" : "bg-accent-soft text-accent hover:bg-accent hover:text-accent-ink",
+                )}
+              >
+                #{tag}
+                {on ? <X size={12} weight="bold" aria-hidden /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {showFilters ? (
         <div className="rise grid grid-cols-1 gap-3 rounded-3xl border border-line bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -159,6 +189,7 @@ export function ActivityFilters({
                 status: undefined,
                 by: undefined,
                 q: undefined,
+                tag: undefined,
               });
             }}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full text-[15px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-40"

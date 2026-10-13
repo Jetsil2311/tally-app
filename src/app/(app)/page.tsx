@@ -15,6 +15,7 @@ import { buttonClass, Card, cn, EmptyState, SectionTitle, Skeleton } from "@/com
 import {
   getAccounts,
   getBadges,
+  getBudgets,
   getGoals,
   getAllTransactions,
   getCategories,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/data";
 import { NeedsAttention } from "@/components/approvals";
 import { BadgesGlance } from "@/components/badges";
+import { BudgetsGlance } from "@/components/budgets";
 import { CategoryReview } from "@/components/category-review";
 import { GoalsGlance } from "@/components/goals";
 import { capitalize } from "@/i18n/format";
@@ -266,8 +268,11 @@ async function Home() {
         </div>
       </section>
 
-      {/* Savings goals and achievements: streamed, so Home doesn't wait on them */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
+      {/* Budgets, savings goals and achievements: streamed, so Home doesn't wait on them */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+        <Suspense fallback={<Skeleton className="h-56 rounded-3xl" />}>
+          <HomeBudgets />
+        </Suspense>
         <Suspense fallback={<Skeleton className="h-56 rounded-3xl" />}>
           <HomeGoals />
         </Suspense>
@@ -500,6 +505,13 @@ function HomeSkeleton() {
       </div>
     </Busy>
   );
+}
+
+async function HomeBudgets() {
+  // Yours and every account's: the ones closest to their limit show
+  const accounts = await getAccounts();
+  const lists = await Promise.all([getBudgets(), ...accounts.map((a) => getBudgets(a.id))]);
+  return <BudgetsGlance budgets={lists.flat()} />;
 }
 
 async function HomeGoals() {

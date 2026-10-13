@@ -2,6 +2,7 @@
 
 import {
   ChartLineUp,
+  ChartPieSlice,
   Gear,
   House,
   Medal,
@@ -45,6 +46,7 @@ const CORE = [
 ] as const;
 
 const PLAN = [
+  { href: "/budgets", key: "budgets", icon: ChartPieSlice },
   { href: "/goals", key: "goals", icon: PiggyBank },
   { href: "/recurring", key: "recurring", icon: Repeat },
   { href: "/categories", key: "categories", icon: Tag },

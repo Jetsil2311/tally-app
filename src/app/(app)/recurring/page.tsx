@@ -5,7 +5,7 @@ import { Busy } from "@/components/busy";
 import { RecurringManager } from "@/components/recurring-manager";
 import { Skeleton } from "@/components/ui";
 import { getI18n } from "@/i18n/server";
-import { getAccounts, getCategories, getCurrentUser, getRatesTo, getRecurringPayments, getUpcoming } from "@/lib/data";
+import { getAccounts, getCategories, getCurrentUser, getInstallments, getRatesTo, getRecurringPayments, getUpcoming } from "@/lib/data";
 import { dayKey } from "@/lib/dates";
 import { getPreferences, requestTime } from "@/lib/session";
 
@@ -27,12 +27,13 @@ export default function RecurringPage() {
 async function Recurring() {
   const { timeZone } = await getPreferences();
   const now = await requestTime();
-  const [payments, upcoming, accounts, categories, user] = await Promise.all([
+  const [payments, upcoming, accounts, categories, user, installments] = await Promise.all([
     getRecurringPayments(true),
     getUpcoming(30),
     getAccounts(true),
     getCategories(),
     getCurrentUser(),
+    getInstallments(12),
   ]);
   // Payments can be charged in any currency: totals across them are
   // converted to the preferred one at today's rate
@@ -49,6 +50,7 @@ async function Recurring() {
       categories={categories}
       rates={rates}
       today={dayKey(now, timeZone)}
+      installments={installments}
     />
   );
 }

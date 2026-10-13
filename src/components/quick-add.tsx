@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowDown, ArrowsLeftRight, ArrowUp, CaretDown, Check, Trash, X } from "@phosphor-icons/react";
+import { ArrowDown, ArrowsLeftRight, ArrowUp, Camera, CaretDown, Check, Hash, LockSimple, Trash, WarningCircle, X } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   Suspense,
@@ -15,7 +16,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { confirmCategory } from "@/actions/ai";
+import { confirmCategory, scanReceipt } from "@/actions/ai";
 import { quoteConversion, type Quote } from "@/actions/currency";
 import {
   createTransfer,
@@ -30,7 +31,8 @@ import { toLocalInputValue } from "@/lib/dates";
 import { categoryLabel, isSystemCategory } from "@/lib/insights";
 import { currencySymbol } from "@/lib/money";
 import { canAddTransactions, canDeleteTransaction, canEditTransaction, canReview, canVerify } from "@/lib/permissions";
-import type { Account, ActionState, Category, Transaction, TransactionType } from "@/lib/types";
+import type { Account, ActionState, Category, ReceiptDraft, Transaction, TransactionType } from "@/lib/types";
+import { photoForUpload } from "@/lib/image";
 import { formatAmountText, formatMoneyInput } from "@/lib/amount-input";
 
 import { AccountIcon } from "./account-icon";
@@ -456,6 +458,39 @@ function TransactionForm({
   };
 
   const [defaultDate] = useState(() => toLocalInputValue(transaction?.date ?? new Date(), timeZone));
+  const [tags, setTags] = useState<string[]>(transaction?.tags ?? []);
+  const [isPrivate, setPrivate] = useState(transaction?.isPrivate ?? false);
+  // Only a shared account has someone to hide an entry from
+  const shared = (selected?.memberCount ?? 1) > 1;
+  const router = useRouter();
+
+  // Buck read a receipt: fill what he found, leave the rest to the person
+  const applyReceipt = (draft: ReceiptDraft) => {
+    const fields = formRef.current?.elements;
+    if (draft.amount !== null && draft.amount !== undefined && Number(draft.amount) > 0) {
+      const input = fields?.namedItem("amount") as HTMLInputElement | null;
+      const raw = String(draft.amount);
+      if (input) input.value = formatAmountText(raw);
+      setAmountText(raw);
+    }
+    if (draft.merchant) {
+      const note = fields?.namedItem("description") as HTMLInputElement | null;
+      if (note && !note.value) note.value = draft.merchant;
+    }
+    if (draft.date && /^\d{4}-\d{2}-\d{2}/.test(draft.date)) {
+      const when = fields?.namedItem("date") as HTMLInputElement | null;
+      if (when) when.value = `${draft.date.slice(0, 10)}T${when.value.slice(11, 16) || "12:00"}`;
+    }
+    if (draft.categoryHint) {
+      const hint = draft.categoryHint.toLowerCase();
+      const match =
+        usable.find((c) => c.name.toLowerCase() === hint) ?? usable.find((c) => c.name.toLowerCase().includes(hint) || hint.includes(c.name.toLowerCase()));
+      if (match) {
+        setParentId(match.parentId ?? match.id);
+        setChildId(match.parentId ? match.id : "");
+      }
+    }
+  };
 
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await saveTransaction(prev, formData);
@@ -470,12 +505,23 @@ function TransactionForm({
             ? { label: t.common.undo, onClick: () => void undoCreate(createdId).then((r) => toast(r.message ?? t.common.done)) }
             : undefined,
       });
+      // Proactive Buck: this expense pushed a budget over its limit
+      const over = result.data?.nudges ? result.data.nudges.split("\u0000").filter(Boolean) : [];
+      if (over.length) {
+        toast(t.budgets.nudge(over.join(", ")), {
+          tone: "error",
+          action: { label: t.budgets.title, onClick: () => router.push("/budgets") },
+        });
+      }
       if (keepOpen.current && !transaction) {
         // Keep account, category and date; clear what's unique to each entry
         const fields = formRef.current?.elements;
         const amount = fields?.namedItem("amount") as HTMLInputElement | null;
         const note = fields?.namedItem("description") as HTMLInputElement | null;
+        const notes = fields?.namedItem("notes") as HTMLTextAreaElement | null;
         if (note) note.value = "";
+        if (notes) notes.value = "";
+        setTags([]);
         if (amount) {
           amount.value = "";
           amount.focus();
@@ -494,12 +540,15 @@ function TransactionForm({
       {transaction ? <input type="hidden" name="id" value={transaction.id} /> : null}
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="categoryId" value={categoryId} />
+      <input type="hidden" name="tags" value={tags.join(",")} />
 
       {transaction && transaction.status !== "approved" ? (
         <StatusNote tx={transaction} canReviewIt={review} canVerifyIt={canVerify(selected?.myRole, transaction)} onDone={onDone} />
       ) : null}
 
       {transaction ? <input type="hidden" name="originalCurrency" value={initialCurrency} /> : null}
+      {/* A photo of the receipt: Buck fills in the amount, place, date and category */}
+      {!transaction && type === "expense" ? <ReceiptButton onDraft={applyReceipt} /> : null}
       <AmountInput
         defaultValue={transaction ? (transaction.originalAmount ?? transaction.amount) : undefined}
         error={errors.amount}
@@ -632,6 +681,39 @@ function TransactionForm({
         </Field>
       </div>
 
+      {shared ? (
+        // Only you see it; it still counts in the balance
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl bg-surface-2 px-4 py-3.5">
+          <span className="flex items-center gap-3 text-[15px] font-medium">
+            <LockSimple size={20} weight={isPrivate ? "fill" : "regular"} className={isPrivate ? "text-accent" : "text-ink-2"} aria-hidden />
+            {t.quickAdd.private}
+          </span>
+          <input type="hidden" name="isPrivate" value={isPrivate ? "on" : "off"} />
+          <input type="checkbox" role="switch" checked={isPrivate} onChange={(e) => setPrivate(e.target.checked)} className="switch" aria-label={t.quickAdd.private} />
+        </label>
+      ) : null}
+
+      <details className="group rounded-2xl border border-line" open={Boolean(transaction?.tags?.length || transaction?.notes)}>
+        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 text-[15px] font-medium text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
+          <Hash size={18} aria-hidden /> {t.quickAdd.more}
+          {tags.length ? <span className="tabular rounded-full bg-surface-3 px-2 text-xs">{tags.length}</span> : null}
+          <CaretDown size={16} className="ml-auto transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="space-y-4 px-4 pb-4">
+          <TagsInput tags={tags} onChange={setTags} />
+          <Field label={t.quickAdd.details} htmlFor="notes" optional>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={2}
+              maxLength={2000}
+              defaultValue={transaction?.notes ?? ""}
+              className={cn(inputClass, "h-auto min-h-20 resize-y py-3")}
+            />
+          </Field>
+        </div>
+      </details>
+
       {state.message && !state.ok && !Object.keys(errors).length ? (
         <p role="alert" className="rounded-2xl bg-expense-soft px-4 py-3 text-sm text-expense">
           {state.message}
@@ -664,6 +746,136 @@ function TransactionForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+// Tags as chips: type and press Enter (or a comma) to add one
+function TagsInput({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const tag = draft.trim().replace(/^#/, "").replace(/,/g, "").slice(0, 40);
+    if (tag && !tags.some((x) => x.toLowerCase() === tag.toLowerCase()) && tags.length < 20) onChange([...tags, tag]);
+    setDraft("");
+  };
+  return (
+    <div>
+      <label htmlFor="tag-input" className="mb-2 block text-sm font-medium">
+        {t.quickAdd.tags}
+      </label>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface px-2 py-2 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft">
+        {tags.map((tag) => (
+          <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-accent-soft py-1 pr-1 pl-2.5 text-sm text-accent">
+            #{tag}
+            <button
+              type="button"
+              onClick={() => onChange(tags.filter((x) => x !== tag))}
+              aria-label={t.quickAdd.removeTag(tag)}
+              className="flex size-6 items-center justify-center rounded-full hover:bg-accent hover:text-accent-ink"
+            >
+              <X size={12} weight="bold" aria-hidden />
+            </button>
+          </span>
+        ))}
+        <input
+          id="tag-input"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              add();
+            } else if (e.key === "Backspace" && !draft && tags.length) {
+              onChange(tags.slice(0, -1));
+            }
+          }}
+          onBlur={add}
+          placeholder={tags.length ? "" : t.quickAdd.tagPlaceholder}
+          autoComplete="off"
+          className="min-h-8 min-w-24 flex-1 bg-transparent px-1 text-[15px] outline-none no-focus-ring placeholder:text-ink-3"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Snap a receipt; Buck reads it into a draft (nothing is saved until you do)
+function ReceiptButton({ onDraft }: { onDraft: (draft: ReceiptDraft) => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState(false);
+  const [result, setResult] = useState<ReceiptDraft["confidence"] | null>(null);
+
+  const read = async (file: File) => {
+    setReading(true);
+    setResult(null);
+    try {
+      const photo = await photoForUpload(file);
+      if (!photo) {
+        toast(t.quickAdd.receiptTooBig, { tone: "error" });
+        return;
+      }
+      const { draft, error } = await scanReceipt(photo.base64, photo.mimeType);
+      if (!draft) {
+        toast(error ?? t.quickAdd.receiptFailed, { tone: "error" });
+        return;
+      }
+      onDraft(draft);
+      setResult(draft.confidence);
+    } finally {
+      setReading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="-mb-2 flex justify-center">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void read(file);
+        }}
+      />
+      <button
+        type="button"
+        disabled={reading}
+        onClick={() => inputRef.current?.click()}
+        className={cn(
+          "ai-chip inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-[transform,box-shadow] active:scale-[0.97] disabled:opacity-70",
+          result === "low" && "ring-2 ring-warn",
+        )}
+      >
+        {reading ? (
+          <>
+            <span className="ai-thinking flex gap-1" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </span>
+            {t.quickAdd.receiptReading}
+          </>
+        ) : result ? (
+          <>
+            {result === "low" ? <WarningCircle size={17} weight="fill" className="text-warn" aria-hidden /> : <Check size={17} weight="bold" className="text-income" aria-hidden />}
+            {result === "low" ? t.quickAdd.receiptCheck : t.quickAdd.receiptDone}
+          </>
+        ) : (
+          <>
+            <AiMark size={17} />
+            <Camera size={17} aria-hidden />
+            {t.quickAdd.receipt}
+          </>
+        )}
+      </button>
+    </div>
   );
 }
 

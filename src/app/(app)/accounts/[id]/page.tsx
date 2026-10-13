@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { AccountDetail } from "@/components/account-detail";
+import { CardCycleCard, ChoresCard, SettleUpCard } from "@/components/account-extras";
 import { Busy } from "@/components/busy";
 import { Skeleton } from "@/components/ui";
 import { getI18n } from "@/i18n/server";
@@ -10,14 +11,20 @@ import { ApiError } from "@/lib/api";
 import {
   getAccount,
   getAuditLog,
+  getCardCycle,
+  getChores,
   getConnections,
   getCurrentUser,
   getManagedProfiles,
   getMembers,
+  getSettlement,
   getTransactionPage,
 } from "@/lib/data";
+import { capitalize } from "@/i18n/format";
+import { currentMonthKey, monthLabel, monthRange } from "@/lib/dates";
+import type { Account, Member } from "@/lib/types";
 import { canManage } from "@/lib/permissions";
-import { requestTime } from "@/lib/session";
+import { getPreferences, requestTime } from "@/lib/session";
 
 export async function generateMetadata({ params }: PageProps<"/accounts/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -58,9 +65,42 @@ async function Account({ params }: { params: PageProps<"/accounts/[id]">["params
     canInvite ? getManagedProfiles() : [],
   ]);
 
-  const now = (await requestTime()).toISOString();
+  const requested = await requestTime();
+  const now = requested.toISOString();
+  const { timeZone } = await getPreferences();
+  const { locale } = await getI18n();
+  const range = monthRange(currentMonthKey(timeZone, requested), timeZone);
+  const shared = members.filter((m) => m.status === "active").length > 1;
+  const hasCycle = account.type === "creditCard" && account.statementDay != null && account.paymentDueDays != null;
   return (
     <AccountDetail
+      side={
+        <>
+          {hasCycle ? (
+            <Suspense fallback={<Skeleton className="h-44 rounded-3xl" />}>
+              <Cycle account={account} />
+            </Suspense>
+          ) : null}
+          {shared ? (
+            <Suspense fallback={<Skeleton className="h-40 rounded-3xl" />}>
+              <Settle
+                accountId={account.id}
+                members={members}
+                from={range.from}
+                to={range.to}
+                month={capitalize(monthLabel(currentMonthKey(timeZone, requested), "long", false, locale))}
+              />
+            </Suspense>
+          ) : null}
+        </>
+      }
+      main={
+        shared ? (
+          <Suspense fallback={<Skeleton className="h-40 rounded-3xl" />}>
+            <Chores account={account} members={members} />
+          </Suspense>
+        ) : null
+      }
       account={account}
       members={members}
       movements={movements}
@@ -70,6 +110,21 @@ async function Account({ params }: { params: PageProps<"/accounts/[id]">["params
       now={now}
     />
   );
+}
+
+async function Cycle({ account }: { account: Account }) {
+  const cycle = await getCardCycle(account.id);
+  return cycle ? <CardCycleCard cycle={cycle} account={account} /> : null;
+}
+
+async function Settle({ accountId, members, from, to, month }: { accountId: string; members: Member[]; from: string; to: string; month: string }) {
+  const settlement = await getSettlement(accountId, from, to);
+  // Nothing shared yet this month: nothing to settle
+  return settlement && Number(settlement.totalShared) > 0 ? <SettleUpCard settlement={settlement} members={members} month={month} /> : null;
+}
+
+async function Chores({ account, members }: { account: Account; members: Member[] }) {
+  return <ChoresCard account={account} chores={await getChores(account.id)} members={members} />;
 }
 
 function AccountSkeleton() {

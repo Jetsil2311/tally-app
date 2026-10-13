@@ -3,12 +3,15 @@
 import {
   ArrowDown,
   ArrowUp,
+  CalendarBlank,
   CaretDown,
   Check,
+  ChartPieSlice,
   ChatCircleDots,
   CheckCircle,
   ClockCounterClockwise,
   Copy,
+  CreditCard,
   PiggyBank,
   Question,
   Repeat,
@@ -581,6 +584,9 @@ const INSIGHT_ICONS: Record<string, typeof TrendUp> = {
   negative_month_projection: WarningCircle,
   subscription_review: Repeat,
   savings_progress: PiggyBank,
+  charge_due_soon: CalendarBlank,
+  payment_due_soon: CreditCard,
+  budget_exceeded: ChartPieSlice,
 };
 
 export function InsightsFeed({
