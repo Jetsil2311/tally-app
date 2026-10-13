@@ -34,6 +34,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useRef } from "react";
 
 import { useI18n } from "@/i18n/client";
 import type { Badge, Budget, ChatAnswer, MemberRole, SavingsGoal } from "@/lib/types";
@@ -83,6 +84,40 @@ export function Landing({ currency, year }: Example & { year: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Tilt: the surface leans toward the pointer and a soft light follows it.
+// Writes CSS variables straight to the element (no re-render per mouse
+// move); the .tilt styles only apply with a mouse and without reduced motion.
+// ---------------------------------------------------------------------------
+
+function Tilt({ children, className, max = 6 }: { children: React.ReactNode; className?: string; max?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const move = (event: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el || event.pointerType !== "mouse") return;
+    const box = el.getBoundingClientRect();
+    const x = (event.clientX - box.left) / box.width;
+    const y = (event.clientY - box.top) / box.height;
+    el.dataset.active = "";
+    el.style.setProperty("--ry", `${(x - 0.5) * max * 2}deg`);
+    el.style.setProperty("--rx", `${(0.5 - y) * max * 2}deg`);
+    el.style.setProperty("--gx", `${x * 100}%`);
+    el.style.setProperty("--gy", `${y * 100}%`);
+  };
+  const leave = () => {
+    const el = ref.current;
+    if (!el) return;
+    delete el.dataset.active;
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+  };
+  return (
+    <div ref={ref} onPointerMove={move} onPointerLeave={leave} className={cn("tilt relative", className)}>
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Hero: what it is in one line, then a picture of the app with what makes it
 // different floating around it (Buck, budget alerts, receipts, achievements).
 // The first 10 seconds should be enough to get it.
@@ -120,8 +155,14 @@ function Hero({ currency }: Example) {
             {l.heroBody}
           </p>
           <div className="rise mt-8 flex flex-col items-center gap-4 lg:items-start" style={{ "--i": 3 } as React.CSSProperties}>
-            <Link href="/login" className={cn(buttonClass("primary", "lg"), "w-full sm:w-fit sm:px-8")}>
-              {l.getStarted} <ArrowRight size={18} weight="bold" />
+            <Link
+              href="/login"
+              className={cn(
+                buttonClass("primary", "lg"),
+                "group w-full transition-[transform,box-shadow,background-color] hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-12px_var(--accent)] sm:w-fit sm:px-8",
+              )}
+            >
+              {l.getStarted} <ArrowRight size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
             </Link>
             <StoreButtons className="w-full justify-center sm:w-auto lg:justify-start" />
           </div>
@@ -148,13 +189,19 @@ function HeroScene({ currency }: Example) {
   const g = t.home.glance;
   const income = 4120;
   const spent = 1843.3;
-  const callout = "absolute z-10 rounded-2xl border border-line bg-surface p-3 shadow-float";
+  // Outer: where it sits and how far it floats above the phone. Inner: the
+  // card and its idle drift (two transforms, two elements)
+  const layer = "absolute z-10";
+  const callout = "rounded-2xl border border-line bg-surface p-3 shadow-float";
   return (
     <div className="rise relative min-w-0" style={{ "--i": 3 } as React.CSSProperties} role="img" aria-label={l.previewLabel}>
-      <div inert aria-hidden className="relative mx-auto h-[520px] w-full max-w-[30rem] sm:h-[570px]">
+      <Tilt max={7} className="mx-auto w-full max-w-[30rem]">
+      <div inert aria-hidden className="tilt-3d relative h-[520px] w-full sm:h-[570px]">
         {/* The phone */}
         {/* A light hairline on the bezel keeps the phone's edge visible on a dark page */}
-        <div className="absolute top-10 left-1/2 w-[16.5rem] -translate-x-1/2 rounded-[2.6rem] bg-[#16181e] p-2 shadow-float ring-1 ring-white/15 sm:w-[18.5rem]">
+        <div className="tilt-3d absolute top-10 left-1/2 w-[16.5rem] -translate-x-1/2 sm:w-[18.5rem]">
+        <div className="depth-1 relative rounded-[2.6rem] bg-[#16181e] p-2 shadow-[0_40px_80px_-30px_rgb(0_0_0/0.7),0_12px_30px_-12px_rgb(43_72_232/0.35)] ring-1 ring-white/15">
+          <span className="tilt-glare z-20" />
           <div className="relative h-[465px] overflow-hidden rounded-[2.15rem] bg-bg px-3.5 pt-9 sm:h-[505px]">
             <span className="absolute top-2.5 left-1/2 h-5 w-20 -translate-x-1/2 rounded-full bg-[#16181e]" />
             <p className="px-1 text-[13px] text-ink-2">{l.phoneMonth}</p>
@@ -218,17 +265,21 @@ function HeroScene({ currency }: Example) {
             </div>
           </div>
         </div>
+        </div>
 
         {/* Buck: ask before you buy */}
-        <div className={cn(callout, "float-a top-0 left-0 w-[12.5rem] sm:w-[14rem]")}>
+        <div className={cn(layer, "depth-3 top-0 left-0 w-[12.5rem] sm:w-[14rem]")}>
+        <div className={cn(callout, "float-a")}>
           <p className="rounded-2xl rounded-br-md bg-ink px-3 py-2 text-[12px] leading-snug text-surface">{l.calloutAsk}</p>
           <p className="mt-2 flex items-center gap-1.5 rounded-full bg-warn-soft px-2.5 py-1 text-[12px] font-semibold text-warn">
             <AiMark size={14} /> {t.ai.verdict.tight.label}
           </p>
         </div>
+        </div>
 
         {/* A budget speaks up */}
-        <div className={cn(callout, "float-b top-[44%] right-0 w-[11.5rem] border-expense/30 sm:w-[13rem]")}>
+        <div className={cn(layer, "depth-2 top-[44%] right-0 w-[11.5rem] sm:w-[13rem]")}>
+        <div className={cn(callout, "float-b border-expense/30")}>
           <p className="flex items-center gap-1.5 text-[12px] font-semibold text-expense">
             <WarningCircle size={16} weight="fill" /> {l.calloutBudget}
           </p>
@@ -236,9 +287,11 @@ function HeroScene({ currency }: Example) {
             <span className="block h-full w-full rounded-full bg-expense" />
           </div>
         </div>
+        </div>
 
         {/* A receipt, read by Buck */}
-        <div className={cn(callout, "float-c bottom-24 left-0 flex w-[12rem] items-center gap-2.5 sm:bottom-28 sm:w-[13.5rem]")}>
+        <div className={cn(layer, "depth-2 bottom-24 left-0 w-[12rem] sm:bottom-28 sm:w-[13.5rem]")}>
+        <div className={cn(callout, "float-c flex items-center gap-2.5")}>
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl ai-surface">
             <Camera size={18} />
           </span>
@@ -252,16 +305,20 @@ function HeroScene({ currency }: Example) {
             </span>
           </span>
         </div>
+        </div>
 
         {/* An achievement pops up */}
-        <div className={cn(callout, "float-a right-2 bottom-4 flex items-center gap-2.5 pr-4 sm:right-4")}>
+        <div className={cn(layer, "depth-3 right-2 bottom-4 sm:right-4")}>
+        <div className={cn(callout, "float-a flex items-center gap-2.5 pr-4")}>
           <BadgeMedal badge={EXAMPLE_BADGE} size="sm" />
           <span>
             <span className="block text-[11px] text-ink-2">{t.badges.newBadge}</span>
             <span className="block text-[14px] font-semibold">{t.badges.catalog.first_deposit?.name}</span>
           </span>
         </div>
+        </div>
       </div>
+      </Tilt>
       <p className="mt-2 text-center text-xs text-ink-3">{l.exampleData}</p>
     </div>
   );
@@ -274,8 +331,12 @@ function HeroScene({ currency }: Example) {
 function Highlights({ currency }: Example) {
   const { t } = useI18n();
   const h = t.landing.highlights;
-  const tile = "reveal flex flex-col rounded-3xl border border-line bg-surface p-5";
-  const stage = "flex h-40 items-center justify-center overflow-hidden rounded-2xl bg-surface-2 px-4";
+  // Hover: the tile lifts with a deeper shadow, and its picture comes alive
+  // (each one has its own small move, driven by group-hover)
+  const tile =
+    "reveal group flex flex-col rounded-3xl border border-line bg-surface p-5 transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 hover:border-line-strong hover:shadow-float motion-reduce:transition-none motion-reduce:hover:translate-y-0";
+  const stage =
+    "flex h-40 items-center justify-center overflow-hidden rounded-2xl bg-surface-2 px-4 transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:group-hover:scale-100";
   return (
     <section id="features" className="scroll-mt-20 border-t border-line/70 bg-surface-2/40">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
@@ -287,8 +348,8 @@ function Highlights({ currency }: Example) {
           {/* Ask Buck */}
           <article className={tile}>
             <div inert aria-hidden className={cn(stage, "ai-surface flex-col items-stretch justify-center gap-2")}>
-              <p className="self-end rounded-2xl rounded-br-md bg-ink px-3 py-2 text-[13px] text-surface">{t.landing.calloutAsk}</p>
-              <p className="flex items-center gap-2 self-start rounded-2xl rounded-bl-md bg-surface px-3 py-2 text-[13px] font-semibold">
+              <p className="self-end rounded-2xl rounded-br-md bg-ink px-3 py-2 text-[13px] text-surface transition-transform duration-300 group-hover:-translate-y-1">{t.landing.calloutAsk}</p>
+              <p className="flex origin-left items-center gap-2 self-start rounded-2xl rounded-bl-md bg-surface px-3 py-2 text-[13px] font-semibold shadow-soft transition-transform delay-75 duration-300 group-hover:translate-x-1 group-hover:scale-105">
                 <AiMark size={16} />
                 <span className="text-income">{t.ai.verdict.comfortable.label}</span>
               </p>
@@ -299,7 +360,7 @@ function Highlights({ currency }: Example) {
           {/* Receipt -> entry */}
           <article className={tile}>
             <div inert aria-hidden className={cn(stage, "gap-3")}>
-              <div className="w-20 rotate-[-4deg] rounded-md bg-white px-2 pt-2 pb-3 text-[#12141a] shadow-soft">
+              <div className="w-20 rotate-[-4deg] rounded-md bg-white px-2 pt-2 pb-3 text-[#12141a] shadow-soft transition-transform duration-500 group-hover:-translate-y-1.5 group-hover:rotate-0 group-hover:shadow-float">
                 <div className="mx-auto h-1.5 w-10 rounded bg-[#12141a]/70" />
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="mt-1.5 flex justify-between gap-1">
@@ -312,10 +373,10 @@ function Highlights({ currency }: Example) {
                   <span className="h-1.5 w-5 rounded bg-[#12141a]/60" />
                 </div>
               </div>
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full ai-surface">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full ai-surface transition-transform duration-700 group-hover:rotate-[360deg]">
                 <AiMark size={16} />
               </span>
-              <div className="min-w-0 rounded-2xl bg-surface px-3 py-2.5 shadow-soft">
+              <div className="min-w-0 rounded-2xl bg-surface px-3 py-2.5 shadow-soft transition-transform delay-150 duration-300 group-hover:translate-x-1 group-hover:scale-105">
                 <p className="truncate text-[13px] font-medium">{t.landing.exampleFood}</p>
                 <Money value={-248.5} currency={currency} sign className="text-[15px] font-semibold" />
               </div>
@@ -330,9 +391,17 @@ function Highlights({ currency }: Example) {
                 <div key={budget.id}>
                   <p className="flex justify-between text-[13px]">
                     <span className="font-medium">{budget.category}</span>
-                    {budget.overBudget ? <WarningCircle size={16} weight="fill" className="text-expense" /> : null}
+                    {budget.overBudget ? (
+                      <WarningCircle size={16} weight="fill" className="text-expense transition-transform duration-300 group-hover:scale-125" />
+                    ) : null}
                   </p>
-                  <BudgetMeter budget={budget} className="mt-1.5" />
+                  <BudgetMeter
+                    budget={budget}
+                    className={cn(
+                      "mt-1.5 transition-shadow duration-300",
+                      budget.overBudget && "group-hover:shadow-[0_0_18px_-2px_var(--expense)]",
+                    )}
+                  />
                 </div>
               ))}
             </div>
@@ -344,11 +413,11 @@ function Highlights({ currency }: Example) {
             <div inert aria-hidden className={cn(stage, "gap-3")}>
               <Avatar person={{ name: t.landing.exampleMembers[0], imageUrl: null }} size={44} />
               <span className="flex flex-col items-center">
-                <Money value={350} currency={currency} className="text-[15px] font-semibold" />
-                <ArrowRight size={22} weight="bold" className="text-accent" />
+                <Money value={350} currency={currency} className="text-[15px] font-semibold transition-transform duration-300 group-hover:-translate-y-0.5" />
+                <ArrowRight size={22} weight="bold" className="text-accent transition-transform duration-300 group-hover:translate-x-2" />
               </span>
               <Avatar person={{ name: t.landing.exampleMembers[1], imageUrl: null }} size={44} />
-              <span className="ml-1 flex size-8 items-center justify-center rounded-full bg-income text-surface">
+              <span className="ml-1 flex size-8 items-center justify-center rounded-full bg-income text-surface transition-transform delay-150 duration-300 group-hover:scale-125">
                 <Check size={16} weight="bold" />
               </span>
             </div>
@@ -360,7 +429,7 @@ function Highlights({ currency }: Example) {
             <div inert aria-hidden className={cn(stage, "flex-col items-stretch gap-3")}>
               <div className="flex items-center justify-between gap-2">
                 <Money value={1884.5} currency={currency} className="text-[19px] font-semibold tracking-tight" />
-                <span className="inline-flex items-center gap-1 rounded-full bg-warn-soft px-2.5 py-1 text-[12px] font-medium text-warn">
+                <span className="inline-flex items-center gap-1 rounded-full bg-warn-soft px-2.5 py-1 text-[12px] font-medium text-warn transition-transform duration-300 group-hover:scale-110">
                   <CalendarBlank size={13} weight="fill" /> {t.landing.exampleDue}
                 </span>
               </div>
@@ -371,7 +440,13 @@ function Highlights({ currency }: Example) {
                 </p>
                 <div className="mt-1.5 flex gap-0.5">
                   {Array.from({ length: 12 }, (_, i) => (
-                    <span key={i} className={cn("h-2 flex-1 rounded-full", i < 4 ? "bg-income" : "bg-surface-3")} />
+                    <span
+                      key={i}
+                      className={cn(
+                        "h-2 flex-1 rounded-full transition-colors duration-300",
+                        i < 4 ? "bg-income" : i === 4 ? "bg-surface-3 delay-150 group-hover:bg-income" : "bg-surface-3",
+                      )}
+                    />
                   ))}
                 </div>
               </div>
@@ -382,14 +457,16 @@ function Highlights({ currency }: Example) {
           {/* Goals and achievements */}
           <article className={tile}>
             <div inert aria-hidden className={cn(stage, "gap-4")}>
-              <div className="min-w-0 flex-1 rounded-2xl bg-surface p-3 shadow-soft">
+              <div className="min-w-0 flex-1 rounded-2xl bg-surface p-3 shadow-soft transition-transform duration-300 group-hover:-translate-y-1">
                 <p className="flex items-center gap-2 text-[13px] font-medium">
                   <GoalIcon icon="plane" />
                   <span className="truncate">{t.landing.exampleGoal}</span>
                 </p>
                 <GoalMeter goal={exampleGoal(currency, t.landing.exampleGoal)} className="mt-3" />
               </div>
-              <BadgeMedal badge={EXAMPLE_BADGE} />
+              <span className="transition-transform duration-500 group-hover:scale-115 group-hover:rotate-12">
+                <BadgeMedal badge={EXAMPLE_BADGE} />
+              </span>
             </div>
             <Highlight icon={<PiggyBank size={20} />} title={h.goals.title} line={h.goals.line} />
           </article>
@@ -407,8 +484,11 @@ function Highlights({ currency }: Example) {
             { icon: LockSimple, label: t.landing.also.private },
             { icon: Broom, label: t.landing.also.chores },
           ].map(({ icon: Icon, label }) => (
-            <li key={label} className="flex min-h-10 items-center gap-2 rounded-full border border-line bg-surface px-4 text-[15px]">
-              <Icon size={17} className="text-accent" aria-hidden /> {label}
+            <li
+              key={label}
+              className="group flex min-h-10 cursor-default items-center gap-2 rounded-full border border-line bg-surface px-4 text-[15px] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-soft"
+            >
+              <Icon size={17} className="text-accent transition-transform duration-200 group-hover:scale-125" aria-hidden /> {label}
             </li>
           ))}
         </ul>
@@ -420,7 +500,10 @@ function Highlights({ currency }: Example) {
 function Highlight({ icon, title, line }: { icon: React.ReactNode; title: string; line: string }) {
   return (
     <div className="mt-4 flex items-start gap-3 px-1">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent" aria-hidden>
+      <span
+        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent transition-[background-color,color,transform] duration-300 group-hover:-rotate-6 group-hover:bg-accent group-hover:text-accent-ink"
+        aria-hidden
+      >
         {icon}
       </span>
       <div className="min-w-0">
@@ -465,8 +548,11 @@ function AiSection() {
             {t.landing.aiPoints.map((point, i) => {
               const Icon = icons[i] ?? Tag;
               return (
-                <li key={point} className="flex items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3.5 text-[15px] font-medium">
-                  <Icon size={20} className="shrink-0 text-accent" aria-hidden /> {point}
+                <li
+                  key={point}
+                  className="group flex items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3.5 text-[15px] font-medium transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-surface-3"
+                >
+                  <Icon size={20} className="shrink-0 text-accent transition-transform duration-200 group-hover:scale-125" aria-hidden /> {point}
                 </li>
               );
             })}
@@ -474,7 +560,8 @@ function AiSection() {
         </div>
 
         {/* The question, then Tally's real answer card */}
-        <div inert className="reveal min-w-0 space-y-3" aria-hidden>
+        <Tilt max={4} className="min-w-0">
+        <div inert className="reveal tilt-3d min-w-0 space-y-3" aria-hidden>
           <div className="flex justify-end">
             <p className="max-w-[85%] rounded-3xl rounded-br-lg bg-ink px-4 py-2.5 text-[15px] text-surface">{t.landing.aiExampleQuestion}</p>
           </div>
@@ -483,11 +570,14 @@ function AiSection() {
               <AiMark size={16} />
             </span>
             <div className="min-w-0 flex-1">
-              <AnswerCard answer={example} />
+              <div className="depth-1 rounded-3xl shadow-[0_30px_60px_-30px_rgb(0_0_0/0.6)]">
+                <AnswerCard answer={example} />
+              </div>
             </div>
           </div>
           <p className="pt-1 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
         </div>
+        </Tilt>
       </div>
     </section>
   );
@@ -507,7 +597,9 @@ function Sharing({ currency }: Example) {
     <section id="sharing" className="scroll-mt-20 border-y border-line/70 bg-surface-2/40">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-24">
         {/* A shared account: members, a chore, who owes whom */}
-        <div inert aria-hidden className="reveal order-2 min-w-0 rounded-3xl border border-line bg-surface p-5 shadow-float lg:order-1">
+        <Tilt max={5} className="order-2 min-w-0 lg:order-1">
+        <div inert aria-hidden className="reveal relative min-w-0 rounded-3xl border border-line bg-surface p-5 shadow-[0_40px_80px_-36px_rgb(0_0_0/0.7)]">
+          <span className="tilt-glare" />
           <div className="flex items-center justify-between gap-3">
             <p className="text-[17px] font-semibold">{t.landing.exampleAccount}</p>
             <AvatarStack people={people} size={32} />
@@ -548,6 +640,7 @@ function Sharing({ currency }: Example) {
           </div>
           <p className="mt-3 text-center text-xs text-ink-3">{t.landing.exampleData}</p>
         </div>
+        </Tilt>
 
         <div className="reveal order-1 min-w-0 lg:order-2">
           <h2 className="text-[clamp(1.875rem,4.5vw,3rem)] leading-tight font-semibold tracking-tight">{t.landing.sharingTitle}</h2>
@@ -556,8 +649,11 @@ function Sharing({ currency }: Example) {
             {t.landing.sharingPoints.map((point, i) => {
               const Icon = icons[i] ?? UsersThree;
               return (
-                <li key={point} className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-[15px] font-medium">
-                  <Icon size={20} className="shrink-0 text-accent" aria-hidden /> {point}
+                <li
+                  key={point}
+                  className="group flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-soft"
+                >
+                  <Icon size={20} className="shrink-0 text-accent transition-transform duration-200 group-hover:scale-125" aria-hidden /> {point}
                 </li>
               );
             })}
@@ -590,8 +686,14 @@ function Privacy() {
         {t.landing.privacyPoints.map((point, i) => {
           const Icon = icons[i] ?? LockKey;
           return (
-            <li key={point.title} className="rounded-3xl border border-line bg-surface p-5">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent" aria-hidden>
+            <li
+              key={point.title}
+              className="group rounded-3xl border border-line bg-surface p-5 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong hover:shadow-float"
+            >
+              <span
+                className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent transition-[background-color,color,transform] duration-300 group-hover:scale-110 group-hover:bg-accent group-hover:text-accent-ink"
+                aria-hidden
+              >
                 <Icon size={22} />
               </span>
               <h3 className="mt-4 text-[17px] leading-snug font-semibold">{point.title}</h3>
@@ -670,7 +772,7 @@ function Nav() {
 export function StoreButtons({ className }: { className?: string }) {
   const { t } = useI18n();
   const badge =
-    "inline-flex h-14 min-w-0 flex-1 items-center gap-3 rounded-full bg-ink pr-5 pl-4 text-surface transition-[transform,opacity] duration-200 hover:opacity-90 active:scale-[0.98] sm:min-w-44 sm:flex-none sm:pr-6";
+    "inline-flex h-14 min-w-0 flex-1 items-center gap-3 rounded-full bg-ink pr-5 pl-4 text-surface transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-float active:scale-[0.98] sm:min-w-44 sm:flex-none sm:pr-6";
   return (
     <div className={cn("flex flex-wrap gap-3", className)}>
       <a href={STORE_LINKS.ios} className={badge} aria-label={`${t.landing.appStore.small} ${t.landing.appStore.big}`}>
