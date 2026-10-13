@@ -22,7 +22,7 @@ const variants: Record<Variant, string> = {
 export function buttonClass(variant: Variant = "primary", size: "sm" | "md" | "lg" = "md") {
   return cn(
     "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium",
-    "transition-[background-color,color,transform,opacity] duration-200 active:scale-[0.97]",
+    "transition-[background-color,color,transform,translate,scale,rotate,opacity] duration-200 active:scale-[0.97]",
     "disabled:pointer-events-none disabled:opacity-45",
     size === "sm" && "h-9 px-3.5 text-sm",
     size === "md" && "h-11 px-5 text-[15px]",
@@ -46,7 +46,7 @@ export function IconButton({ label, className, ...props }: ComponentProps<"butto
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors",
+        "inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 transition-[background-color,color,scale] duration-200",
         "hover:bg-surface-2 hover:text-ink active:scale-95",
         className,
       )}

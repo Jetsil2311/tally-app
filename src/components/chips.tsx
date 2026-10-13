@@ -31,7 +31,7 @@ export function ChipGroup<T extends string>({
           <label
             key={option.value}
             className={cn(
-              "relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-[15px] transition-[background-color,border-color,color,transform] duration-200 select-none active:scale-[0.97]",
+              "relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-[15px] transition-[background-color,border-color,color,transform,translate,scale,rotate] duration-200 select-none active:scale-[0.97]",
               "has-focus-visible:ring-4 has-focus-visible:ring-accent-soft",
               checked
                 ? "border-ink bg-ink text-surface"

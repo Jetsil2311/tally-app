@@ -38,7 +38,7 @@ export function HomeQuickActions() {
   const { open: openAi } = useAi();
   const { t } = useI18n();
   const tile =
-    "group flex min-w-0 flex-col items-center gap-2 rounded-3xl px-1 py-3 text-center text-xs font-medium transition-[background-color,transform] duration-200 hover:bg-surface-2 active:scale-[0.97] sm:flex-row sm:gap-3 sm:border sm:border-line sm:bg-surface sm:px-4 sm:text-left sm:text-[15px] sm:hover:border-line-strong";
+    "group flex min-w-0 flex-col items-center gap-2 rounded-3xl px-1 py-3 text-center text-xs font-medium transition-[background-color,transform,translate,scale,rotate] duration-200 hover:bg-surface-2 active:scale-[0.97] sm:flex-row sm:gap-3 sm:border sm:border-line sm:bg-surface sm:px-4 sm:text-left sm:text-[15px] sm:hover:border-line-strong";
   const circle = "flex size-12 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-105 sm:size-10";
   const label = "max-w-full truncate";
   return (

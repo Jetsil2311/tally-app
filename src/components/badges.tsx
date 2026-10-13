@@ -413,7 +413,7 @@ function Celebration({ badge, position, onClose }: { badge: Badge; position: str
             ref={okRef}
             type="button"
             onClick={onClose}
-            className="min-h-12 rounded-full bg-accent px-4 text-[15px] font-semibold text-accent-ink transition-[transform,background-color] hover:bg-accent-hover active:scale-[0.98]"
+            className="min-h-12 rounded-full bg-accent px-4 text-[15px] font-semibold text-accent-ink transition-[transform,translate,scale,rotate,background-color] hover:bg-accent-hover active:scale-[0.98]"
           >
             {t.badges.great}
           </button>

@@ -162,7 +162,7 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
                   key={prompt}
                   type="button"
                   onClick={() => ask(prompt)}
-                  className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-4 text-left text-[15px] transition-[border-color,transform] duration-200 hover:border-line-strong active:scale-[0.98]"
+                  className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-4 text-left text-[15px] transition-[border-color,transform,translate,scale,rotate] duration-200 hover:border-line-strong active:scale-[0.98]"
                 >
                   <ChatCircleDots size={18} className="shrink-0 text-ink-3" />
                   <span className="truncate">{prompt}</span>
@@ -187,7 +187,7 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
               key={key}
               type="button"
               onClick={() => prefill(t.ai.actions[key].prompt)}
-              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 text-sm text-ink transition-[border-color,transform] hover:border-line-strong active:scale-[0.97]"
+              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 text-sm text-ink transition-[border-color,transform,translate,scale,rotate] hover:border-line-strong active:scale-[0.97]"
             >
               <Icon size={15} weight="bold" className="text-ink-2" aria-hidden />
               {t.ai.actions[key].label}
@@ -214,7 +214,7 @@ function Chat({ accounts, inSheet }: { accounts: Account[]; inSheet?: boolean })
             type="submit"
             disabled={!draft.trim() || pending}
             aria-label={t.ai.ask}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink transition-[transform,opacity] hover:bg-accent-hover active:scale-95 disabled:opacity-40"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink transition-[transform,translate,scale,rotate,opacity] hover:bg-accent-hover active:scale-95 disabled:opacity-40"
           >
             <ArrowUp size={20} weight="bold" />
           </button>

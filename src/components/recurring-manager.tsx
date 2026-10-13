@@ -153,7 +153,7 @@ export function RecurringManager({
                     key={s.key}
                     type="button"
                     onClick={() => start(undefined, { name: r.suggestions[s.key], type: s.type, frequency: s.frequency })}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface-2 px-4 text-[15px] transition-[border-color,transform] duration-200 hover:border-line-strong active:scale-[0.97]"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface-2 px-4 text-[15px] transition-[border-color,transform,translate,scale,rotate] duration-200 hover:border-line-strong active:scale-[0.97]"
                   >
                     {s.type === "income" ? (
                       <ArrowDownLeft size={16} weight="bold" className="text-income" />
@@ -856,7 +856,7 @@ function RecurringForm({
               const name = (document.getElementById("recurring-name") as HTMLInputElement | null)?.value.trim() ?? "";
               openAi({ ask: t.ai.affordMonthly(`${String(amountText).replace(",", ".")} ${currency}`, name), accountId });
             }}
-            className="ai-chip inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[transform,box-shadow] active:scale-[0.97]"
+            className="ai-chip inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[transform,translate,scale,rotate,box-shadow] active:scale-[0.97]"
           >
             <AiMark size={17} /> {t.ai.canIAffordThis}
           </button>

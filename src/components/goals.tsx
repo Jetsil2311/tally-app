@@ -241,7 +241,7 @@ function GoalCard({ goal, index, onOpen }: { goal: SavingsGoal; index: number; o
           <button
             type="button"
             onClick={() => onOpen("deposit")}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent-soft px-3.5 text-sm font-medium text-accent transition-[background-color,transform] hover:bg-accent hover:text-accent-ink active:scale-[0.97]"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-accent-soft px-3.5 text-sm font-medium text-accent transition-[background-color,transform,translate,scale,rotate] hover:bg-accent hover:text-accent-ink active:scale-[0.97]"
           >
             <Plus size={15} weight="bold" aria-hidden /> {t.goals.addMoney}
           </button>
@@ -587,7 +587,7 @@ function GoalForm({ goal, onDone }: { goal?: SavingsGoal; onDone: () => void }) 
                 title={t.goals.icons[key] ?? key}
                 onClick={() => setIcon(checked ? "" : key)}
                 className={cn(
-                  "flex aspect-square min-h-11 items-center justify-center rounded-2xl border transition-[background-color,border-color,color,transform] active:scale-95",
+                  "flex aspect-square min-h-11 items-center justify-center rounded-2xl border transition-[background-color,border-color,color,transform,translate,scale,rotate] active:scale-95",
                   checked ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface-2 text-ink-2 hover:border-line-strong hover:text-ink",
                 )}
               >

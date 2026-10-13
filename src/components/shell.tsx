@@ -121,7 +121,7 @@ function AssistantButton({ unseen }: { unseen: number }) {
       aria-haspopup="dialog"
       aria-expanded={isOpen}
       title={label}
-      className="ai-chip relative inline-flex h-11 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium transition-[transform,box-shadow] active:scale-95 sm:pr-4"
+      className="ai-chip relative inline-flex h-11 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium transition-[transform,translate,scale,rotate,box-shadow] active:scale-95 sm:pr-4"
     >
       <AiMark size={20} />
       <span className="hidden sm:inline">{t.ai.askAi}</span>
@@ -229,7 +229,7 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
       <button
         type="button"
         onClick={() => open({ mode: "expense" })}
-        className="mb-5 flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-medium text-accent-ink shadow-soft transition-[transform,background-color] hover:bg-accent-hover active:scale-[0.98]"
+        className="mb-5 flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-medium text-accent-ink shadow-soft transition-[transform,translate,scale,rotate,background-color] hover:bg-accent-hover active:scale-[0.98]"
       >
         <Plus size={18} weight="bold" aria-hidden /> {t.nav.add}
       </button>
@@ -302,7 +302,7 @@ export function Dock({ attention }: { attention: Promise<number> }) {
             onClick={() => open({ mode: "expense" })}
             aria-label={t.nav.addEntry}
             title={t.nav.addEntry}
-            className="mx-0.5 flex size-14 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft transition-[transform,background-color] duration-200 hover:bg-accent-hover active:scale-95 sm:mx-1 sm:size-12"
+            className="mx-0.5 flex size-14 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft transition-[transform,translate,scale,rotate,background-color] duration-200 hover:bg-accent-hover active:scale-95 sm:mx-1 sm:size-12"
           >
             <Plus size={24} weight="bold" />
           </button>
@@ -335,7 +335,7 @@ function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => 
   const { open: openAi } = useAi();
   const tile = (active: boolean) =>
     cn(
-      "relative flex aspect-[1.1] min-w-0 flex-col items-center justify-center gap-2 rounded-3xl border px-2 text-center text-sm font-medium transition-[background-color,border-color,transform] active:scale-[0.97]",
+      "relative flex aspect-[1.1] min-w-0 flex-col items-center justify-center gap-2 rounded-3xl border px-2 text-center text-sm font-medium transition-[background-color,border-color,transform,translate,scale,rotate] active:scale-[0.97]",
       active ? "border-accent bg-accent-soft text-ink" : "border-line bg-surface-2 text-ink hover:border-line-strong",
     );
   return (

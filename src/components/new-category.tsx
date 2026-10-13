@@ -57,7 +57,7 @@ export function NewCategoryChip({
           requestAnimationFrame(() => inputRef.current?.focus());
         }}
         className={cn(
-          "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-4 text-ink-2 transition-colors hover:border-accent hover:text-accent active:scale-[0.97]",
+          "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-4 text-ink-2 transition-[border-color,color,scale] duration-200 hover:border-accent hover:text-accent active:scale-[0.97]",
           height,
           small && "px-3",
         )}

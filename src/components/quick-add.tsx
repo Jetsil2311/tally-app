@@ -849,7 +849,7 @@ function ReceiptButton({ onDraft }: { onDraft: (draft: ReceiptDraft) => void }) 
         disabled={reading}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "ai-chip inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-[transform,box-shadow] active:scale-[0.97] disabled:opacity-70",
+          "ai-chip inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-[transform,translate,scale,rotate,box-shadow] active:scale-[0.97] disabled:opacity-70",
           result === "low" && "ring-2 ring-warn",
         )}
       >
@@ -901,7 +901,7 @@ function AffordButton({
         const value = `${amount.replace(",", ".")} ${currency}`;
         open({ ask: t.ai.affordQuestion(value, note), accountId });
       }}
-      className="ai-chip inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[transform,box-shadow] active:scale-[0.97]"
+      className="ai-chip inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[transform,translate,scale,rotate,box-shadow] active:scale-[0.97]"
     >
       <AiMark size={17} /> {t.ai.canIAffordThis}
     </button>
@@ -925,7 +925,7 @@ function CategoryChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.97]",
+        "shrink-0 rounded-full border transition-[background-color,border-color,color,transform,translate,scale,rotate] duration-200 active:scale-[0.97]",
         small ? "min-h-9 px-3 text-sm" : "min-h-11 px-4 text-[15px]",
         active ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink hover:border-line-strong",
       )}

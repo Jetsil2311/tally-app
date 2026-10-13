@@ -697,3 +697,11 @@ dialog.sheet:not([open])::backdrop {
     display: none;
   }
 }
+
+/* Landing: every hover move glides instead of snapping. Tailwind's
+   transitions fall back to these when no duration/ease class is set, so
+   the whole page gets one soft rhythm (the app keeps its quicker 150 ms). */
+.landing-motion {
+  --default-transition-duration: 320ms;
+  --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}

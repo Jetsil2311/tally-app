@@ -228,7 +228,7 @@ export function AskAiButton({
       aria-label={size === "icon" ? text : undefined}
       title={size === "icon" ? text : undefined}
       className={cn(
-        "ai-chip inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full font-medium transition-[transform,box-shadow] duration-200 active:scale-[0.97]",
+        "ai-chip inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full font-medium transition-[transform,translate,scale,rotate,box-shadow] duration-200 active:scale-[0.97]",
         size === "icon" && "size-10",
         size === "sm" && "min-h-10 px-3.5 text-sm",
         size === "xs" && "min-h-8 px-2.5 text-xs",

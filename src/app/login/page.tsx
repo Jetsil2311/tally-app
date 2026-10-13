@@ -131,7 +131,7 @@ async function SignIn({ searchParams, t }: { searchParams: PageProps<"/login">["
           </p>
           <button
             type="submit"
-            className="flex h-12 w-full items-center justify-center rounded-full bg-ink text-[15px] font-medium text-surface transition-[opacity,transform] hover:opacity-90 active:scale-[0.98]"
+            className="flex h-12 w-full items-center justify-center rounded-full bg-ink text-[15px] font-medium text-surface transition-[opacity,transform,translate,scale,rotate] hover:opacity-90 active:scale-[0.98]"
           >
             {t.login.continueWithGoogle}
           </button>
@@ -148,7 +148,7 @@ function GoogleButton({ href, label }: { href: string; label: string }) {
       href={href}
       className={cn(
         "flex h-14 w-full items-center justify-center gap-3 rounded-full border border-line-strong bg-surface text-base font-medium text-ink shadow-soft",
-        "transition-[transform,border-color,background-color] duration-200 hover:border-ink-3 hover:bg-surface-2 active:scale-[0.98]",
+        "transition-[transform,translate,scale,rotate,border-color,background-color] duration-200 hover:border-ink-3 hover:bg-surface-2 active:scale-[0.98]",
       )}
     >
       {/* Google "G" mark, official colours */}

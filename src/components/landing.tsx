@@ -61,7 +61,7 @@ type Example = { currency: string };
 export function Landing({ currency, year }: Example & { year: number }) {
   const { t } = useI18n();
   return (
-    <div className="min-h-dvh overflow-x-clip bg-bg">
+    <div className="landing-motion min-h-dvh overflow-x-clip bg-bg">
       <a
         href="#main"
         className="sr-only z-60 rounded-full bg-ink px-4 py-2 text-surface focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -159,7 +159,7 @@ function Hero({ currency }: Example) {
               href="/login"
               className={cn(
                 buttonClass("primary", "lg"),
-                "group w-full transition-[transform,box-shadow,background-color] hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-12px_var(--accent)] sm:w-fit sm:px-8",
+                "group w-full transition-[transform,translate,scale,rotate,box-shadow,background-color] hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-12px_var(--accent)] sm:w-fit sm:px-8",
               )}
             >
               {l.getStarted} <ArrowRight size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
@@ -334,7 +334,7 @@ function Highlights({ currency }: Example) {
   // Hover: the tile lifts with a deeper shadow, and its picture comes alive
   // (each one has its own small move, driven by group-hover)
   const tile =
-    "reveal group flex flex-col rounded-3xl border border-line bg-surface p-5 transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 hover:border-line-strong hover:shadow-float motion-reduce:transition-none motion-reduce:hover:translate-y-0";
+    "reveal group flex flex-col rounded-3xl border border-line bg-surface p-5 transition-[transform,translate,scale,rotate,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 hover:border-line-strong hover:shadow-float motion-reduce:transition-none motion-reduce:hover:translate-y-0";
   const stage =
     "flex h-40 items-center justify-center overflow-hidden rounded-2xl bg-surface-2 px-4 transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:group-hover:scale-100";
   return (
@@ -486,7 +486,7 @@ function Highlights({ currency }: Example) {
           ].map(({ icon: Icon, label }) => (
             <li
               key={label}
-              className="group flex min-h-10 cursor-default items-center gap-2 rounded-full border border-line bg-surface px-4 text-[15px] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-soft"
+              className="group flex min-h-10 cursor-default items-center gap-2 rounded-full border border-line bg-surface px-4 text-[15px] transition-[transform,translate,scale,rotate,border-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-soft"
             >
               <Icon size={17} className="text-accent transition-transform duration-200 group-hover:scale-125" aria-hidden /> {label}
             </li>
@@ -501,7 +501,7 @@ function Highlight({ icon, title, line }: { icon: React.ReactNode; title: string
   return (
     <div className="mt-4 flex items-start gap-3 px-1">
       <span
-        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent transition-[background-color,color,transform] duration-300 group-hover:-rotate-6 group-hover:bg-accent group-hover:text-accent-ink"
+        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent transition-[background-color,color,transform,translate,scale,rotate] duration-300 group-hover:-rotate-6 group-hover:bg-accent group-hover:text-accent-ink"
         aria-hidden
       >
         {icon}
@@ -550,7 +550,7 @@ function AiSection() {
               return (
                 <li
                   key={point}
-                  className="group flex items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3.5 text-[15px] font-medium transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-surface-3"
+                  className="group flex items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3.5 text-[15px] font-medium transition-[transform,translate,scale,rotate,background-color] duration-200 hover:-translate-y-0.5 hover:bg-surface-3"
                 >
                   <Icon size={20} className="shrink-0 text-accent transition-transform duration-200 group-hover:scale-125" aria-hidden /> {point}
                 </li>
@@ -651,7 +651,7 @@ function Sharing({ currency }: Example) {
               return (
                 <li
                   key={point}
-                  className="group flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-soft"
+                  className="group flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-[15px] font-medium transition-[transform,translate,scale,rotate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-soft"
                 >
                   <Icon size={20} className="shrink-0 text-accent transition-transform duration-200 group-hover:scale-125" aria-hidden /> {point}
                 </li>
@@ -688,10 +688,10 @@ function Privacy() {
           return (
             <li
               key={point.title}
-              className="group rounded-3xl border border-line bg-surface p-5 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong hover:shadow-float"
+              className="group rounded-3xl border border-line bg-surface p-5 transition-[transform,translate,scale,rotate,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-line-strong hover:shadow-float"
             >
               <span
-                className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent transition-[background-color,color,transform] duration-300 group-hover:scale-110 group-hover:bg-accent group-hover:text-accent-ink"
+                className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent transition-[background-color,color,transform,translate,scale,rotate] duration-300 group-hover:scale-110 group-hover:bg-accent group-hover:text-accent-ink"
                 aria-hidden
               >
                 <Icon size={22} />
@@ -772,7 +772,7 @@ function Nav() {
 export function StoreButtons({ className }: { className?: string }) {
   const { t } = useI18n();
   const badge =
-    "inline-flex h-14 min-w-0 flex-1 items-center gap-3 rounded-full bg-ink pr-5 pl-4 text-surface transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-float active:scale-[0.98] sm:min-w-44 sm:flex-none sm:pr-6";
+    "inline-flex h-14 min-w-0 flex-1 items-center gap-3 rounded-full bg-ink pr-5 pl-4 text-surface transition-[transform,translate,scale,rotate,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-float active:scale-[0.98] sm:min-w-44 sm:flex-none sm:pr-6";
   return (
     <div className={cn("flex flex-wrap gap-3", className)}>
       <a href={STORE_LINKS.ios} className={badge} aria-label={`${t.landing.appStore.small} ${t.landing.appStore.big}`}>
