@@ -24,6 +24,20 @@ export async function startCheckout(): Promise<{ error?: string }> {
   redirect(url);
 }
 
+// Embedded Checkout: Stripe's form mounted inside Tally (an iframe Stripe
+// renders and processes). After paying, Stripe sends the page to /pro.
+export async function createEmbeddedCheckout(): Promise<{ clientSecret?: string; error?: string }> {
+  try {
+    const { clientSecret } = await api<{ clientSecret: string }>("/billing/checkout", {
+      method: "POST",
+      body: { embedded: true, returnUrl: `${env.appUrl}/pro?checkout=success` },
+    });
+    return { clientSecret };
+  } catch (error) {
+    return { error: (await toActionState(error)).message };
+  }
+}
+
 export async function openBillingPortal(): Promise<{ error?: string }> {
   let url: string;
   try {

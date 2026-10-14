@@ -26,4 +26,11 @@ export const env = {
   get googleClientSecret() {
     return required("GOOGLE_CLIENT_SECRET");
   },
+  // Stripe's publishable key (pk_...), safe to send to the browser: it
+  // mounts Checkout inside the page. Optional: without it, Checkout opens
+  // on Stripe's own page instead. Read at runtime, so adding it needs no
+  // rebuild.
+  get stripePublishableKey(): string | null {
+    return process.env.STRIPE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || null;
+  },
 };

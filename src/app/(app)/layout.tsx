@@ -12,6 +12,7 @@ import { ViewerProvider } from "@/components/people-ui";
 import { getAccounts, getAttention, getBadges, getBilling, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
 import { I18nProvider } from "@/i18n/client";
 import { getI18n } from "@/i18n/server";
+import { env } from "@/lib/env";
 import { getPreferences } from "@/lib/session";
 
 // Signed-in shell. Everything here depends on the session cookie, so it
@@ -59,7 +60,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
       currencies={currencies}
     >
       <ToastProvider>
-        <PlanProvider billing={billing}>
+        <PlanProvider billing={billing} stripeKey={env.stripePublishableKey}>
         <AiProvider>
         <QuickAddProvider accounts={accounts} categories={categories}>
           <a

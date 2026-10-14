@@ -1216,6 +1216,7 @@ export const en = {
     title: "Tally Pro",
     lead: "Unlimited Buck, receipt scanning and your data in a file.",
     upgrade: "Go Pro",
+    checkoutTitle: "Go Pro",
     opening: "Opening Stripe…",
     soon: "Coming soon",
     compare: "See everything Pro includes",

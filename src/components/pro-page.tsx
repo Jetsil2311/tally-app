@@ -14,13 +14,14 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
-import { openBillingPortal, startCheckout } from "@/actions/billing";
+import { openBillingPortal } from "@/actions/billing";
 import { useI18n } from "@/i18n/client";
 import type { Billing } from "@/lib/types";
 
 import { AiMark } from "./ai-mark";
+import { UpgradeSheet, useCheckout } from "./plan";
 import { useToast } from "./toast";
 import { Button, Card, cn } from "./ui";
 
@@ -43,6 +44,8 @@ export function ProPage({
   const toast = useToast();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const checkout = useCheckout();
+  const [paying, setPaying] = useState(false);
   const pro = billing?.plan === "pro";
   const pastDue = billing?.subscriptionStatus === "past_due" || billing?.subscriptionStatus === "unpaid";
   const waiting = returning && billing && !pro;
@@ -162,8 +165,13 @@ export function ProPage({
       {/* One button */}
       {!pro ? (
         <div className="rise mx-auto flex w-full max-w-md flex-col items-center gap-4" style={{ "--i": 2 } as React.CSSProperties}>
-          <Button size="lg" className="w-full" disabled={pending || !billing} onClick={() => go(startCheckout)}>
-            <Crown size={18} weight="fill" /> {!billing ? p.soon : pending ? p.opening : p.upgrade}
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={pending || checkout.pending || !billing}
+            onClick={() => (checkout.embedded ? setPaying(true) : checkout.redirect())}
+          >
+            <Crown size={18} weight="fill" /> {!billing ? p.soon : pending || checkout.pending ? p.opening : p.upgrade}
           </Button>
           <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-ink-2">
             <li className="flex items-center gap-1.5">
@@ -175,6 +183,9 @@ export function ProPage({
           </ul>
         </div>
       ) : null}
+
+      {/* Stripe's form, inside the page */}
+      <UpgradeSheet open={paying} onClose={() => setPaying(false)} startAtPayment />
     </>
   );
 }

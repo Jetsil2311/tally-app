@@ -1204,6 +1204,7 @@ export const es: Dictionary = {
     title: "Tally Pro",
     lead: "Buck sin límite, escaneo de tickets y tus datos en un archivo.",
     upgrade: "Hazte Pro",
+    checkoutTitle: "Hazte Pro",
     opening: "Abriendo Stripe…",
     soon: "Muy pronto",
     compare: "Ver todo lo que incluye Pro",
