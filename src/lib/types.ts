@@ -467,3 +467,12 @@ export interface ReceiptDraft {
   categoryHint: string | null;
   confidence: "high" | "medium" | "low";
 }
+
+// Billing: one paid plan (Pro), through Stripe. Kept in sync by Stripe's
+// webhook on the API; never a live Stripe call.
+export interface Billing {
+  plan: "free" | "pro";
+  // Stripe's status: active, trialing, past_due, canceled...; null if never subscribed
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+}

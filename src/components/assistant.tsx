@@ -11,6 +11,7 @@ import {
   CheckCircle,
   ClockCounterClockwise,
   Copy,
+  Crown,
   CreditCard,
   PiggyBank,
   Question,
@@ -38,6 +39,7 @@ import { formatAmountText, formatMoneyInput } from "@/lib/amount-input";
 
 import { AskAiButton, useAi, type Turn } from "./ai-assist";
 import { AiMark, AiTag } from "./ai-mark";
+import { useProGate } from "./plan";
 import { Money } from "./preferences";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
@@ -462,16 +464,28 @@ function Fallback({ reason, onRetry }: { reason: string | null; onRetry?: () => 
   const { t } = useI18n();
   const why = reason ? (t.ai.fallbackReason[reason] ?? t.ai.fallbackReason.error) : t.ai.fallbackReason.error;
   const retryable = !reason || ["invalid_figures", "provider_limit", "error"].includes(reason);
+  // Out of free requests: Pro chats without a monthly cap
+  const gate = useProGate("chat");
+  const upsell = reason === "quota_exceeded" && gate.locked;
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-surface/70 px-3 py-2 text-xs text-ink-2">
       <span className="min-w-0 flex-1">
         {t.ai.wordedByTally}: {why}
       </span>
-      {retryable && onRetry ? (
+      {upsell ? (
+        <button
+          type="button"
+          onClick={() => gate.guard(() => {})}
+          className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 font-semibold text-accent-ink transition-[transform,translate,scale,rotate] hover:-translate-y-0.5"
+        >
+          <Crown size={13} weight="fill" aria-hidden /> {t.pro.unlimitedChat}
+        </button>
+      ) : retryable && onRetry ? (
         <button type="button" onClick={onRetry} className="font-medium text-ink underline-offset-4 hover:underline">
           {t.ai.tryAgain}
         </button>
       ) : null}
+      {upsell ? gate.sheet : null}
     </div>
   );
 }

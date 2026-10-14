@@ -3,12 +3,13 @@ import { Suspense } from "react";
 import { AiProvider } from "@/components/ai-assist";
 import { AssistantSheet } from "@/components/assistant";
 import { BadgeCelebrator } from "@/components/badges";
+import { PlanProvider } from "@/components/plan";
 import { PreferencesProvider } from "@/components/preferences";
 import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, Sidebar, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
 import { ViewerProvider } from "@/components/people-ui";
-import { getAccounts, getAttention, getBadges, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
+import { getAccounts, getAttention, getBadges, getBilling, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
 import { I18nProvider } from "@/i18n/client";
 import { getI18n } from "@/i18n/server";
 import { getPreferences } from "@/lib/session";
@@ -44,6 +45,8 @@ async function Shell({ children }: { children: React.ReactNode }) {
   // Badges after every change (each action refreshes the shell): new ones
   // pop up as a celebration
   const badges = getBadges();
+  // The plan (free / Pro), for the Pro chips; never awaited here
+  const billing = getBilling();
   const aiUnseen = getInsights().then((list) => list.filter((insight) => !insight.seenAt).length);
 
   return (
@@ -56,6 +59,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
       currencies={currencies}
     >
       <ToastProvider>
+        <PlanProvider billing={billing}>
         <AiProvider>
         <QuickAddProvider accounts={accounts} categories={categories}>
           <a
@@ -79,6 +83,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
           </Suspense>
         </QuickAddProvider>
         </AiProvider>
+        </PlanProvider>
       </ToastProvider>
     </PreferencesProvider>
     </ViewerProvider>

@@ -42,6 +42,7 @@ import { Avatar, displayName, RoleBadge, TxStatusPill, useViewer } from "./peopl
 import { Money, useAccountCurrency, usePreferences } from "./preferences";
 import { useAi } from "./ai-assist";
 import { NewCategoryChip } from "./new-category";
+import { ProChip, useProGate } from "./plan";
 import { Sheet } from "./sheet";
 import { VerifyActions } from "./verification";
 import { useToast } from "./toast";
@@ -806,6 +807,8 @@ function ReceiptButton({ onDraft }: { onDraft: (draft: ReceiptDraft) => void }) 
   const inputRef = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
   const [result, setResult] = useState<ReceiptDraft["confidence"] | null>(null);
+  // Pro only: on the free plan the button opens the upgrade sheet
+  const gate = useProGate("receipt");
 
   const read = async (file: File) => {
     setReading(true);
@@ -847,7 +850,7 @@ function ReceiptButton({ onDraft }: { onDraft: (draft: ReceiptDraft) => void }) 
       <button
         type="button"
         disabled={reading}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => gate.guard(() => inputRef.current?.click())}
         className={cn(
           "ai-chip inline-flex min-h-10 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition-[transform,translate,scale,rotate,box-shadow] active:scale-[0.97] disabled:opacity-70",
           result === "low" && "ring-2 ring-warn",
@@ -872,9 +875,11 @@ function ReceiptButton({ onDraft }: { onDraft: (draft: ReceiptDraft) => void }) 
             <AiMark size={17} />
             <Camera size={17} aria-hidden />
             {t.quickAdd.receipt}
+            {gate.locked ? <ProChip /> : null}
           </>
         )}
       </button>
+      {gate.sheet}
     </div>
   );
 }

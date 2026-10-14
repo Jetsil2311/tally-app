@@ -10,6 +10,7 @@ import type {
   ApiKey,
   AuditPage,
   Badge,
+  Billing,
   Budget,
   CardCycle,
   Chore,
@@ -306,3 +307,7 @@ export const getSettlement = cache(async (accountId: string, from?: string, to?:
 export const getChores = cache(async (accountId: string) =>
   optional<Chore[]>(api<Chore[]>(`/accounts/${accountId}/chores`), []),
 );
+
+// The plan. null when billing isn't set up on the API (503): the app then
+// hides everything Pro instead of offering a checkout that can't work.
+export const getBilling = cache(async () => optional<Billing | null>(api<Billing>("/billing/status"), null));

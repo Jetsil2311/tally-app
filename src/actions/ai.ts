@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 
 import { getI18n } from "@/i18n/server";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { ActionState, Insight, ReceiptDraft } from "@/lib/types";
 
 import { text, toActionState } from "./helpers";
@@ -105,6 +105,8 @@ export async function scanReceipt(image: string, mimeType: string): Promise<{ dr
     const draft = await api<ReceiptDraft>("/ai/receipt-scan", { method: "POST", body: { image, mimeType } });
     return { draft };
   } catch (error) {
+    // Pro only: say so in the user's language, not the API's English
+    if (error instanceof ApiError && error.status === 403) return { error: (await getI18n()).t.pro.unlock.receipt };
     const state = await toActionState(error);
     return { error: state.message };
   }

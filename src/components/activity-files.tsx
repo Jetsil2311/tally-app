@@ -9,6 +9,7 @@ import type { Account } from "@/lib/types";
 
 import { ChipGroup } from "./chips";
 import { Menu, MenuItem } from "./menu";
+import { ProChip, useProGate } from "./plan";
 import { Sheet } from "./sheet";
 import { useToast } from "./toast";
 import { Button, cn } from "./ui";
@@ -20,6 +21,8 @@ export function ActivityFiles({ exportQuery, accounts }: { exportQuery: string; 
   const [importing, setImporting] = useState(false);
   const [session, setSession] = useState(0);
   const writable = accounts.filter((a) => a.isActive && a.myRole !== "viewer");
+  // Export is Pro: on the free plan it opens the upgrade sheet
+  const gate = useProGate("export");
   const download = (format: "csv" | "pdf") => {
     // A link click: the browser saves the file the route sends back,
     // without leaving the page
@@ -47,11 +50,17 @@ export function ActivityFiles({ exportQuery, accounts }: { exportQuery: string; 
       >
         {(close) => (
           <>
-            <MenuItem icon={<FileCsv size={18} />} onClick={() => (close(), download("csv"))}>
-              {t.files.csv}
+            <MenuItem icon={<FileCsv size={18} />} onClick={() => (close(), gate.guard(() => download("csv")))}>
+              <span className="flex items-center justify-between gap-2">
+                {t.files.csv}
+                {gate.locked ? <ProChip /> : null}
+              </span>
             </MenuItem>
-            <MenuItem icon={<FilePdf size={18} />} onClick={() => (close(), download("pdf"))}>
-              {t.files.pdf}
+            <MenuItem icon={<FilePdf size={18} />} onClick={() => (close(), gate.guard(() => download("pdf")))}>
+              <span className="flex items-center justify-between gap-2">
+                {t.files.pdf}
+                {gate.locked ? <ProChip /> : null}
+              </span>
             </MenuItem>
             {writable.length ? (
               <div className="mt-1.5 border-t border-line pt-1.5">
@@ -70,6 +79,7 @@ export function ActivityFiles({ exportQuery, accounts }: { exportQuery: string; 
           </>
         )}
       </Menu>
+      {gate.sheet}
       <Sheet open={importing} onClose={() => setImporting(false)} title={t.files.import}>
         <ImportForm key={session} accounts={writable} onDone={() => setImporting(false)} />
       </Sheet>

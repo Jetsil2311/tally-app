@@ -3,6 +3,8 @@
 import {
   ChartLineUp,
   ChartPieSlice,
+  Check,
+  Crown,
   Gear,
   House,
   Medal,
@@ -31,6 +33,7 @@ import { AiMark } from "./ai-mark";
 import { Avatar } from "./people-ui";
 import { Menu, MenuItem } from "./menu";
 import { useQuickAdd } from "./quick-add";
+import { ProChip, usePlan } from "./plan";
 import { Sheet } from "./sheet";
 import { ThemeMenu } from "./theme";
 import { cn } from "./ui";
@@ -134,6 +137,7 @@ function AssistantButton({ unseen }: { unseen: number }) {
 // sidebar / hub, not here.
 function UserMenu({ user: userPromise }: { user: Promise<User> }) {
   const user = use(userPromise);
+  const plan = usePlan();
   const router = useRouter();
   const { t } = useI18n();
   return (
@@ -151,11 +155,19 @@ function UserMenu({ user: userPromise }: { user: Promise<User> }) {
           <div className="flex items-center gap-3 px-3 pt-2 pb-3">
             <Avatar person={user} size={40} />
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-medium">{user.name ?? t.nav.you}</p>
+              <p className="flex items-center gap-2 text-[15px] font-medium">
+                <span className="truncate">{user.name ?? t.nav.you}</span>
+                {plan === "pro" ? <ProChip /> : null}
+              </p>
               <p className="truncate text-sm text-ink-2">{user.email}</p>
             </div>
           </div>
           <div className="border-t border-line pt-1.5">
+            {plan !== "off" ? (
+              <MenuItem icon={<Crown size={18} weight={plan === "pro" ? "fill" : "regular"} className="text-accent" />} onClick={() => (close(), router.push("/pro"))}>
+                Tally Pro
+              </MenuItem>
+            ) : null}
             <MenuItem icon={<Gear size={18} />} onClick={() => (close(), router.push("/settings"))}>
               {t.nav.settings}
             </MenuItem>
@@ -244,6 +256,9 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
           <ul className="space-y-0.5">{YOU.map(link)}</ul>
         </div>
       </nav>
+      <Suspense fallback={null}>
+        <SidebarPro />
+      </Suspense>
     </aside>
   );
 }
@@ -328,6 +343,41 @@ export function Dock({ attention }: { attention: Promise<number> }) {
   );
 }
 
+// Tally Pro in the sidebar: a link for Pro members, an invitation otherwise
+function SidebarPro() {
+  const plan = usePlan();
+  const pathname = usePathname();
+  if (plan === "off") return null;
+  const active = isActive(pathname, "/pro");
+  return (
+    <Link
+      href="/pro"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group mt-3 flex min-h-12 items-center gap-3 rounded-2xl px-3 text-[15px] font-medium transition-[background-color,transform,translate,scale,rotate]",
+        plan === "pro" ? (active ? "bg-surface-3" : "text-ink-2 hover:bg-surface-2 hover:text-ink") : "ai-chip hover:-translate-y-0.5",
+      )}
+    >
+      <Crown size={20} weight="fill" className="text-accent transition-transform group-hover:-rotate-12" aria-hidden />
+      Tally Pro
+      {plan === "pro" ? <Check size={16} weight="bold" className="ml-auto text-income" aria-hidden /> : null}
+    </Link>
+  );
+}
+
+function HubPro({ onPick, tile }: { onPick: () => void; tile: string }) {
+  const plan = usePlan();
+  if (plan === "off") return null;
+  return (
+    <li>
+      <Link href="/pro" onClick={onPick} className={tile}>
+        <Crown size={28} weight="duotone" className="text-accent" aria-hidden />
+        <span className="max-w-full truncate">Pro</span>
+      </Link>
+    </li>
+  );
+}
+
 // Every other section as a tile: a big icon first, one word under it
 function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => void }) {
   const pathname = usePathname();
@@ -356,6 +406,9 @@ function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => 
           </li>
         );
       })}
+      <Suspense fallback={null}>
+        <HubPro onPick={onPick} tile={tile(isActive(pathname, "/pro"))} />
+      </Suspense>
       <li>
         <button type="button" onClick={() => (onPick(), openAi())} className={cn(tile(false), "w-full")}>
           <AiMark size={28} />
