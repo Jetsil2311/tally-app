@@ -33,6 +33,7 @@ import { AiMark } from "./ai-mark";
 import { Avatar } from "./people-ui";
 import { Menu, MenuItem } from "./menu";
 import { useQuickAdd } from "./quick-add";
+import { PendingBar } from "./page-transition";
 import { ProChip, usePlan } from "./plan";
 import { Sheet } from "./sheet";
 import { ThemeMenu } from "./theme";
@@ -246,6 +247,7 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
             aria-hidden
           />
           <span className="relative truncate">{t.nav[key]}</span>
+          <PendingBar />
           {key === "people" ? (
             <Suspense fallback={null}>
               <AttentionCount attention={attention} />
@@ -328,6 +330,7 @@ export function Dock({ attention }: { attention: Promise<number> }) {
     return (
       <Link key={href} href={href} aria-current={active ? "page" : undefined} className={tabClass(active)}>
         {tab(key, t.nav[key], icon, active)}
+        <PendingBar />
       </Link>
     );
   };
@@ -430,6 +433,7 @@ function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => 
                 aria-hidden
               />
               <span className="max-w-full truncate">{t.nav[key]}</span>
+              <PendingBar />
               {key === "people" ? (
                 <Suspense fallback={null}>
                   <AttentionCount attention={attention} dot />

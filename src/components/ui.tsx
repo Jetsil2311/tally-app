@@ -98,8 +98,8 @@ export function EmptyState({
   );
 }
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn("skeleton", className)} />;
+export function Skeleton({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div aria-hidden className={cn("skeleton", className)} style={style} />;
 }
 
 // Field wrapper: label above, helper or error below (error wins)

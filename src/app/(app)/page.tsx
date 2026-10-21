@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { Busy } from "@/components/busy";
 import { AccountCard } from "@/components/account-card";
 import { HomeQuickActions, OpenQuickAdd } from "@/components/actions-bar";
 import { CashFlowChart, CategoryBars, SpendingCalendar } from "@/components/charts";
+import { HomeSkeleton } from "@/components/home-skeleton";
 import { MonthGlance } from "@/components/month-glance";
 import { NetCard } from "@/components/net-card";
 import { Money } from "@/components/preferences";
@@ -452,30 +452,6 @@ function Welcome({ name, hasCategories, t }: { name?: string; hasCategories: boo
         ))}
       </ol>
     </div>
-  );
-}
-
-function HomeSkeleton() {
-  return (
-    <Busy className="space-y-6 pt-2">
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-9 w-64" />
-      </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
-        <Skeleton className="h-64 rounded-3xl lg:col-span-7" />
-        <Skeleton className="h-64 rounded-3xl lg:col-span-5" />
-      </div>
-      <div className="flex gap-3 overflow-hidden">
-        <Skeleton className="h-40 w-72 shrink-0 rounded-3xl" />
-        <Skeleton className="h-40 w-72 shrink-0 rounded-3xl" />
-        <Skeleton className="h-40 w-72 shrink-0 rounded-3xl" />
-      </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
-        <Skeleton className="h-72 rounded-3xl lg:col-span-7" />
-        <Skeleton className="h-72 rounded-3xl lg:col-span-5" />
-      </div>
-    </Busy>
   );
 }
 

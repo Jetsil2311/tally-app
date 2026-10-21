@@ -129,7 +129,7 @@ async function Chores({ account, members }: { account: Account; members: Member[
 
 function AccountSkeleton() {
   return (
-    <Busy className="space-y-5 pt-2">
+    <Busy topic="account" className="space-y-5 pt-2">
       <Skeleton className="h-5 w-24" />
       <Skeleton className="h-9 w-64" />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">

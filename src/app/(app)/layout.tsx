@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AiProvider } from "@/components/ai-assist";
 import { AssistantSheet } from "@/components/assistant";
 import { BadgeCelebrator } from "@/components/badges";
+import { LoadingStatus } from "@/components/loading-status";
 import { PageTransition } from "@/components/page-transition";
 import { PlanProvider } from "@/components/plan";
 import { PreferencesProvider } from "@/components/preferences";
@@ -98,12 +99,17 @@ function ShellFallback() {
     <>
       {/* The sidebar's place on desktop, so nothing jumps when it arrives */}
       <div aria-hidden className="fixed inset-y-0 left-0 hidden w-60 border-r border-line/70 lg:block" />
-      <div className="lg:pl-60">
+      <div className="lg:pl-60" aria-busy>
       <TopBarSkeleton />
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-6 sm:px-6">
-        <div className="skeleton h-9 w-56" />
+      {/* Before anything is known about the user: Buck says Tally is
+          getting ready, over the outline of Home */}
+      <LoadingStatus topic="shell" />
+      <div className="busy mx-auto w-full max-w-6xl space-y-6 px-4 pt-6 sm:px-6">
+        <div className="skeleton h-10 w-64 rounded-2xl" />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr]">
-          <div className="skeleton h-56 rounded-3xl" />
+          <div className="hero-money grain relative isolate h-56 overflow-hidden rounded-3xl">
+            <span aria-hidden className="hero-light" />
+          </div>
           <div className="skeleton h-56 rounded-3xl" />
         </div>
         <div className="skeleton h-40 rounded-3xl" />

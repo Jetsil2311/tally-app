@@ -323,7 +323,7 @@ function MonthSwitcher({
 
 function ActivitySkeleton() {
   return (
-    <Busy className="space-y-5">
+    <Busy topic="activity" className="space-y-5">
       <Skeleton className="h-12 w-full rounded-full" />
       <Skeleton className="h-11 w-64 rounded-full" />
       <div className="grid grid-cols-3 gap-3">

@@ -28,7 +28,7 @@ async function Achievements() {
 
 function AchievementsSkeleton() {
   return (
-    <Busy className="space-y-6 pt-2">
+    <Busy topic="achievements" className="space-y-6 pt-2">
       <Skeleton className="h-9 w-48" />
       <Skeleton className="h-36 rounded-3xl" />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

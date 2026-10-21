@@ -2,6 +2,7 @@ import { CreditCard, Wallet } from "@phosphor-icons/react/dist/ssr";
 
 import type { Dictionary } from "@/i18n/dictionaries";
 
+import { RememberTotal } from "./last-total";
 import { Money } from "./preferences";
 
 // Home's hero: the one number that matters most (everything you have, net
@@ -33,6 +34,7 @@ export function NetCard({
       aria-labelledby="net-title"
     >
       <span aria-hidden className="hero-light" />
+      <RememberTotal cents={net} />
       {/* Concentric rings, like the guilloche on a banknote, very faint */}
       <svg aria-hidden className="pointer-events-none absolute -right-28 -bottom-40 size-[26rem] text-white/[0.07]" viewBox="0 0 200 200" fill="none">
         {[96, 80, 64, 48, 32].map((r) => (

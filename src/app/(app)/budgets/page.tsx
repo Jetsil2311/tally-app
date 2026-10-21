@@ -35,7 +35,7 @@ async function Budgets() {
 
 function BudgetsSkeleton() {
   return (
-    <Busy className="space-y-6 pt-2">
+    <Busy topic="budgets" className="space-y-6 pt-2">
       <div className="flex justify-between">
         <Skeleton className="h-9 w-48" />
         <Skeleton className="h-11 w-36 rounded-full" />

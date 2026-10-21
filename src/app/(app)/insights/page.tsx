@@ -456,7 +456,7 @@ async function MonthAi({ month, current, label, t }: { month: MonthKey; current:
 
 function InsightsSkeleton() {
   return (
-    <Busy className="space-y-5 pt-2">
+    <Busy topic="insights" className="space-y-5 pt-2">
       <div className="flex justify-between">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-11 w-72 rounded-full" />

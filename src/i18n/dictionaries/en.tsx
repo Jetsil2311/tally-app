@@ -56,6 +56,27 @@ export const en = {
     systemCategory: { transfers: "Transfers", opening: "Opening balances" },
   },
 
+  loadingSteps: {
+    // Shown one after another while a screen loads, so the wait reads as
+    // work being done. Short: a glance, not a read.
+    shell: ["Getting Tally ready…", "Opening your accounts…"],
+    home: ["Opening your accounts…", "Adding up this month…", "Checking what's coming up…"],
+    activity: ["Finding your entries…", "Putting them in order…"],
+    accounts: ["Opening your accounts…", "Checking balances…"],
+    account: ["Opening this account…", "Checking balance and members…"],
+    insights: ["Crunching your numbers…", "Comparing months…"],
+    budgets: ["Checking your budgets…", "Adding up spending…"],
+    goals: ["Counting your savings…"],
+    recurring: ["Lining up your payments…", "Looking ahead…"],
+    categories: ["Gathering your categories…"],
+    people: ["Finding your people…"],
+    achievements: ["Polishing your badges…"],
+    assistant: ["Waking up Buck…"],
+    settings: ["Opening your settings…"],
+    pro: ["Loading Tally Pro…"],
+    almost: "Almost there…",
+    slow: "Slower than usual. Still on it…",
+  },
   nav: {
     home: "Home",
     activity: "Activity",

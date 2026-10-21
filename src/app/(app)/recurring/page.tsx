@@ -57,7 +57,7 @@ async function Recurring() {
 
 function RecurringSkeleton() {
   return (
-    <Busy className="space-y-6 pt-2">
+    <Busy topic="recurring" className="space-y-6 pt-2">
       <div className="flex items-end justify-between">
         <div className="space-y-2">
           <Skeleton className="h-9 w-44" />

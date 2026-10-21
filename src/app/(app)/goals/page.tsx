@@ -33,7 +33,7 @@ async function Goals({ searchParams }: { searchParams: PageProps<"/goals">["sear
 
 function GoalsSkeleton() {
   return (
-    <Busy className="space-y-6 pt-2">
+    <Busy topic="goals" className="space-y-6 pt-2">
       <div className="flex items-end justify-between">
         <div className="space-y-2">
           <Skeleton className="h-9 w-56" />

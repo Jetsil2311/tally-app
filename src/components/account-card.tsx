@@ -7,6 +7,7 @@ import { toCents } from "@/lib/money";
 import type { Account } from "@/lib/types";
 
 import { AccountIcon } from "./account-icon";
+import { PendingBar } from "./page-transition";
 import { Money } from "./preferences";
 import { cn } from "./ui";
 
@@ -94,6 +95,7 @@ export function AccountCard({ account, className, href }: { account: Account; cl
       className="group block rounded-3xl transition-[translate,scale,rotate] duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-1 hover:-rotate-[0.6deg] active:scale-[0.97] active:duration-150"
     >
       {body}
+      <PendingBar />
     </Link>
   );
 }

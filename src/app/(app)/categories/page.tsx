@@ -40,7 +40,7 @@ async function Categories() {
 
 function CategoriesSkeleton() {
   return (
-    <Busy className="space-y-5 pt-2">
+    <Busy topic="categories" className="space-y-5 pt-2">
       <Skeleton className="h-9 w-48" />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {[0, 1, 2, 3].map((i) => (

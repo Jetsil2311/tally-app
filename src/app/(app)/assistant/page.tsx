@@ -29,7 +29,7 @@ async function AssistantData() {
 
 function AssistantSkeleton() {
   return (
-    <Busy className="space-y-5 pt-2">
+    <Busy topic="assistant" className="space-y-5 pt-2">
       <Skeleton className="h-11 w-48" />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <Skeleton className="h-[28rem] rounded-3xl lg:col-span-7" />

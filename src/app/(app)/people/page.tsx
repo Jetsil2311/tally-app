@@ -35,7 +35,7 @@ async function People() {
 
 function PeopleSkeleton() {
   return (
-    <Busy className="space-y-5 pt-2">
+    <Busy topic="people" className="space-y-5 pt-2">
       <div className="space-y-2">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-4 w-96 max-w-full" />

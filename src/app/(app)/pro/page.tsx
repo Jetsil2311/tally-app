@@ -28,7 +28,7 @@ async function ProContent({ searchParams }: { searchParams: PageProps<"/pro">["s
 
 function ProSkeleton() {
   return (
-    <Busy className="flex flex-col items-center gap-6 pt-4">
+    <Busy topic="pro" className="flex flex-col items-center gap-6 pt-4">
       <Skeleton className="size-20 rounded-[1.75rem]" />
       <Skeleton className="h-10 w-48" />
       <Skeleton className="h-80 w-full max-w-2xl rounded-3xl" />

@@ -53,7 +53,7 @@ async function Accounts({ searchParams }: { searchParams: PageProps<"/accounts">
 
 function AccountsSkeleton() {
   return (
-    <Busy className="space-y-5 pt-2">
+    <Busy topic="accounts" className="space-y-5 pt-2">
       <div className="flex justify-between">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-11 w-36 rounded-full" />

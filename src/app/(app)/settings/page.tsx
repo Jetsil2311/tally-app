@@ -65,7 +65,7 @@ async function Settings() {
 
 function SettingsSkeleton() {
   return (
-    <Busy className="space-y-5">
+    <Busy topic="settings" className="space-y-5">
       <Skeleton className="h-28 rounded-3xl" />
       <Skeleton className="h-40 rounded-3xl" />
       <Skeleton className="h-56 rounded-3xl" />

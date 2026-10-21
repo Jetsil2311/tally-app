@@ -442,24 +442,9 @@ input[type="number"] {
   }
 }
 
-/* Skeleton shimmer for loading states */
+/* Skeleton blocks: see "Loading" below */
 .skeleton {
-  background: linear-gradient(100deg, var(--surface-2) 20%, color-mix(in oklab, var(--surface-3) 70%, var(--surface)) 50%, var(--surface-2) 80%);
-  background-size: 220% 100%;
   border-radius: 12px;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .skeleton {
-    animation: shimmer 1.4s ease-in-out infinite;
-  }
-}
-@keyframes shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -100% 0;
-  }
 }
 
 /* Native <dialog> as a bottom sheet on phones, centered panel on larger screens */
@@ -1140,5 +1125,155 @@ dialog.sheet:not([open])::backdrop {
 @keyframes bar-grow {
   from {
     transform: scaleX(0);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Loading. Skeletons come in one block after another (top to bottom, the
+   order the eye reads), a soft light sweeps across them, and Buck's status
+   pill names what's being done over a bar that keeps moving
+   (loading-status.tsx). Under reduced motion: still blocks, no sweep, steps
+   swap in place.
+   --------------------------------------------------------------------------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--surface-3) 75%, var(--surface-2));
+  isolation: isolate;
+}
+[data-theme="dark"] .skeleton {
+  background: var(--surface-3);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 20%, color-mix(in oklab, var(--surface) 75%, transparent) 50%, transparent 80%);
+}
+[data-theme="dark"] .skeleton::after {
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.05) 50%, transparent 80%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: none;
+  }
+  .skeleton::after {
+    animation: sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  /* Blocks of a loading screen arrive top to bottom */
+  .busy > * {
+    animation: rise 520ms var(--ease-out-expo) both;
+  }
+  .busy > :nth-child(2) { animation-delay: 60ms; }
+  .busy > :nth-child(3) { animation-delay: 120ms; }
+  .busy > :nth-child(4) { animation-delay: 180ms; }
+  .busy > :nth-child(5) { animation-delay: 240ms; }
+  .busy > :nth-child(n + 6) { animation-delay: 300ms; }
+}
+@keyframes sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* The status pill: fades in after a beat (so fast loads never show it) */
+.loading-status {
+  opacity: 0;
+  animation: status-in 420ms var(--ease-spring) var(--appear-delay, 350ms) both;
+}
+@keyframes status-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Progress that never stalls and never claims to be done: quick at first,
+   then slower and slower toward 92% */
+.loading-progress {
+  transform: scaleX(0.92);
+  animation: loading-progress 16s cubic-bezier(0.08, 0.7, 0.2, 1) var(--elapsed, 0s) both;
+}
+@keyframes loading-progress {
+  from {
+    transform: scaleX(0.04);
+  }
+  to {
+    transform: scaleX(0.92);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .loading-step {
+    animation: step-in 380ms var(--ease-out-expo) both;
+  }
+  .loading-buck {
+    animation: buck-bob 1.8s ease-in-out infinite;
+  }
+  /* A light running along the bar: still working, even when it's slow */
+  .loading-pill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--ai-2) 10%, transparent) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: sweep 2.2s ease-in-out infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-status {
+    animation-duration: 1ms;
+  }
+}
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+}
+@keyframes buck-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  30% {
+    transform: translateY(-2px) rotate(-8deg);
+  }
+  60% {
+    transform: translateY(0) rotate(6deg);
+  }
+}
+
+/* A navigation tap that's waiting on the server: a thin bar runs across the
+   top of the screen (see PendingBar in shell.tsx) */
+.nav-pending {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 70;
+  height: 3px;
+  pointer-events: none;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--ai-1), var(--ai-2) 60%, var(--ai-3));
+  box-shadow: 0 0 12px color-mix(in oklab, var(--ai-2) 50%, transparent);
+  animation:
+    nav-pending 8s cubic-bezier(0.08, 0.7, 0.2, 1) 120ms both,
+    nav-pending-in 200ms ease-out 120ms both;
+}
+@keyframes nav-pending {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+@keyframes nav-pending-in {
+  from {
+    opacity: 0;
   }
 }
