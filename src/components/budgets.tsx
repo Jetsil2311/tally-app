@@ -41,7 +41,7 @@ export function BudgetsManager({ groups, accounts, categories }: { groups: Budge
   return (
     <>
       <header className="rise flex items-center justify-between gap-4 pt-2">
-        <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.budgets.title}</h1>
+        <h1 className="text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.budgets.title}</h1>
         <Button onClick={() => open({ kind: "new" })}>
           <Plus size={18} weight="bold" /> {t.budgets.add}
         </Button>
@@ -148,7 +148,7 @@ function BudgetCard({ budget, index, editable, onOpen }: { budget: Budget; index
           </span>
         ) : null}
       </div>
-      <p className={cn("mt-3 font-semibold tracking-tight", overall ? "text-[30px] leading-none" : "text-2xl leading-none", state === "over" && "text-expense")}>
+      <p className={cn("font-display mt-3 font-semibold tracking-[-0.03em]", overall ? "text-[30px] leading-none" : "text-2xl leading-none", state === "over" && "text-expense")}>
         {state === "over"
           ? t.budgets.over(<Money cents={-remaining} currency={budget.currency} />)
           : t.budgets.left(<Money cents={remaining} currency={budget.currency} />)}
@@ -162,9 +162,9 @@ function BudgetCard({ budget, index, editable, onOpen }: { budget: Budget; index
   );
 
   const cardClass = cn(
-    "rise rounded-3xl border bg-surface p-5 text-left transition-[border-color,box-shadow]",
-    state === "over" ? "border-expense/40" : state === "near" ? "border-warn/40" : "border-line",
-    editable && "hover:border-line-strong",
+    "card rise rounded-3xl p-5 text-left",
+    state === "over" ? "border-expense/40" : state === "near" ? "border-warn/40" : null,
+    editable && "card-press",
     overall && "sm:col-span-2 lg:col-span-1",
   );
   return editable ? (

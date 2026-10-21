@@ -83,7 +83,7 @@ export function CategoriesManager({
     <>
       <div className="flex flex-col gap-4 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.categories}</h1>
+          <h1 className="rise text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.nav.categories}</h1>
           <p className="mt-1 max-w-[56ch] text-ink-2">{t.categories.intro}</p>
         </div>
         {/* Wraps, and on phones the two buttons share the row: in Spanish

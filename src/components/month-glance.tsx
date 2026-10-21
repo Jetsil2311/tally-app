@@ -51,9 +51,9 @@ export function MonthGlance({
           href="/insights"
           aria-label={t.common.details}
           title={t.common.details}
-          className="-mr-2 flex size-10 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+          className="group/arrow -mr-2 flex size-10 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
         >
-          <ArrowRight size={18} />
+          <ArrowRight size={18} className="transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover/arrow:translate-x-0.5" />
         </Link>
       </div>
 
@@ -62,18 +62,21 @@ export function MonthGlance({
       <Money
         cents={net}
         sign
-        className={cn("mt-0.5 block truncate text-[36px] leading-none font-semibold tracking-tight", left ? "text-income" : "text-expense")}
+        className={cn("num-in font-display mt-1 block truncate text-[44px] leading-none font-semibold tracking-[-0.04em]", left ? "text-income" : "text-expense")}
       />
 
       {/* The two numbers below, as one bar: orange went out, green is left */}
       <div
         role="img"
         aria-label={g.barLabel(pct(income > 0 ? expense / income : 0))}
-        className={cn("relative mt-5 h-3 overflow-hidden rounded-full", income > 0 ? "bg-income" : "bg-surface-3")}
+        className={cn(
+          "relative mt-6 h-3.5 overflow-hidden rounded-full shadow-[inset_0_1px_2px_rgb(0_0_0/0.12)]",
+          income > 0 ? "bg-[linear-gradient(90deg,var(--chart-income),var(--income))]" : "bg-surface-3",
+        )}
       >
         {spentShare > 0 ? (
           <span
-            className="absolute inset-y-0 left-0 rounded-full bg-chart-expense ring-2 ring-surface"
+            className="bar-grow absolute inset-y-0 left-0 rounded-full bg-[linear-gradient(90deg,color-mix(in_oklab,var(--chart-expense)_80%,white),var(--chart-expense))] shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] ring-2 ring-surface"
             style={{ width: `${spentShare * 100}%` }}
           />
         ) : null}
@@ -88,7 +91,7 @@ export function MonthGlance({
             {g.in}
           </dt>
           <dd className="mt-1">
-            <Money cents={income} sign className="block truncate text-xl font-semibold tracking-tight" />
+            <Money cents={income} sign className="font-display block truncate text-[22px] font-semibold tracking-[-0.03em]" />
           </dd>
         </div>
         <div className="min-w-0">
@@ -109,7 +112,7 @@ export function MonthGlance({
             ) : null}
           </dt>
           <dd className="mt-1">
-            <Money cents={-expense} sign className="block truncate text-xl font-semibold tracking-tight" />
+            <Money cents={-expense} sign className="font-display block truncate text-[22px] font-semibold tracking-[-0.03em]" />
           </dd>
         </div>
       </dl>
@@ -119,7 +122,7 @@ export function MonthGlance({
         {expense > 0 ? (
           <p
             className={cn(
-              "flex items-start gap-2 rounded-2xl px-3 py-2.5 text-sm leading-snug",
+              "flex items-start gap-2 rounded-2xl px-3.5 py-3 text-sm leading-snug",
               overPace ? "bg-expense-soft text-expense" : "bg-surface-2 text-ink-2",
             )}
           >

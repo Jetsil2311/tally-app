@@ -38,31 +38,32 @@ export function HomeQuickActions() {
   const { open: openAi } = useAi();
   const { t } = useI18n();
   const tile =
-    "group flex min-w-0 flex-col items-center gap-2 rounded-3xl px-1 py-3 text-center text-xs font-medium transition-[background-color,transform,translate,scale,rotate] duration-200 hover:bg-surface-2 active:scale-[0.97] sm:flex-row sm:gap-3 sm:border sm:border-line sm:bg-surface sm:px-4 sm:text-left sm:text-[15px] sm:hover:border-line-strong";
-  const circle = "flex size-12 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-105 sm:size-10";
+    "group flex min-w-0 flex-col items-center gap-2 rounded-3xl px-1 py-2 text-center text-xs font-medium text-ink-2 transition-[color,transform,translate,scale,rotate,box-shadow] duration-300 ease-[var(--ease-out-expo)] hover:text-ink active:scale-[0.95] card-sm card-press sm:flex-row sm:gap-3 sm:px-3 sm:py-3 sm:text-left sm:text-[15px] sm:text-ink";
+  const circle =
+    "flex size-14 shrink-0 items-center justify-center rounded-[1.35rem] transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] group-hover:scale-105 group-hover:-rotate-6 group-active:scale-95 sm:size-11 sm:rounded-2xl";
   const label = "max-w-full truncate";
   return (
     <nav aria-label={t.home.quickActions} className="rise grid grid-cols-5 gap-1 sm:gap-3" style={{ "--i": 1 } as React.CSSProperties}>
       <button type="button" className={tile} onClick={() => open({ mode: "expense" })}>
-        <span className={cn(circle, "bg-accent text-accent-ink")}>
+        <span className={cn(circle, "tactile")}>
           <ArrowUp size={20} weight="bold" aria-hidden />
         </span>
         <span className={label}>{t.common.expense}</span>
       </button>
       <button type="button" className={tile} onClick={() => open({ mode: "income" })}>
-        <span className={cn(circle, "bg-income-soft text-income")}>
+        <span className={cn(circle, "icon-tile text-income")}>
           <ArrowDown size={20} weight="bold" aria-hidden />
         </span>
         <span className={label}>{t.common.income}</span>
       </button>
       <button type="button" className={tile} onClick={() => open({ mode: "transfer" })}>
-        <span className={cn(circle, "bg-surface-3 text-ink")}>
+        <span className={cn(circle, "icon-tile text-accent")}>
           <ArrowsLeftRight size={20} weight="bold" aria-hidden />
         </span>
         <span className={label}>{t.common.transfer}</span>
       </button>
       <Link href="/accounts?new=1" className={tile}>
-        <span className={cn(circle, "bg-surface-3 text-ink")}>
+        <span className={cn(circle, "icon-tile text-[var(--chart-expense)]")}>
           <Wallet size={20} weight="bold" aria-hidden />
         </span>
         <span className={label}>{t.home.newAccountShort}</span>

@@ -3,8 +3,9 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { OptionalTag } from "./optional-tag";
 
-// Shared presentational pieces. Shape rule: containers 24px, inputs 16px,
-// anything pressable is a pill.
+// Shared presentational pieces. Shape rule: containers 28px squircles,
+// inputs 18px, anything pressable is a pill. Materials (card, tactile,
+// raised, field) live in globals.css.
 
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -13,16 +14,16 @@ export function cn(...classes: (string | false | null | undefined)[]) {
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-ink hover:bg-accent-hover shadow-soft",
-  secondary: "bg-surface-2 text-ink hover:bg-surface-3 border border-line",
+  primary: "tactile",
+  secondary: "raised text-ink hover:border-line-strong",
   ghost: "text-ink-2 hover:text-ink hover:bg-surface-2",
-  danger: "bg-expense text-white hover:opacity-90 dark:text-[#1a0a0e]",
+  danger: "bg-expense text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_8px_18px_-8px_var(--expense)] hover:brightness-110 dark:text-[#1a0a0e]",
 };
 
 export function buttonClass(variant: Variant = "primary", size: "sm" | "md" | "lg" = "md") {
   return cn(
     "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium",
-    "transition-[background-color,color,transform,translate,scale,rotate,opacity] duration-200 active:scale-[0.97]",
+    "transition-[background-color,color,border-color,transform,translate,scale,rotate,opacity,box-shadow,filter] duration-200 ease-[var(--ease-out-expo)] active:scale-[0.96]",
     "disabled:pointer-events-none disabled:opacity-45",
     size === "sm" && "h-9 px-3.5 text-sm",
     size === "md" && "h-11 px-5 text-[15px]",
@@ -46,8 +47,8 @@ export function IconButton({ label, className, ...props }: ComponentProps<"butto
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 transition-[background-color,color,scale] duration-200",
-        "hover:bg-surface-2 hover:text-ink active:scale-95",
+        "inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 transition-[background-color,color,scale,rotate] duration-200 ease-[var(--ease-out-expo)]",
+        "hover:bg-surface-2 hover:text-ink active:scale-90",
         className,
       )}
       {...props}
@@ -56,13 +57,13 @@ export function IconButton({ label, className, ...props }: ComponentProps<"butto
 }
 
 export function Card({ className, ...props }: ComponentProps<"section">) {
-  return <section className={cn("rounded-3xl border border-line bg-surface", className)} {...props} />;
+  return <section className={cn("card rounded-3xl", className)} {...props} />;
 }
 
 export function SectionTitle({ children, action, id }: { children: ReactNode; action?: ReactNode; id?: string }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 id={id} className="text-[17px] font-semibold tracking-tight text-ink">
+      <h2 id={id} className="text-lg font-semibold text-ink">
         {children}
       </h2>
       {action}
@@ -85,8 +86,12 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center px-6 py-10 text-center", className)}>
-      <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-accent-soft text-accent">{icon}</div>
-      <p className="text-base font-semibold text-ink">{title}</p>
+      <div className="relative mb-5">
+        {/* A soft halo behind the icon, so an empty screen still has a focal point */}
+        <span aria-hidden className="absolute inset-0 scale-[1.9] rounded-full bg-accent/10 blur-xl" />
+        <div className="icon-tile relative flex size-16 rotate-[-6deg] items-center justify-center rounded-3xl text-accent">{icon}</div>
+      </div>
+      <p className="font-display text-lg font-semibold tracking-tight text-ink">{title}</p>
       {children ? <p className="mt-1.5 max-w-[42ch] text-sm leading-relaxed text-ink-2">{children}</p> : null}
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
@@ -137,8 +142,8 @@ export function Field({
 }
 
 export const inputClass = cn(
-  "h-12 w-full rounded-2xl border border-line bg-surface-2 px-4 text-base text-ink",
-  "placeholder:text-ink-3 transition-[border-color,box-shadow] duration-200",
+  "field h-12 w-full rounded-2xl border border-transparent px-4 text-base text-ink",
+  "placeholder:text-ink-3 transition-[border-color,box-shadow,background-color] duration-200",
   "hover:border-line-strong focus:border-accent focus:bg-surface focus:outline-none focus:ring-4 focus:ring-accent-soft",
   "aria-invalid:border-expense aria-invalid:ring-expense-soft",
 );

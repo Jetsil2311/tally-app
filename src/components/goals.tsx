@@ -96,7 +96,7 @@ export function GoalsManager({ goals, openNew, openGoalId }: { goals: SavingsGoa
     <>
       <header className="rise flex flex-col gap-4 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.goals.title}</h1>
+          <h1 className="text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.goals.title}</h1>
           <p className="mt-1 max-w-[56ch] text-sm leading-relaxed text-ink-2">{t.goals.intro}</p>
         </div>
         {goals.length ? (
@@ -196,8 +196,8 @@ function GoalCard({ goal, index, onOpen }: { goal: SavingsGoal; index: number; o
   return (
     <article
       className={cn(
-        "rise group relative flex flex-col gap-4 rounded-3xl border bg-surface p-5 transition-[border-color,box-shadow] hover:border-line-strong",
-        done ? "border-income/30" : "border-line",
+        "card card-press rise group relative flex flex-col gap-4 rounded-3xl p-5",
+        done && "border-income/40",
         paused && "opacity-75",
       )}
       style={{ "--i": index } as React.CSSProperties}

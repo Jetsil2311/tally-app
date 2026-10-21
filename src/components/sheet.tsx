@@ -52,7 +52,7 @@ export function Sheet({
           <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-line-strong sm:hidden" aria-hidden />
           <header className="flex items-start justify-between gap-4 px-6 pt-4 pb-2 sm:pt-6">
             <div>
-              <h2 id={titleId} className="text-xl font-semibold tracking-tight">
+              <h2 id={titleId} className="text-[22px] leading-tight font-semibold">
                 {title}
               </h2>
               {description ? <p className="mt-1 text-sm text-ink-2">{description}</p> : null}

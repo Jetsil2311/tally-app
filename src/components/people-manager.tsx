@@ -62,7 +62,7 @@ export function PeopleManager({
   return (
     <>
       <header className="rise pt-2">
-        <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.people}</h1>
+        <h1 className="text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.nav.people}</h1>
         <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-ink-2">{t.people.intro}</p>
       </header>
 
@@ -156,7 +156,7 @@ export function ManagedNotice({ guardian }: { guardian: string }) {
   const { t } = useI18n();
   return (
     <>
-      <h1 className="rise pt-2 text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.people}</h1>
+      <h1 className="rise pt-2 text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.nav.people}</h1>
       <Card className="rise flex items-start gap-4 p-6">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
           <LockKey size={20} />

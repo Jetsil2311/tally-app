@@ -118,7 +118,7 @@ export function ActivityFilters({
       ) : null}
 
       {showFilters ? (
-        <div className="rise grid grid-cols-1 gap-3 rounded-3xl border border-line bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rise grid grid-cols-1 gap-3 card rounded-3xl p-4 sm:grid-cols-2 lg:grid-cols-3">
           <Select aria-label={t.common.type} value={query.type ?? ""} onChange={(e) => go({ type: (e.target.value || undefined) as ActivityQuery["type"] })}>
             <option value="">{t.activity.incomeAndExpenses}</option>
             <option value="expense">{t.activity.onlyExpenses}</option>

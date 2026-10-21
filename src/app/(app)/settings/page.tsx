@@ -22,7 +22,7 @@ export default async function SettingsPage() {
   const { t } = await getI18n();
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <h1 className="rise pt-2 text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.settings}</h1>
+      <h1 className="rise pt-2 text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.nav.settings}</h1>
       <Suspense fallback={<SettingsSkeleton />}>
         <Settings />
       </Suspense>

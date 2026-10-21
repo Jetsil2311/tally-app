@@ -65,7 +65,8 @@ export function CashFlowChart({
   const empty = points.every((p) => p.income === 0 && p.expense === 0);
 
   return (
-    <div>
+    // Room above for the top tick's label, which sits centred on its line
+    <div className="pt-3">
       <div className="relative flex" style={{ height }}>
         {/* Y axis labels + recessive grid */}
         <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -99,11 +100,11 @@ export function CashFlowChart({
                 )}
               >
                 <span
-                  className="w-full max-w-4 rounded-t-[4px] bg-chart-income transition-[height] duration-500 ease-out"
+                  className="bar-rise w-full max-w-4 rounded-t-[4px] bg-chart-income transition-[height] duration-500 ease-out"
                   style={{ height: `${(p.income / max) * 100}%`, minHeight: p.income ? 2 : 0 }}
                 />
                 <span
-                  className="w-full max-w-4 rounded-t-[4px] bg-chart-expense transition-[height] duration-500 ease-out"
+                  className="bar-rise w-full max-w-4 rounded-t-[4px] bg-chart-expense transition-[height] duration-500 ease-out"
                   style={{ height: `${(p.expense / max) * 100}%`, minHeight: p.expense ? 2 : 0 }}
                 />
                 {isActive ? (
@@ -195,7 +196,7 @@ export function CategoryBars({
               </span>
               <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full">
                 <span
-                  className={cn("block h-full rounded-full", type === "income" ? "bg-chart-income" : "bg-chart-expense")}
+                  className={cn("bar-grow block h-full rounded-full", type === "income" ? "bg-chart-income" : "bg-chart-expense")}
                   style={{ width: `${Math.max((row.total / max) * 100, 1.5)}%` }}
                 />
               </span>
@@ -290,7 +291,7 @@ export function SpendingCalendar({
               title={`${shortMonth} ${day}: ${cents ? format(cents / 100) : t.charts.noSpending}`}
               aria-label={`${longMonth} ${day}: ${cents ? t.charts.spent(format(cents / 100)) : future ? t.charts.upcoming : t.charts.noSpending}`}
               className={cn(
-                "flex aspect-square items-center justify-center rounded-[10px] text-xs tabular transition-transform hover:scale-105",
+                "flex aspect-square items-center justify-center rounded-xl text-xs tabular transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-110",
                 l >= 3 ? "text-white" : "text-ink-2",
                 key === today && "ring-2 ring-ink ring-offset-2 ring-offset-surface",
                 future && "opacity-40",

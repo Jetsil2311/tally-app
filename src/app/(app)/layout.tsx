@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AiProvider } from "@/components/ai-assist";
 import { AssistantSheet } from "@/components/assistant";
 import { BadgeCelebrator } from "@/components/badges";
+import { PageTransition } from "@/components/page-transition";
 import { PlanProvider } from "@/components/plan";
 import { PreferencesProvider } from "@/components/preferences";
 import { QuickAddProvider } from "@/components/quick-add";
@@ -74,7 +75,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
           <div className="lg:pl-60">
           <TopBar user={user} aiUnseen={aiUnseen} />
           <main id="main" className="mx-auto w-full max-w-6xl px-4 pt-2 pb-36 sm:px-6 sm:pb-32 lg:pb-12">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </main>
           </div>
           <Dock attention={attention} />
@@ -96,7 +97,7 @@ function ShellFallback() {
   return (
     <>
       {/* The sidebar's place on desktop, so nothing jumps when it arrives */}
-      <div aria-hidden className="fixed inset-y-0 left-0 hidden w-60 border-r border-line bg-bg lg:block" />
+      <div aria-hidden className="fixed inset-y-0 left-0 hidden w-60 border-r border-line/70 lg:block" />
       <div className="lg:pl-60">
       <TopBarSkeleton />
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-6 sm:px-6">

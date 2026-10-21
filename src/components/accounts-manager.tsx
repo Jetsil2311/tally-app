@@ -71,7 +71,7 @@ export function AccountsManager({
   return (
     <>
       <div className="flex items-center justify-between gap-3 pt-2">
-        <h1 className="rise text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.accounts}</h1>
+        <h1 className="rise text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.nav.accounts}</h1>
         {/* Managed profiles can't create accounts */}
         {!viewer.isManaged ? (
           <Button onClick={() => start()}>

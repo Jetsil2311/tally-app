@@ -68,7 +68,7 @@ export function Assistant({
         <span className="flex size-11 items-center justify-center rounded-2xl ai-surface">
           <AiMark size={24} />
         </span>
-        <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.ai.title}</h1>
+        <h1 className="text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.ai.title}</h1>
       </header>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">

@@ -125,7 +125,7 @@ export function BadgeCase({ badges }: { badges: Badge[] }) {
   return (
     <>
       <header className="rise pt-2">
-        <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.badges.title}</h1>
+        <h1 className="text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.badges.title}</h1>
         <p className="mt-1 max-w-[56ch] text-sm leading-relaxed text-ink-2">{t.badges.intro}</p>
       </header>
 
@@ -133,7 +133,7 @@ export function BadgeCase({ badges }: { badges: Badge[] }) {
       <Card className="rise grid grid-cols-1 gap-5 p-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" style={{ "--i": 1 } as React.CSSProperties}>
         <div className="min-w-0">
           <p className="text-sm text-ink-2">{t.badges.collected}</p>
-          <p className="tabular mt-1 text-[40px] leading-none font-semibold tracking-tight">
+          <p className="tabular font-display mt-1 text-[44px] leading-none font-semibold tracking-[-0.04em]">
             {earned.length}
             <span className="text-2xl font-medium text-ink-3"> / {badges.length}</span>
           </p>

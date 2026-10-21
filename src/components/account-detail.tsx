@@ -112,7 +112,7 @@ export function AccountDetail({
 
       <header className="rise flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="truncate text-[28px] font-semibold tracking-tight sm:text-[32px]">{account.name}</h1>
+          <h1 className="truncate pb-0.5 text-[32px] leading-[1.15] font-semibold sm:text-[40px]">{account.name}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-2">
             <RoleBadge role={role} />
             <span>{t.accountDetail.sharedWith(active.length)}</span>

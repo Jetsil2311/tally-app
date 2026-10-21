@@ -293,7 +293,7 @@ export function AmountInput({
               setShownError(undefined);
               onValueChange?.(formatMoneyInput(e).raw);
             }}
-            className="tabular max-w-[min(11ch,100%)] bg-transparent text-center text-5xl font-semibold tracking-tight text-ink placeholder:text-ink-3/60 focus:outline-none"
+            className="tabular font-display max-w-[min(11ch,100%)] bg-transparent text-center text-[56px] leading-none font-semibold tracking-[-0.04em] text-ink placeholder:text-ink-3/60 focus:outline-none"
             style={{ fieldSizing: "content", minWidth: "4ch" } as React.CSSProperties}
           />
         </div>
@@ -1158,7 +1158,7 @@ function TransactionDetails({ tx, accounts, onDone }: { tx: Transaction; account
           value={income ? tx.amount : -Number(tx.amount)}
           currency={accountCurrency}
           sign
-          className={cn("block truncate text-5xl font-semibold tracking-tight", income ? "text-income" : "text-ink")}
+          className={cn("font-display block truncate text-[52px] leading-none font-semibold tracking-[-0.04em]", income ? "text-income" : "text-ink")}
         />
         {tx.originalAmount && tx.originalCurrency ? (
           <p className="mt-2 text-sm text-ink-2">

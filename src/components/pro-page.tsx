@@ -142,7 +142,7 @@ export function ProPage({
             </span>
           </span>
         </div>
-        <ul className="overflow-hidden rounded-3xl border border-line bg-surface">
+        <ul className="overflow-hidden card rounded-3xl">
           {rows.map(({ icon: Icon, label, free, pro: proValue, highlight }) => (
             <li
               key={label}

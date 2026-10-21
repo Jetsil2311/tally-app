@@ -73,20 +73,27 @@ function isActive(pathname: string, href: string) {
 export function Logo() {
   const { t } = useI18n();
   return (
-    <Link href="/" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={t.nav.tallyHome}>
-      <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
-        <SquaresFour size={18} weight="fill" />
-      </span>
-      <span translate="no" className="text-[17px] font-semibold tracking-tight">
+    <Link href="/" className="group/logo flex items-center gap-2.5 rounded-full pr-2" aria-label={t.nav.tallyHome}>
+      <LogoMark />
+      <span translate="no" className="font-display text-[19px] font-semibold tracking-[-0.03em]">
         Tally
       </span>
     </Link>
   );
 }
 
+// The mark: a lit cobalt tile, the same material as the primary button
+function LogoMark() {
+  return (
+    <span className="tactile flex size-9 items-center justify-center rounded-xl transition-[rotate,scale] duration-500 ease-[var(--ease-spring)] group-hover/logo:-rotate-12">
+      <SquaresFour size={18} weight="fill" />
+    </span>
+  );
+}
+
 export function TopBar({ user, aiUnseen }: { user: Promise<User>; aiUnseen: Promise<number> }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur-xl supports-[backdrop-filter]:bg-bg/70">
+    <header className="topbar sticky top-0 z-30 [view-transition-name:topbar]">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 pt-[env(safe-area-inset-top)] sm:px-6">
         <div className="lg:hidden">
           <Logo />
@@ -208,6 +215,7 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
   const pathname = usePathname();
   const { open } = useQuickAdd();
   const { t } = useI18n();
+  const reduce = useReducedMotion();
 
   const link = ({ href, key, icon: Icon }: Section) => {
     const active = isActive(pathname, href);
@@ -217,12 +225,27 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
           href={href}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "flex min-h-11 items-center gap-3 rounded-2xl px-3 text-[15px] transition-colors",
-            active ? "bg-surface-3 font-medium text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+            "group relative flex min-h-11 items-center gap-3 rounded-2xl px-3 text-[15px] transition-colors duration-200",
+            active ? "font-medium text-ink" : "text-ink-2 hover:bg-surface-2/70 hover:text-ink",
           )}
         >
-          <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
-          <span className="truncate">{t.nav[key]}</span>
+          {active ? (
+            <motion.span
+              layoutId="sidebar-active"
+              transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 38 }}
+              className="nav-pill absolute inset-0 rounded-2xl"
+            />
+          ) : null}
+          <Icon
+            size={20}
+            weight={active ? "fill" : "regular"}
+            className={cn(
+              "relative transition-[scale,rotate,color] duration-300 ease-[var(--ease-spring)] group-hover:scale-110",
+              active ? "text-accent" : "group-hover:-rotate-6",
+            )}
+            aria-hidden
+          />
+          <span className="relative truncate">{t.nav[key]}</span>
           {key === "people" ? (
             <Suspense fallback={null}>
               <AttentionCount attention={attention} />
@@ -234,25 +257,25 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line bg-bg px-3 pt-4 pb-5 lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line/70 bg-[color-mix(in_oklab,var(--surface)_45%,transparent)] px-3 pt-4 pb-5 backdrop-blur-2xl [view-transition-name:sidebar] lg:flex">
       <div className="px-2 pb-5">
         <Logo />
       </div>
       <button
         type="button"
         onClick={() => open({ mode: "expense" })}
-        className="mb-5 flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-medium text-accent-ink shadow-soft transition-[transform,translate,scale,rotate,background-color] hover:bg-accent-hover active:scale-[0.98]"
+        className="tactile group mb-5 flex min-h-12 items-center justify-center gap-2 rounded-full text-[15px] font-semibold"
       >
-        <Plus size={18} weight="bold" aria-hidden /> {t.nav.add}
+        <Plus size={18} weight="bold" className="transition-transform duration-500 ease-[var(--ease-spring)] group-hover:rotate-90" aria-hidden /> {t.nav.add}
       </button>
       <nav aria-label={t.nav.primary} className="flex-1 space-y-5 overflow-y-auto">
         <ul className="space-y-0.5">{CORE.map(link)}</ul>
         <div>
-          <p className="px-3 pb-1.5 text-xs font-medium text-ink-3">{t.nav.groupPlan}</p>
+          <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">{t.nav.groupPlan}</p>
           <ul className="space-y-0.5">{PLAN.map(link)}</ul>
         </div>
         <div>
-          <p className="px-3 pb-1.5 text-xs font-medium text-ink-3">{t.nav.groupYou}</p>
+          <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">{t.nav.groupYou}</p>
           <ul className="space-y-0.5">{YOU.map(link)}</ul>
         </div>
       </nav>
@@ -280,10 +303,15 @@ export function Dock({ attention }: { attention: Promise<number> }) {
         <motion.span
           layoutId="dock-active"
           transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
-          className="absolute inset-0 rounded-full bg-surface-3"
+          className="absolute inset-0 rounded-full bg-accent-soft"
         />
       ) : null}
-      <Icon size={22} weight={active ? "fill" : "regular"} className="relative" aria-hidden />
+      <Icon
+        size={22}
+        weight={active ? "fill" : "regular"}
+        className={cn("relative transition-[scale,color] duration-300 ease-[var(--ease-spring)]", active ? "scale-110 text-accent" : "group-active:scale-90")}
+        aria-hidden
+      />
       <span className="relative max-w-full truncate">{label}</span>
     </>
   );
@@ -291,7 +319,7 @@ export function Dock({ attention }: { attention: Promise<number> }) {
     cn(
       // Equal columns that can shrink (min-w-0): a long label truncates
       // instead of pushing the dock off-screen
-      "relative flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 text-[11px] font-medium transition-colors sm:h-12 sm:flex-none sm:flex-row sm:gap-2 sm:px-4 sm:text-sm",
+      "group relative flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 text-[11px] font-medium transition-colors sm:h-12 sm:flex-none sm:flex-row sm:gap-2 sm:px-4 sm:text-sm",
       active ? "text-ink" : "text-ink-2 hover:text-ink",
     );
 
@@ -308,7 +336,7 @@ export function Dock({ attention }: { attention: Promise<number> }) {
     <>
       <nav
         aria-label={t.nav.primary}
-        className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-5 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] [view-transition-name:dock] sm:pb-5 lg:hidden"
       >
         <div className="glass flex w-full max-w-md min-w-0 items-center justify-between gap-0.5 rounded-full p-1.5 sm:w-auto sm:max-w-none sm:gap-1">
           {DOCK.slice(0, 2).map(link)}
@@ -317,9 +345,9 @@ export function Dock({ attention }: { attention: Promise<number> }) {
             onClick={() => open({ mode: "expense" })}
             aria-label={t.nav.addEntry}
             title={t.nav.addEntry}
-            className="mx-0.5 flex size-14 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft transition-[transform,translate,scale,rotate,background-color] duration-200 hover:bg-accent-hover active:scale-95 sm:mx-1 sm:size-12"
+            className="tactile group mx-0.5 flex size-14 shrink-0 items-center justify-center rounded-full sm:mx-1 sm:size-12"
           >
-            <Plus size={24} weight="bold" />
+            <Plus size={24} weight="bold" className="transition-transform duration-500 ease-[var(--ease-spring)] group-hover:rotate-90 group-active:rotate-90" />
           </button>
           {DOCK.slice(2).map(link)}
           <button
@@ -385,8 +413,8 @@ function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => 
   const { open: openAi } = useAi();
   const tile = (active: boolean) =>
     cn(
-      "relative flex aspect-[1.1] min-w-0 flex-col items-center justify-center gap-2 rounded-3xl border px-2 text-center text-sm font-medium transition-[background-color,border-color,transform,translate,scale,rotate] active:scale-[0.97]",
-      active ? "border-accent bg-accent-soft text-ink" : "border-line bg-surface-2 text-ink hover:border-line-strong",
+      "group relative flex aspect-[1.1] min-w-0 flex-col items-center justify-center gap-2.5 rounded-3xl border px-2 text-center text-sm font-medium transition-[background-color,border-color,transform,translate,scale,rotate] duration-300 ease-[var(--ease-out-expo)] active:scale-[0.95]",
+      active ? "border-accent/50 bg-accent-soft text-ink" : "raised text-ink hover:border-line-strong",
     );
   return (
     <ul className="grid grid-cols-3 gap-3 pb-2">
@@ -395,7 +423,12 @@ function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => 
         return (
           <li key={href}>
             <Link href={href} onClick={onPick} aria-current={active ? "page" : undefined} className={tile(active)}>
-              <Icon size={28} weight="duotone" className={active ? "text-accent" : "text-ink-2"} aria-hidden />
+              <Icon
+                size={28}
+                weight="duotone"
+                className={cn("transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] group-hover:scale-110 group-hover:-rotate-6", active ? "text-accent" : "text-ink-2")}
+                aria-hidden
+              />
               <span className="max-w-full truncate">{t.nav[key]}</span>
               {key === "people" ? (
                 <Suspense fallback={null}>
@@ -424,10 +457,8 @@ export function TopBarSkeleton() {
     <header className="sticky top-0 z-30">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
-            <SquaresFour size={18} weight="fill" />
-          </span>
-          <span translate="no" className="text-[17px] font-semibold tracking-tight">
+          <LogoMark />
+          <span translate="no" className="font-display text-[19px] font-semibold tracking-[-0.03em]">
             Tally
           </span>
         </div>

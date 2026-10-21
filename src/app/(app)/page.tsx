@@ -1,4 +1,4 @@
-import { ArrowRight, Check, CreditCard, Repeat, Sparkle, Tag, Wallet, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Check, Repeat, Sparkle, Tag, Wallet, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -8,6 +8,7 @@ import { AccountCard } from "@/components/account-card";
 import { HomeQuickActions, OpenQuickAdd } from "@/components/actions-bar";
 import { CashFlowChart, CategoryBars, SpendingCalendar } from "@/components/charts";
 import { MonthGlance } from "@/components/month-glance";
+import { NetCard } from "@/components/net-card";
 import { Money } from "@/components/preferences";
 import { StatusPill, TypeBadge } from "@/components/recurring-manager";
 import { TransactionRow } from "@/components/transaction-row";
@@ -158,7 +159,7 @@ async function Home() {
       <header className="rise flex flex-col gap-4 pt-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm text-ink-2">{capitalize(monthLabel(monthKey, "long", true, locale))}</p>
-          <h1 className="mt-1 text-[28px] leading-tight font-semibold tracking-tight sm:text-[32px]">
+          <h1 className="mt-1 text-[32px] leading-[1.05] font-semibold sm:text-[40px]">
             {greeting}
           </h1>
         </div>
@@ -167,45 +168,16 @@ async function Home() {
       <HomeQuickActions />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
-        {/* Net balance: the one number that matters most */}
-        <section
-          className="rise relative overflow-hidden rounded-3xl bg-[linear-gradient(150deg,#2b48e8_0%,#1e33b8_55%,#16257f_100%)] p-6 text-white shadow-soft sm:p-7 lg:col-span-7"
-          style={{ "--i": 1 } as React.CSSProperties}
-          aria-labelledby="net-title"
-        >
-          <span aria-hidden className="pointer-events-none absolute -right-24 -bottom-32 size-80 rounded-full bg-white/10 blur-3xl" />
-          <span aria-hidden className="pointer-events-none absolute top-0 right-0 h-full w-1/2 bg-[radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.18),transparent_55%)]" />
-          <div className="relative flex h-full flex-col">
-            <h2 id="net-title" className="text-sm font-medium text-white/75" title={t.home.netAcross(accounts.length)}>
-              {t.home.total}
-              <span className="sr-only">: {t.home.netAcross(accounts.length)}</span>
-            </h2>
-            <Money cents={netWorth} approximate={net.approximate} className="mt-2 block truncate text-[clamp(2rem,11vw,2.75rem)] leading-none font-semibold tracking-tighter sm:text-[56px]" />
-            {/* Where it is: cash/debit and what's owed on cards, as icon + amount */}
-            <dl className="mt-8 flex flex-wrap gap-2 lg:mt-auto lg:pt-8">
-              <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/12 py-1.5 pr-4 pl-1.5 backdrop-blur-sm" title={t.home.cashAndDebit}>
-                <dt className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15">
-                  <Wallet size={17} weight="fill" aria-hidden />
-                  <span className="sr-only">{t.home.cashAndDebit}</span>
-                </dt>
-                <dd>
-                  <Money cents={available} approximate={availableSum.approximate} className="block truncate font-medium" />
-                </dd>
-              </div>
-              {owed !== 0 ? (
-                <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/12 py-1.5 pr-4 pl-1.5 backdrop-blur-sm" title={t.home.creditOwed}>
-                  <dt className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/15">
-                    <CreditCard size={17} weight="fill" aria-hidden />
-                    <span className="sr-only">{t.home.creditOwed}</span>
-                  </dt>
-                  <dd>
-                    <Money cents={-Math.abs(owed)} sign approximate={owedSum.approximate} className="block truncate font-medium" />
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
-          </div>
-        </section>
+        <NetCard
+          net={netWorth}
+          approximate={net.approximate}
+          available={available}
+          availableApproximate={availableSum.approximate}
+          owed={owed}
+          owedApproximate={owedSum.approximate}
+          accountCount={accounts.length}
+          t={t}
+        />
 
         {/* This month at a glance */}
         <MonthGlance
@@ -260,9 +232,9 @@ async function Home() {
           ))}
           <Link
             href="/accounts?new=1"
-            className="flex min-h-40 w-40 shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-line-strong text-ink-2 transition-colors hover:border-accent hover:text-accent"
+            className="group flex min-h-40 w-40 shrink-0 snap-start flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-line-strong text-ink-2 transition-[border-color,color,background-color] duration-300 hover:border-accent hover:bg-accent-soft/50 hover:text-accent"
           >
-            <Wallet size={24} />
+            <span className="flex size-12 items-center justify-center rounded-full bg-surface-2 transition-[scale,rotate,background-color] duration-300 ease-[var(--ease-spring)] group-hover:scale-110 group-hover:-rotate-6 group-hover:bg-surface"><Wallet size={22} /></span>
             <span className="text-sm font-medium">{t.home.newAccount}</span>
           </Link>
         </div>

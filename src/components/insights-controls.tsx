@@ -33,7 +33,7 @@ export function InsightsHeader({
   return (
     <div className="flex flex-col gap-4 pt-2 sm:flex-row sm:items-center sm:justify-between" aria-busy={pending}>
       <div className="flex items-center gap-3">
-        <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.insights}</h1>
+        <h1 className="text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.nav.insights}</h1>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Segmented

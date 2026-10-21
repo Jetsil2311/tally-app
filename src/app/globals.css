@@ -6,34 +6,43 @@
 /*
   Tokens. One accent (cobalt) plus two semantic colors that always come with
   a sign or icon: income (green) and expense (rose). Shape rule: containers
-  24px, inputs 16px, anything you press is a pill.
+  28px squircles, inputs 18px, anything you press is a pill. Surfaces are
+  "soft depth": a hairline edge, a light catching the top, and a shadow
+  tinted with the page's own hue (never grey on grey).
 */
 :root {
   color-scheme: light;
-  --bg: #eef0f3;
-  --surface: #fcfcfd;
-  --surface-2: #f4f5f7;
-  --surface-3: #e9ebef;
-  --ink: #12141a;
-  --ink-2: #565b66;
-  --ink-3: #868b95;
-  --line: #e2e4e9;
-  --line-strong: #cfd2d9;
+  --bg: #eceef4;
+  --surface: #fdfdff;
+  --surface-2: #f3f4f9;
+  --surface-3: #e7e9f1;
+  --ink: #11131a;
+  --ink-2: #545a68;
+  --ink-3: #828896;
+  --line: #e0e3eb;
+  --line-strong: #cbd0db;
   --accent: #2b48e8;
   --accent-hover: #2139c4;
   --accent-ink: #f7f8ff;
-  --accent-soft: #e6eaff;
+  --accent-soft: #e5e9ff;
   --income: #0a7469;
-  --income-soft: #dcf2ee;
+  --income-soft: #dbf3ee;
   --expense: #b23a0b;
-  --expense-soft: #fbe9df;
+  --expense-soft: #fce9df;
   /* Chart marks, validated for colour-blind separation (dataviz validator) */
   --chart-income: #0f9b8e;
   --chart-expense: #c2410c;
   --warn: #9a5b00;
-  --warn-soft: #fbefd9;
-  --scrim: rgb(14 16 22 / 0.45);
-  --shadow-tint: 222 30% 30%;
+  --warn-soft: #fcf0d9;
+  --scrim: rgb(14 16 28 / 0.42);
+  --shadow-tint: 228 45% 28%;
+  /* The light catching a surface's top edge */
+  --sheen: rgb(255 255 255 / 0.9);
+  /* Ambient light behind everything: cobalt, a little teal, a little warmth */
+  --glow-1: rgb(43 72 232 / 0.13);
+  --glow-2: rgb(15 155 142 / 0.09);
+  --glow-3: rgb(245 158 11 / 0.07);
+  --grain-opacity: 0.035;
   /* The AI mark: brand cobalt -> magenta -> amber. Only AI features wear it. */
   --ai-1: #3552f0;
   --ai-2: #c026d3;
@@ -43,15 +52,15 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0a0b0e;
-  --surface: #121318;
-  --surface-2: #181a20;
-  --surface-3: #22252d;
-  --ink: #eceef2;
-  --ink-2: #a3a7b1;
-  --ink-3: #6f747e;
-  --line: #23262e;
-  --line-strong: #323640;
+  --bg: #08090d;
+  --surface: #111319;
+  --surface-2: #171920;
+  --surface-3: #21242d;
+  --ink: #eef0f5;
+  --ink-2: #a5aab6;
+  --ink-3: #727885;
+  --line: #22252e;
+  --line-strong: #323643;
   --accent: #8197ff;
   --accent-hover: #9aabff;
   --accent-ink: #0b0d18;
@@ -65,7 +74,12 @@
   --warn: #f1b54c;
   --warn-soft: rgb(241 181 76 / 0.12);
   --scrim: rgb(0 0 0 / 0.6);
-  --shadow-tint: 230 40% 2%;
+  --shadow-tint: 230 50% 2%;
+  --sheen: rgb(255 255 255 / 0.06);
+  --glow-1: rgb(91 116 255 / 0.16);
+  --glow-2: rgb(45 212 191 / 0.07);
+  --glow-3: rgb(251 146 60 / 0.05);
+  --grain-opacity: 0.05;
   /* Brighter steps so the mark stays vivid on dark surfaces */
   --ai-1: #8197ff;
   --ai-2: #e879f9;
@@ -97,9 +111,31 @@
   --color-warn-soft: var(--warn-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --shadow-soft: 0 1px 2px hsl(var(--shadow-tint) / 0.06), 0 8px 24px -12px hsl(var(--shadow-tint) / 0.18);
-  --shadow-float: 0 2px 6px hsl(var(--shadow-tint) / 0.08), 0 24px 48px -16px hsl(var(--shadow-tint) / 0.35);
+  --font-display: var(--font-display-face);
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.75rem;
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-tint) / 0.06), 0 10px 28px -14px hsl(var(--shadow-tint) / 0.22);
+  --shadow-float: 0 2px 6px hsl(var(--shadow-tint) / 0.08), 0 28px 56px -18px hsl(var(--shadow-tint) / 0.38);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* A spring-like settle (slight overshoot) for things that pop into place */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Smooth (squircle) corners where the browser can draw them. A squircle
+   reads smaller than a circle arc of the same radius, so radii grow to
+   match. Elsewhere: the plain rounded corners above. */
+@supports (corner-shape: squircle) {
+  :root {
+    --radius-2xl: 1.5rem;
+    --radius-3xl: 2.25rem;
+  }
+  .rounded-2xl,
+  .rounded-3xl,
+  .card,
+  dialog.sheet,
+  .menu-panel {
+    corner-shape: squircle;
+  }
 }
 
 /* z-index scale: content 0, sticky header 30, dock 40, sheet 50, toast 60 */
@@ -115,6 +151,9 @@ html {
 }
 
 body {
+  /* Its own layer, so the ambient light below sits between the page colour
+     and the content */
+  isolation: isolate;
   /* Last line of defence against sideways page scroll on phones. "clip"
      (not "hidden") doesn't create a scroll container, so the sticky header
      keeps working. Real overflow is fixed at the source; this only stops a
@@ -125,6 +164,166 @@ body {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
   text-rendering: optimizeLegibility;
+}
+
+/* Ambient light: a few soft pools of colour fixed behind the content, and a
+   whisper of grain so big flat areas feel like a material, not a screen.
+   Both are fixed, untouchable layers: nothing repaints while scrolling. */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+body::before {
+  background:
+    radial-gradient(60rem 38rem at 8% -8%, var(--glow-1), transparent 62%),
+    radial-gradient(42rem 30rem at 100% 4%, var(--glow-2), transparent 60%),
+    radial-gradient(50rem 34rem at 70% 112%, var(--glow-3), transparent 60%);
+}
+body::after {
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+[data-theme="dark"] body::after {
+  mix-blend-mode: screen;
+}
+
+/* Headings and the big numbers speak in the display face: same voice as
+   the body, with more character */
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display-face), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-optical-sizing: auto;
+}
+h1,
+h2 {
+  text-wrap: balance;
+}
+h1 {
+  letter-spacing: -0.035em;
+}
+h2 {
+  letter-spacing: -0.02em;
+}
+
+/* Materials live in the components layer, so a utility on the same
+   element (a tinted border, a different background) still wins */
+@layer components {
+/* Surfaces. A card is a sheet of material: hairline edge, light on its top
+   edge, a tinted shadow under it. */
+.card {
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--sheen),
+    0 1px 2px hsl(var(--shadow-tint) / 0.05),
+    0 14px 34px -20px hsl(var(--shadow-tint) / 0.28);
+}
+[data-theme="dark"] .card {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.028), transparent 46%) padding-box,
+    var(--surface);
+  border-color: rgb(255 255 255 / 0.065);
+}
+/* A card from 640px up, plain below (Home's quick actions) */
+@media (min-width: 40rem) {
+  .card-sm {
+    background: var(--surface);
+    border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    box-shadow:
+      inset 0 1px 0 var(--sheen),
+      0 1px 2px hsl(var(--shadow-tint) / 0.05),
+      0 14px 34px -20px hsl(var(--shadow-tint) / 0.28);
+  }
+  [data-theme="dark"] .card-sm {
+    border-color: rgb(255 255 255 / 0.065);
+  }
+}
+/* Cards you can press: they lift toward the pointer and settle on press */
+.card-press {
+  transition:
+    translate 320ms var(--ease-out-expo),
+    scale 200ms var(--ease-out-expo),
+    box-shadow 320ms var(--ease-out-expo),
+    border-color 200ms ease;
+}
+@media (hover: hover) {
+  .card-press:hover {
+    translate: 0 -2px;
+    box-shadow:
+      inset 0 1px 0 var(--sheen),
+      0 2px 4px hsl(var(--shadow-tint) / 0.06),
+      0 22px 44px -22px hsl(var(--shadow-tint) / 0.4);
+  }
+}
+.card-press:active {
+  scale: 0.985;
+  translate: 0 0;
+}
+
+/* The primary button: a lit pill. Light from above (sheen + gradient), a
+   shadow in its own colour below, so it reads as the one thing to press. */
+.tactile {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 86%, white), var(--accent) 60%);
+  color: var(--accent-ink);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -1px 0 rgb(0 0 0 / 0.12),
+    0 1px 2px color-mix(in oklab, var(--accent) 40%, transparent),
+    0 8px 20px -8px color-mix(in oklab, var(--accent) 70%, transparent);
+  transition:
+    translate 260ms var(--ease-out-expo),
+    scale 160ms var(--ease-out-expo),
+    box-shadow 260ms var(--ease-out-expo),
+    filter 200ms ease;
+}
+[data-theme="dark"] .tactile {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 88%, white), var(--accent) 65%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.4),
+    0 8px 22px -8px color-mix(in oklab, var(--accent) 55%, transparent);
+}
+@media (hover: hover) {
+  .tactile:hover {
+    filter: brightness(1.06);
+    translate: 0 -1px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.3),
+      inset 0 -1px 0 rgb(0 0 0 / 0.12),
+      0 2px 4px color-mix(in oklab, var(--accent) 40%, transparent),
+      0 14px 28px -10px color-mix(in oklab, var(--accent) 75%, transparent);
+  }
+}
+.tactile:active {
+  translate: 0 0;
+  scale: 0.96;
+  filter: brightness(0.97);
+}
+
+/* Secondary buttons and tiles: a raised neutral pill */
+.raised {
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--line) 90%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--sheen),
+    0 1px 2px hsl(var(--shadow-tint) / 0.06),
+    0 6px 14px -10px hsl(var(--shadow-tint) / 0.3);
+}
+[data-theme="dark"] .raised {
+  background: var(--surface-2);
+  border-color: rgb(255 255 255 / 0.07);
+}
+
+/* Fields sit slightly into the surface: the opposite of a card */
+.field {
+  background: var(--surface-2);
+  box-shadow: inset 0 1px 2px hsl(var(--shadow-tint) / 0.06);
+}
 }
 
 button,
@@ -143,9 +342,9 @@ select,
 }
 
 :focus-visible {
+  /* The ring follows the element's own shape (pill, card, squircle) */
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 12px;
 }
 /* A field whose container already shows focus (focus-within ring):
    one ring, not two */
@@ -198,14 +397,27 @@ input[type="number"] {
 /* Entrance: content rises into place, staggered by --i */
 @media (prefers-reduced-motion: no-preference) {
   .rise {
-    animation: rise 520ms var(--ease-out-expo) both;
-    animation-delay: calc(var(--i, 0) * 45ms);
+    animation: rise 640ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 55ms);
+  }
+  /* Big numbers come into focus instead of just appearing */
+  .num-in {
+    animation: num-in 900ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 55ms + 120ms);
   }
 }
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    translate: 0 14px;
+    scale: 0.985;
+  }
+}
+@keyframes num-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    translate: 0 8px;
   }
 }
 
@@ -232,8 +444,8 @@ input[type="number"] {
 
 /* Skeleton shimmer for loading states */
 .skeleton {
-  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
-  background-size: 200% 100%;
+  background: linear-gradient(100deg, var(--surface-2) 20%, color-mix(in oklab, var(--surface-3) 70%, var(--surface)) 50%, var(--surface-2) 80%);
+  background-size: 220% 100%;
   border-radius: 12px;
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -256,8 +468,10 @@ dialog.sheet {
   width: 100%;
   max-width: 100%;
   max-height: 92dvh;
-  border-radius: 28px 28px 0 0;
-  background: var(--surface);
+  border-radius: 32px 32px 0 0;
+  background:
+    linear-gradient(180deg, var(--sheen), transparent 120px),
+    var(--surface);
   color: var(--ink);
   padding: 0;
   border: none;
@@ -266,43 +480,44 @@ dialog.sheet {
   opacity: 1;
   transform: translateY(0);
   transition:
-    transform 360ms var(--ease-out-expo),
+    transform 460ms cubic-bezier(0.22, 1.12, 0.36, 1),
     opacity 240ms ease-out,
-    overlay 360ms allow-discrete,
-    display 360ms allow-discrete;
+    overlay 460ms allow-discrete,
+    display 460ms allow-discrete;
 }
 dialog.sheet:not([open]) {
   opacity: 0;
-  transform: translateY(40px);
-  transition-duration: 200ms;
+  transform: translateY(56px);
+  transition-duration: 220ms;
+  transition-timing-function: ease-in;
 }
 @starting-style {
   dialog.sheet[open] {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(56px);
   }
 }
 @media (min-width: 640px) {
   dialog.sheet {
     margin: auto;
     width: min(560px, calc(100% - 32px));
-    border-radius: 28px;
+    border-radius: 32px;
   }
   dialog.sheet.sheet-wide {
     width: min(720px, calc(100% - 32px));
   }
   dialog.sheet:not([open]) {
-    transform: translateY(16px) scale(0.98);
+    transform: translateY(20px) scale(0.96);
   }
   @starting-style {
     dialog.sheet[open] {
-      transform: translateY(16px) scale(0.98);
+      transform: translateY(20px) scale(0.96);
     }
   }
 }
 dialog.sheet::backdrop {
   background: var(--scrim);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(10px) saturate(140%);
   opacity: 1;
   transition:
     opacity 300ms ease-out,
@@ -326,9 +541,9 @@ dialog.sheet:not([open])::backdrop {
 
 /* Frosted dock. Falls back to a solid surface when transparency is reduced. */
 .glass {
-  background: color-mix(in oklab, var(--surface) 78%, transparent);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid color-mix(in oklab, var(--line-strong) 70%, transparent);
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, white 35%, transparent),
@@ -425,23 +640,34 @@ dialog.sheet:not([open])::backdrop {
 
 /* Dropdown menus (see components/menu.tsx) */
 .menu-panel {
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--line-strong) 60%, transparent);
+  background: color-mix(in oklab, var(--surface) 86%, transparent);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
   color: var(--ink);
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 6px;
-  box-shadow: var(--shadow-float);
+  box-shadow:
+    inset 0 1px 0 var(--sheen),
+    var(--shadow-float);
   transform-origin: top right;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .menu-panel {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
 }
 @media (prefers-reduced-motion: no-preference) {
   .menu-panel {
-    animation: menu-in 200ms var(--ease-out-expo) both;
+    animation: menu-in 280ms var(--ease-spring) both;
   }
 }
 @keyframes menu-in {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.97);
+    transform: translateY(-6px) scale(0.94);
+    filter: blur(4px);
   }
 }
 
@@ -613,10 +839,10 @@ dialog.sheet:not([open])::backdrop {
   border-radius: 999px;
   background: var(--surface);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
-  transition: transform 200ms cubic-bezier(0.3, 1.4, 0.6, 1);
+  transition: transform 320ms var(--ease-spring);
 }
 .switch:checked {
-  background: var(--accent);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 86%, white), var(--accent));
 }
 .switch:checked::after {
   transform: translateX(1.25rem);
@@ -704,4 +930,215 @@ dialog.sheet:not([open])::backdrop {
 .landing-motion {
   --default-transition-duration: 320ms;
   --default-transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Moving between screens (React <ViewTransition>, see page-transition.tsx).
+   The new screen rises into focus while the old one fades back: quick out,
+   gentle in. The top bar, sidebar and dock stay put as the anchor.
+   --------------------------------------------------------------------------- */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(topbar),
+::view-transition-group(sidebar),
+::view-transition-group(dock) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(topbar),
+::view-transition-old(sidebar),
+::view-transition-old(dock) {
+  display: none;
+}
+::view-transition-new(topbar),
+::view-transition-new(sidebar),
+::view-transition-new(dock) {
+  animation: none;
+}
+::view-transition-old(.page) {
+  animation: 160ms ease-in both page-out;
+}
+::view-transition-new(.page) {
+  animation: 420ms var(--ease-out-expo) 60ms both page-in;
+}
+@keyframes page-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+    filter: blur(2px);
+  }
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* The top bar is clear at the top of the page and turns to frosted glass
+   once content scrolls under it (scroll-driven, no JavaScript) */
+.topbar {
+  background: transparent;
+  border-bottom: 1px solid transparent;
+}
+@supports (animation-timeline: scroll()) {
+  .topbar {
+    animation: topbar-glass linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 48px;
+  }
+}
+@supports not (animation-timeline: scroll()) {
+  .topbar {
+    background: color-mix(in oklab, var(--bg) 70%, transparent);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+}
+@keyframes topbar-glass {
+  to {
+    background: color-mix(in oklab, var(--bg) 68%, transparent);
+    backdrop-filter: blur(20px) saturate(170%);
+    border-bottom-color: color-mix(in oklab, var(--line) 70%, transparent);
+  }
+}
+
+/* The money hero (Home's total): deep cobalt with light moving slowly
+   across it, like a card catching a window. One slow drift, nothing loops
+   fast; still under reduced motion. */
+.hero-money {
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgb(125 160 255 / 0.55), transparent 55%),
+    radial-gradient(90% 80% at 0% 100%, rgb(20 184 166 / 0.28), transparent 60%),
+    linear-gradient(155deg, #2f4cf0 0%, #1f34c2 48%, #121f7a 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 24px 50px -24px rgb(31 52 194 / 0.75),
+    0 2px 6px rgb(31 52 194 / 0.25);
+}
+[data-theme="dark"] .hero-money {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 24px 60px -28px rgb(91 116 255 / 0.55);
+}
+.hero-light {
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  background: conic-gradient(from 200deg at 60% 40%, transparent 0deg, rgb(255 255 255 / 0.16) 50deg, transparent 110deg, transparent 220deg, rgb(160 190 255 / 0.18) 280deg, transparent 340deg);
+  filter: blur(30px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-light {
+    animation: hero-drift 18s ease-in-out infinite alternate;
+  }
+}
+@keyframes hero-drift {
+  from {
+    transform: rotate(-8deg) translateX(-4%);
+  }
+  to {
+    transform: rotate(10deg) translateX(4%);
+  }
+}
+/* Fine grain on coloured surfaces, so gradients never band */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@layer components {
+/* Frosted chips on a coloured surface */
+.chip-glass {
+  background: rgb(255 255 255 / 0.13);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22);
+}
+}
+
+/* Account cards: a physical card. Light sweeps across on hover. */
+.card-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.16) 45%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  transition: background-position 900ms var(--ease-out-expo);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .group:hover .card-sheen {
+    background-position: -20% 0;
+  }
+}
+
+@layer components {
+/* Icon tiles: a soft gradient of their own colour, lit from the top */
+.icon-tile {
+  background: linear-gradient(180deg, color-mix(in oklab, currentColor 18%, var(--surface)), color-mix(in oklab, currentColor 10%, var(--surface)));
+  box-shadow:
+    inset 0 1px 0 var(--sheen),
+    inset 0 0 0 1px color-mix(in oklab, currentColor 14%, transparent);
+}
+}
+
+@layer components {
+/* The current item in the sidebar: a raised tab that slides between items */
+.nav-pill {
+  background: var(--surface);
+  box-shadow:
+    inset 0 1px 0 var(--sheen),
+    0 1px 2px hsl(var(--shadow-tint) / 0.08),
+    0 8px 18px -12px hsl(var(--shadow-tint) / 0.35);
+}
+[data-theme="dark"] .nav-pill {
+  background: var(--surface-3);
+}
+}
+
+/* Bars fill from the left the first time they're seen */
+@media (prefers-reduced-motion: no-preference) {
+  .bar-grow {
+    transform-origin: left center;
+    animation: bar-grow 1100ms var(--ease-out-expo) 250ms both;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar-rise {
+    transform-origin: bottom center;
+    animation: bar-rise 900ms var(--ease-out-expo) 200ms both;
+  }
+}
+@keyframes bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
 }

@@ -43,7 +43,7 @@ export function CardCycleCard({ cycle, account }: { cycle: CardCycle; account: A
       </h2>
 
       <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-        <Money cents={Math.max(toPay, 0)} currency={cycle.currency} className="text-[32px] leading-none font-semibold tracking-tight" />
+        <Money cents={Math.max(toPay, 0)} currency={cycle.currency} className="font-display text-[34px] leading-none font-semibold tracking-[-0.035em]" />
         <span
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium",

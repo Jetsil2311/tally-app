@@ -719,10 +719,10 @@ function Brand() {
   const { t } = useI18n();
   return (
     <Link href="/" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={t.nav.tallyHome}>
-      <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
+      <span className="tactile flex size-9 items-center justify-center rounded-xl">
         <SquaresFour size={18} weight="fill" />
       </span>
-      <span translate="no" className="text-[17px] font-semibold tracking-tight">
+      <span translate="no" className="font-display text-[19px] font-semibold tracking-[-0.03em]">
         Tally
       </span>
     </Link>

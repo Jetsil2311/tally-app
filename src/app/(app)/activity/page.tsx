@@ -47,7 +47,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
   return (
     <div className="space-y-5">
       <header className="rise flex items-center justify-between gap-3 pt-2">
-        <h1 className="text-[28px] font-semibold tracking-tight sm:text-[32px]">{t.nav.activity}</h1>
+        <h1 className="text-[32px] leading-[1.05] font-semibold sm:text-[40px]">{t.nav.activity}</h1>
         <AskAiButton ask={t.ai.activityQuestion} />
       </header>
       <Suspense fallback={<ActivitySkeleton />}>
@@ -187,7 +187,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/activity">
           { label: t.common.out, cents: expense, tone: "text-ink" },
           { label: t.common.net, cents: income - expense, tone: income - expense < 0 ? "text-expense" : "text-ink", sign: true },
         ].map((item) => (
-          <div key={item.label} className="min-w-0 rounded-3xl border border-line bg-surface px-3.5 py-3 sm:px-5 sm:py-3.5">
+          <div key={item.label} className="min-w-0 card rounded-3xl px-3.5 py-3 sm:px-5 sm:py-3.5">
             <dt className="text-sm text-ink-2">{item.label}</dt>
             <dd>
               <Money cents={item.cents} sign={item.sign} currency={target} approximate={approximate} className={cn("block truncate text-[15px] font-semibold tracking-tight sm:text-xl", item.tone)} />

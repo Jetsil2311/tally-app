@@ -31,11 +31,11 @@ export function ChipGroup<T extends string>({
           <label
             key={option.value}
             className={cn(
-              "relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-[15px] transition-[background-color,border-color,color,transform,translate,scale,rotate] duration-200 select-none active:scale-[0.97]",
+              "relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-[15px] transition-[background-color,border-color,color,box-shadow,transform,translate,scale,rotate] duration-300 ease-[var(--ease-spring)] select-none active:scale-[0.94]",
               "has-focus-visible:ring-4 has-focus-visible:ring-accent-soft",
               checked
-                ? "border-ink bg-ink text-surface"
-                : "border-line bg-surface-2 text-ink hover:border-line-strong",
+                ? "scale-[1.03] border-transparent bg-ink text-surface shadow-[0_8px_18px_-10px_hsl(var(--shadow-tint)/0.7)]"
+                : "raised text-ink hover:border-line-strong",
               invalid && !checked && "border-expense/60",
             )}
           >
@@ -81,7 +81,7 @@ export function Segmented<T extends string>({
       aria-label={label}
       // minmax(0,1fr): equal columns that may shrink below their label, so
       // "Transferencia" truncates instead of widening the whole sheet
-      className={cn("inline-grid auto-cols-[minmax(0,1fr)] grid-flow-col rounded-full bg-surface-3/70 p-1", className)}
+      className={cn("field inline-grid auto-cols-[minmax(0,1fr)] grid-flow-col rounded-full p-1", className)}
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -102,7 +102,7 @@ export function Segmented<T extends string>({
               <motion.span
                 layoutId={`seg-${id}`}
                 transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 38 }}
-                className="absolute inset-0 rounded-full bg-surface shadow-soft"
+                className="nav-pill absolute inset-0 rounded-full"
               />
             ) : null}
             <span className="relative inline-flex min-w-0 items-center gap-1.5">

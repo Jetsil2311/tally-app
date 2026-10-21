@@ -30,10 +30,10 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 function Brand() {
   return (
     <Link href="/" className="flex w-fit items-center gap-2.5 rounded-full pr-2">
-      <span className="flex size-9 items-center justify-center rounded-[12px] bg-ink text-surface">
+      <span className="tactile flex size-9 items-center justify-center rounded-xl">
         <SquaresFour size={18} weight="fill" />
       </span>
-      <span translate="no" className="text-[17px] font-semibold tracking-tight">
+      <span translate="no" className="font-display text-[19px] font-semibold tracking-[-0.03em]">
         Tally
       </span>
     </Link>
@@ -108,7 +108,7 @@ async function SignIn({ searchParams, t }: { searchParams: PageProps<"/login">["
         <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full text-sm font-medium text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
           <KeyReturn size={18} /> {t.login.haveCode}
         </summary>
-        <form action="/auth/google" method="post" className="mt-3 space-y-3 rounded-3xl border border-line bg-surface p-4">
+        <form action="/auth/google" method="post" className="mt-3 space-y-3 card rounded-3xl p-4">
           {next ? <input type="hidden" name="next" value={next} /> : null}
           <label htmlFor="profile-code" className="block text-sm font-medium">
             {t.login.codeLabel}

@@ -47,12 +47,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <motion.div
               key={toast.id}
               layout={!reduce}
-              initial={reduce ? false : { opacity: 0, y: -16, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={reduce ? false : { opacity: 0, y: -20, scale: 0.9, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
               exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.15 } }}
               transition={{ type: "spring", stiffness: 380, damping: 30 }}
               // Pill for short messages; long ones wrap inside the screen
-              className="glass pointer-events-auto flex min-h-12 max-w-md items-center gap-3 rounded-[24px] py-2 pr-2 pl-4 text-[15px] leading-snug"
+              className="glass pointer-events-auto flex min-h-12 max-w-md items-center gap-3 rounded-[26px] py-2 pr-2 pl-4 text-[15px] leading-snug"
             >
               {toast.tone === "success" ? (
                 <CheckCircle weight="fill" size={20} className="shrink-0 text-income" />
