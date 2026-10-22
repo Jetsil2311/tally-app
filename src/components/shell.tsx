@@ -37,6 +37,7 @@ import { PendingBar } from "./page-transition";
 import { ProChip, usePlan } from "./plan";
 import { Sheet } from "./sheet";
 import { ThemeMenu } from "./theme";
+import { TallyMark } from "./tally-mark";
 import { cn } from "./ui";
 
 // Every section, by how often it's used. Core ones are always one tap away
@@ -83,11 +84,12 @@ export function Logo() {
   );
 }
 
-// The mark: a lit cobalt tile, the same material as the primary button
+// The mark: the tally on a lit brand-purple tile, the same material as the
+// primary button
 function LogoMark() {
   return (
-    <span className="tactile flex size-9 items-center justify-center rounded-xl transition-[rotate,scale] duration-500 ease-[var(--ease-spring)] group-hover/logo:-rotate-12">
-      <SquaresFour size={18} weight="fill" />
+    <span className="tactile flex size-9 items-center justify-center overflow-hidden rounded-xl transition-[rotate,scale] duration-500 ease-[var(--ease-spring)] group-hover/logo:-rotate-12">
+      <TallyMark className="size-full" />
     </span>
   );
 }
@@ -270,7 +272,7 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
       >
         <Plus size={18} weight="bold" className="transition-transform duration-500 ease-[var(--ease-spring)] group-hover:rotate-90" aria-hidden /> {t.nav.add}
       </button>
-      <nav aria-label={t.nav.primary} className="flex-1 space-y-5 overflow-y-auto">
+      <nav aria-label={t.nav.primary} className="-mx-3 flex-1 space-y-5 overflow-y-auto px-3 pb-2">
         <ul className="space-y-0.5">{CORE.map(link)}</ul>
         <div>
           <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">{t.nav.groupPlan}</p>

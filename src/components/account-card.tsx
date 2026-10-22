@@ -12,11 +12,12 @@ import { Money } from "./preferences";
 import { cn } from "./ui";
 
 // Each account type has its own material so they're told apart at a glance:
-// cash is a soft teal note, debit is the cobalt card, credit is graphite.
+// cash is the income-green note, debit is the brand-purple card, credit is
+// the near-black base.
 const SKINS = {
-  cash: "bg-[radial-gradient(120%_80%_at_100%_0%,rgb(94_234_212/0.35),transparent_55%),linear-gradient(145deg,#0f8a7e,#0f6b62_50%,#0b4a44)] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_18px_36px_-20px_rgb(15_118_110/0.8)]",
-  debit: "bg-[radial-gradient(120%_80%_at_100%_0%,rgb(140_170_255/0.5),transparent_55%),linear-gradient(145deg,#3a57f2,#2338c2_55%,#16247f)] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_18px_36px_-20px_rgb(35_56_194/0.85)]",
-  creditCard: "bg-[radial-gradient(120%_80%_at_100%_0%,rgb(255_255_255/0.16),transparent_55%),linear-gradient(145deg,#33363f,#1a1c22_55%,#0b0c0f)] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.16),0_18px_36px_-20px_rgb(0_0_0/0.7)]",
+  cash: "bg-[radial-gradient(120%_80%_at_100%_0%,rgb(47_208_143/0.45),transparent_55%),linear-gradient(145deg,#14a86f,#0b7a52_50%,#064a33)] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_18px_36px_-20px_rgb(11_122_82/0.8)]",
+  debit: "bg-[radial-gradient(120%_80%_at_100%_0%,rgb(190_170_255/0.5),transparent_55%),linear-gradient(145deg,#7c5dff,#5a38f0_55%,#2a1690)] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_18px_36px_-20px_rgb(90_56_240/0.85)]",
+  creditCard: "bg-[radial-gradient(120%_80%_at_100%_0%,rgb(255_92_157/0.28),transparent_55%),linear-gradient(145deg,#2b2944,#17152d_55%,#0c0b1d)] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.16),0_18px_36px_-20px_rgb(12_11_29/0.75)]",
 } as const;
 
 export function AccountCard({ account, className, href }: { account: Account; className?: string; href?: string }) {

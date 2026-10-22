@@ -6,7 +6,7 @@ import { RememberTotal } from "./last-total";
 import { Money } from "./preferences";
 
 // Home's hero: the one number that matters most (everything you have, net
-// of what's owed on cards), on a deep cobalt surface with light drifting
+// of what's owed on cards), on a deep brand-purple surface with light drifting
 // across it. Where the money is sits under it as two frosted chips.
 export function NetCard({
   net,

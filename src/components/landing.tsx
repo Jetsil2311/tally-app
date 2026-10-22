@@ -25,7 +25,6 @@ import {
   Repeat,
   Scales,
   ShieldCheck,
-  SquaresFour,
   Tag,
   UploadSimple,
   UserCircle,
@@ -46,6 +45,7 @@ import { BudgetMeter } from "./budgets";
 import { GoalIcon, GoalMeter } from "./goals";
 import { Avatar, AvatarStack, RoleBadge, RoleIcon } from "./people-ui";
 import { Money } from "./preferences";
+import { TallyMark } from "./tally-mark";
 import { buttonClass, cn } from "./ui";
 
 // The public landing page. Every product visual is a real Tally component
@@ -200,15 +200,15 @@ function HeroScene({ currency }: Example) {
         {/* The phone */}
         {/* A light hairline on the bezel keeps the phone's edge visible on a dark page */}
         <div className="tilt-3d absolute top-10 left-1/2 w-[16.5rem] -translate-x-1/2 sm:w-[18.5rem]">
-        <div className="depth-1 relative rounded-[2.6rem] bg-[#16181e] p-2 shadow-[0_40px_80px_-30px_rgb(0_0_0/0.7),0_12px_30px_-12px_rgb(43_72_232/0.35)] ring-1 ring-white/15">
+        <div className="depth-1 relative rounded-[2.6rem] bg-[#15142a] p-2 shadow-[0_40px_80px_-30px_rgb(0_0_0/0.7),0_12px_30px_-12px_rgb(111_79_255/0.4)] ring-1 ring-white/15">
           <span className="tilt-glare z-20" />
           <div className="relative h-[465px] overflow-hidden rounded-[2.15rem] bg-bg px-3.5 pt-9 sm:h-[505px]">
-            <span className="absolute top-2.5 left-1/2 h-5 w-20 -translate-x-1/2 rounded-full bg-[#16181e]" />
+            <span className="absolute top-2.5 left-1/2 h-5 w-20 -translate-x-1/2 rounded-full bg-[#15142a]" />
             <p className="px-1 text-[13px] text-ink-2">{l.phoneMonth}</p>
             <p className="px-1 text-[19px] leading-tight font-semibold tracking-tight">{l.phoneGreeting}</p>
 
             {/* Total, like Home's blue card */}
-            <div className="mt-3 rounded-[1.4rem] bg-[linear-gradient(150deg,#2b48e8_0%,#1e33b8_55%,#16257f_100%)] p-4 text-white">
+            <div className="mt-3 rounded-[1.4rem] bg-[radial-gradient(110%_80%_at_100%_0%,rgb(255_92_157/0.35),transparent_55%),linear-gradient(150deg,#7c5dff_0%,#5a38f0_50%,#2a1690_100%)] p-4 text-white">
               <p className="text-[11px] font-medium text-white/75">{t.home.total}</p>
               <Money value={8462.4} currency={currency} className="block text-[28px] leading-none font-semibold tracking-tighter" />
               <div className="mt-3 flex gap-1.5">
@@ -360,17 +360,17 @@ function Highlights({ currency }: Example) {
           {/* Receipt -> entry */}
           <article className={tile}>
             <div inert aria-hidden className={cn(stage, "gap-3")}>
-              <div className="w-20 rotate-[-4deg] rounded-md bg-white px-2 pt-2 pb-3 text-[#12141a] shadow-soft transition-transform duration-500 group-hover:-translate-y-1.5 group-hover:rotate-0 group-hover:shadow-float">
-                <div className="mx-auto h-1.5 w-10 rounded bg-[#12141a]/70" />
+              <div className="w-20 rotate-[-4deg] rounded-md bg-white px-2 pt-2 pb-3 text-[#0c0b1d] shadow-soft transition-transform duration-500 group-hover:-translate-y-1.5 group-hover:rotate-0 group-hover:shadow-float">
+                <div className="mx-auto h-1.5 w-10 rounded bg-[#0c0b1d]/70" />
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="mt-1.5 flex justify-between gap-1">
-                    <span className="h-1 w-8 rounded bg-[#12141a]/25" />
-                    <span className="h-1 w-3 rounded bg-[#12141a]/25" />
+                    <span className="h-1 w-8 rounded bg-[#0c0b1d]/25" />
+                    <span className="h-1 w-3 rounded bg-[#0c0b1d]/25" />
                   </div>
                 ))}
-                <div className="mt-2 flex justify-between border-t border-dashed border-[#12141a]/30 pt-1.5">
-                  <span className="h-1.5 w-6 rounded bg-[#12141a]/60" />
-                  <span className="h-1.5 w-5 rounded bg-[#12141a]/60" />
+                <div className="mt-2 flex justify-between border-t border-dashed border-[#0c0b1d]/30 pt-1.5">
+                  <span className="h-1.5 w-6 rounded bg-[#0c0b1d]/60" />
+                  <span className="h-1.5 w-5 rounded bg-[#0c0b1d]/60" />
                 </div>
               </div>
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full ai-surface transition-transform duration-700 group-hover:rotate-[360deg]">
@@ -719,8 +719,8 @@ function Brand() {
   const { t } = useI18n();
   return (
     <Link href="/" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={t.nav.tallyHome}>
-      <span className="tactile flex size-9 items-center justify-center rounded-xl">
-        <SquaresFour size={18} weight="fill" />
+      <span className="tactile flex size-9 items-center justify-center overflow-hidden rounded-xl">
+        <TallyMark className="size-full" />
       </span>
       <span translate="no" className="font-display text-[19px] font-semibold tracking-[-0.03em]">
         Tally
@@ -844,7 +844,7 @@ function Download() {
   const { t } = useI18n();
   return (
     <section id="download" className="scroll-mt-20 px-4 sm:px-6">
-      <div className="reveal relative mx-auto max-w-6xl overflow-hidden rounded-[32px] bg-[linear-gradient(150deg,#2b48e8_0%,#1e33b8_55%,#16257f_100%)] px-6 py-14 text-white sm:px-12 sm:py-16">
+      <div className="reveal relative mx-auto max-w-6xl overflow-hidden rounded-[32px] bg-[radial-gradient(110%_80%_at_100%_0%,rgb(255_92_157/0.35),transparent_55%),linear-gradient(150deg,#7c5dff_0%,#5a38f0_50%,#2a1690_100%)] px-6 py-14 text-white sm:px-12 sm:py-16">
         <span aria-hidden className="pointer-events-none absolute -right-24 -bottom-32 size-96 rounded-full bg-white/10 blur-3xl" />
         <div className="relative grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <div>
@@ -853,7 +853,7 @@ function Download() {
           </div>
           <div className="flex flex-col gap-4 lg:items-end">
             {/* White badges on the blue band, for contrast */}
-            <div className="flex flex-wrap gap-3 [&_a]:bg-white [&_a]:text-[#12141a]">
+            <div className="flex flex-wrap gap-3 [&_a]:bg-white [&_a]:text-[#0c0b1d]">
               <StoreButtons />
             </div>
             <Link href="/login" className="inline-flex h-11 items-center gap-2 text-[15px] font-medium text-white underline-offset-4 hover:underline">

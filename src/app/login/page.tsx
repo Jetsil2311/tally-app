@@ -1,4 +1,4 @@
-import { KeyReturn, LockSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { KeyReturn, LockSimple } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -7,6 +7,7 @@ import { AccountCard } from "@/components/account-card";
 import { CashFlowChart } from "@/components/charts";
 import { PreferencesProvider } from "@/components/preferences";
 import { cn, Skeleton } from "@/components/ui";
+import { TallyMark } from "@/components/tally-mark";
 import { I18nProvider } from "@/i18n/client";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getI18n } from "@/i18n/server";
@@ -30,8 +31,8 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 function Brand() {
   return (
     <Link href="/" className="flex w-fit items-center gap-2.5 rounded-full pr-2">
-      <span className="tactile flex size-9 items-center justify-center rounded-xl">
-        <SquaresFour size={18} weight="fill" />
+      <span className="tactile flex size-9 items-center justify-center overflow-hidden rounded-xl">
+        <TallyMark className="size-full" />
       </span>
       <span translate="no" className="font-display text-[19px] font-semibold tracking-[-0.03em]">
         Tally
@@ -51,7 +52,7 @@ function LoginSkeleton() {
           <Skeleton className="mt-10 h-14 w-full rounded-full" />
         </div>
       </section>
-      <section className="hidden bg-[linear-gradient(160deg,#1e2a78_0%,#121a4d_60%,#0b1033_100%)] lg:block" />
+      <section className="hidden bg-[linear-gradient(160deg,#3b23b8_0%,#1d1460_55%,#0c0b1d_100%)] lg:block" />
     </main>
   );
 }
@@ -177,9 +178,9 @@ function Preview({ t }: { t: Dictionary }) {
   return (
     <section
       aria-label={t.login.example}
-      className="relative hidden overflow-hidden bg-[linear-gradient(160deg,#1e2a78_0%,#121a4d_60%,#0b1033_100%)] lg:flex lg:items-center lg:justify-center"
+      className="relative hidden overflow-hidden bg-[linear-gradient(160deg,#3b23b8_0%,#1d1460_55%,#0c0b1d_100%)] lg:flex lg:items-center lg:justify-center"
     >
-      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_75%_15%,rgba(129,151,255,0.35),transparent_45%)]" />
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_75%_15%,rgba(255,92,157,0.3),transparent_45%),radial-gradient(circle_at_15%_90%,rgba(47,208,143,0.16),transparent_40%)]" />
       <PreferencesProvider currency="USD" timeZone="UTC">
         <div className="relative w-full max-w-lg space-y-4 p-10" inert>
           <div className="grid grid-cols-2 gap-4">

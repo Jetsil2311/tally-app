@@ -224,7 +224,7 @@ async function Home() {
         >
           {t.home.accounts}
         </SectionTitle>
-        <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:scroll-px-6 sm:px-6">
+        <div className="no-scrollbar -mx-4 -mt-3 -mb-8 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-3 pb-10 sm:-mx-6 sm:scroll-px-6 sm:px-6">
           {accounts.map((account) => (
             <div key={account.id} className="w-[78%] shrink-0 snap-start sm:w-72">
               <AccountCard account={account} href={`/accounts/${account.id}`} />

@@ -8,7 +8,7 @@ import { BUCK_PATH, BUCK_VIEWBOX } from "./buck-path";
 import { cn } from "./ui";
 
 // Buck, Tally's mascot, is the one mark for AI across the app: his shape
-// filled with the cobalt -> magenta -> amber gradient (--ai-1..3, tuned per
+// filled with the purple -> Buck pink -> peach gradient (--ai-1..3, tuned per
 // theme). Only AI features wear it, so it always means "Buck did this".
 export function AiMark({ size = 18, className, label }: { size?: number; className?: string; label?: string }) {
   const id = `ai-${useId().replace(/:/g, "")}`;

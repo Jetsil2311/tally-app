@@ -4,86 +4,99 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
-  Tokens. One accent (cobalt) plus two semantic colors that always come with
-  a sign or icon: income (green) and expense (rose). Shape rule: containers
-  28px squircles, inputs 18px, anything you press is a pill. Surfaces are
-  "soft depth": a hairline edge, a light catching the top, and a shadow
-  tinted with the page's own hue (never grey on grey).
+  Tokens, from the brand palette: Base #0C0B1D, Primary #6F4FFF, Buck pink
+  #FF5C9D, Income #2FD08F, Expense #FF6A4D, Light base #F3F1FF. One accent
+  (primary purple) plus two semantic colors that always come with a sign or
+  icon. Where a brand colour is too light to read as small text on a light
+  surface, the text uses a deeper step of the same hue; fills keep the brand
+  value. Shape rule: containers 28px squircles, inputs 18px, anything you
+  press is a pill. Surfaces are "soft depth": a hairline edge, a light
+  catching the top, and a shadow tinted with the page's own hue.
 */
 :root {
   color-scheme: light;
-  --bg: #eceef4;
-  --surface: #fdfdff;
-  --surface-2: #f3f4f9;
-  --surface-3: #e7e9f1;
-  --ink: #11131a;
-  --ink-2: #545a68;
-  --ink-3: #828896;
-  --line: #e0e3eb;
-  --line-strong: #cbd0db;
-  --accent: #2b48e8;
-  --accent-hover: #2139c4;
-  --accent-ink: #f7f8ff;
-  --accent-soft: #e5e9ff;
-  --income: #0a7469;
-  --income-soft: #dbf3ee;
-  --expense: #b23a0b;
-  --expense-soft: #fce9df;
+  /* Brand values: the same in both themes (logo, hero, primary button) */
+  --brand: #6f4fff;
+  --brand-deep: #4a2ee0;
+  --brand-base: #0c0b1d;
+  --brand-light: #f3f1ff;
+  --brand-pink: #ff5c9d;
+  --brand-green: #2fd08f;
+  --brand-coral: #ff6a4d;
+
+  --bg: #f3f1ff;
+  --surface: #ffffff;
+  --surface-2: #f7f6ff;
+  --surface-3: #ebe8fa;
+  --ink: #0c0b1d;
+  --ink-2: #545269;
+  --ink-3: #807d96;
+  --line: #e5e2f4;
+  --line-strong: #d1cde6;
+  --accent: #6f4fff;
+  --accent-hover: #5a38f5;
+  --accent-ink: #ffffff;
+  --accent-soft: #ebe6ff;
+  --income: #0a7f54;
+  --income-soft: #dcf6eb;
+  --expense: #cf3f1f;
+  --expense-soft: #ffe9e3;
   /* Chart marks, validated for colour-blind separation (dataviz validator) */
-  --chart-income: #0f9b8e;
-  --chart-expense: #c2410c;
+  --chart-income: #109b67;
+  --chart-expense: #ec4a2a;
   --warn: #9a5b00;
   --warn-soft: #fcf0d9;
-  --scrim: rgb(14 16 28 / 0.42);
-  --shadow-tint: 228 45% 28%;
+  --scrim: rgb(12 11 29 / 0.42);
+  --shadow-tint: 250 45% 30%;
   /* The light catching a surface's top edge */
   --sheen: rgb(255 255 255 / 0.9);
-  /* Ambient light behind everything: cobalt, a little teal, a little warmth */
-  --glow-1: rgb(43 72 232 / 0.13);
-  --glow-2: rgb(15 155 142 / 0.09);
-  --glow-3: rgb(245 158 11 / 0.07);
+  /* Ambient light behind everything: purple, a little pink, a little green */
+  --glow-1: rgb(111 79 255 / 0.14);
+  --glow-2: rgb(255 92 157 / 0.08);
+  --glow-3: rgb(47 208 143 / 0.08);
   --grain-opacity: 0.035;
-  /* The AI mark: brand cobalt -> magenta -> amber. Only AI features wear it. */
-  --ai-1: #3552f0;
-  --ai-2: #c026d3;
-  --ai-3: #f59e0b;
+  /* Buck and AI: primary purple -> Buck pink -> warm peach. Only AI features wear it. */
+  --ai-1: #6f4fff;
+  --ai-2: #ff5c9d;
+  --ai-3: #ff9a5c;
   --ai-soft: color-mix(in oklab, var(--ai-2) 7%, var(--surface));
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #08090d;
-  --surface: #111319;
-  --surface-2: #171920;
-  --surface-3: #21242d;
-  --ink: #eef0f5;
-  --ink-2: #a5aab6;
-  --ink-3: #727885;
-  --line: #22252e;
-  --line-strong: #323643;
-  --accent: #8197ff;
-  --accent-hover: #9aabff;
-  --accent-ink: #0b0d18;
-  --accent-soft: rgb(129 151 255 / 0.14);
-  --income: #4fd1bf;
-  --income-soft: rgb(79 209 191 / 0.12);
-  --expense: #ff9466;
-  --expense-soft: rgb(255 148 102 / 0.12);
-  --chart-income: #1f9a8b;
-  --chart-expense: #e0652c;
+  --bg: #0c0b1d;
+  --surface: #141327;
+  --surface-2: #1a1930;
+  --surface-3: #25233e;
+  --ink: #f3f1ff;
+  --ink-2: #aba8c4;
+  --ink-3: #7b7895;
+  --line: #24223b;
+  --line-strong: #35334f;
+  /* Lighter step of the primary: brand purple is too dark to read as text on base */
+  --accent: #9783ff;
+  --accent-hover: #ab9bff;
+  --accent-ink: #0c0b1d;
+  --accent-soft: rgb(151 131 255 / 0.15);
+  --income: #2fd08f;
+  --income-soft: rgb(47 208 143 / 0.13);
+  --expense: #ff6a4d;
+  --expense-soft: rgb(255 106 77 / 0.13);
+  --chart-income: #1fa772;
+  --chart-expense: #e8573a;
   --warn: #f1b54c;
   --warn-soft: rgb(241 181 76 / 0.12);
-  --scrim: rgb(0 0 0 / 0.6);
-  --shadow-tint: 230 50% 2%;
+  --scrim: rgb(4 3 12 / 0.62);
+  --shadow-tint: 248 60% 2%;
   --sheen: rgb(255 255 255 / 0.06);
-  --glow-1: rgb(91 116 255 / 0.16);
-  --glow-2: rgb(45 212 191 / 0.07);
-  --glow-3: rgb(251 146 60 / 0.05);
+  --glow-1: rgb(111 79 255 / 0.2);
+  --glow-2: rgb(255 92 157 / 0.08);
+  --glow-3: rgb(47 208 143 / 0.06);
   --grain-opacity: 0.05;
   /* Brighter steps so the mark stays vivid on dark surfaces */
-  --ai-1: #8197ff;
-  --ai-2: #e879f9;
-  --ai-3: #fbbf24;
+  --ai-1: #9783ff;
+  --ai-2: #ff5c9d;
+  --ai-3: #ffa26b;
   --ai-soft: color-mix(in oklab, var(--ai-2) 9%, var(--surface));
 }
 
@@ -97,6 +110,9 @@
   --color-ink-3: var(--ink-3);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-brand: var(--brand);
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-green: var(--brand-green);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
@@ -266,16 +282,17 @@ h2 {
   translate: 0 0;
 }
 
-/* The primary button: a lit pill. Light from above (sheen + gradient), a
-   shadow in its own colour below, so it reads as the one thing to press. */
+/* The primary button: a lit pill in the brand purple (both themes, light
+   text on it). Light from above (sheen + gradient), a shadow in its own
+   colour below, so it reads as the one thing to press. */
 .tactile {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 86%, white), var(--accent) 60%);
-  color: var(--accent-ink);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 84%, white), var(--brand) 60%);
+  color: #ffffff;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
     inset 0 -1px 0 rgb(0 0 0 / 0.12),
-    0 1px 2px color-mix(in oklab, var(--accent) 40%, transparent),
-    0 8px 20px -8px color-mix(in oklab, var(--accent) 70%, transparent);
+    0 1px 2px color-mix(in oklab, var(--brand) 40%, transparent),
+    0 8px 20px -8px color-mix(in oklab, var(--brand) 70%, transparent);
   transition:
     translate 260ms var(--ease-out-expo),
     scale 160ms var(--ease-out-expo),
@@ -283,20 +300,20 @@ h2 {
     filter 200ms ease;
 }
 [data-theme="dark"] .tactile {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 88%, white), var(--accent) 65%);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 82%, white), var(--brand) 65%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.4),
-    0 8px 22px -8px color-mix(in oklab, var(--accent) 55%, transparent);
+    inset 0 1px 0 rgb(255 255 255 / 0.36),
+    0 8px 24px -8px color-mix(in oklab, var(--brand) 65%, transparent);
 }
 @media (hover: hover) {
   .tactile:hover {
     filter: brightness(1.06);
     translate: 0 -1px;
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.3),
+      inset 0 1px 0 rgb(255 255 255 / 0.32),
       inset 0 -1px 0 rgb(0 0 0 / 0.12),
-      0 2px 4px color-mix(in oklab, var(--accent) 40%, transparent),
-      0 14px 28px -10px color-mix(in oklab, var(--accent) 75%, transparent);
+      0 2px 4px color-mix(in oklab, var(--brand) 40%, transparent),
+      0 14px 28px -10px color-mix(in oklab, var(--brand) 78%, transparent);
   }
 }
 .tactile:active {
@@ -546,7 +563,7 @@ dialog.sheet:not([open])::backdrop {
   }
 }
 
-/* AI surfaces: a hairline gradient border (cobalt -> magenta -> amber) on
+/* AI surfaces: a hairline gradient border (purple -> Buck pink -> peach) on
    a faintly tinted surface. Marks the few places where AI is at work. */
 .ai-surface {
   border: 1px solid transparent;
@@ -1002,31 +1019,32 @@ dialog.sheet:not([open])::backdrop {
   }
 }
 
-/* The money hero (Home's total): deep cobalt with light moving slowly
-   across it, like a card catching a window. One slow drift, nothing loops
-   fast; still under reduced motion. */
+/* The money hero (Home's total): deep brand purple with light moving slowly
+   across it, like a card catching a window, and a breath of Buck pink and
+   income green at the corners. One slow drift, nothing loops fast; still
+   under reduced motion. */
 .hero-money {
   background:
-    radial-gradient(120% 90% at 100% 0%, rgb(125 160 255 / 0.55), transparent 55%),
-    radial-gradient(90% 80% at 0% 100%, rgb(20 184 166 / 0.28), transparent 60%),
-    linear-gradient(155deg, #2f4cf0 0%, #1f34c2 48%, #121f7a 100%);
+    radial-gradient(120% 90% at 100% 0%, rgb(255 92 157 / 0.42), transparent 55%),
+    radial-gradient(90% 80% at 0% 100%, rgb(47 208 143 / 0.22), transparent 60%),
+    linear-gradient(155deg, #7c5dff 0%, #5a38f0 48%, #2a1690 100%);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.25),
     inset 0 0 0 1px rgb(255 255 255 / 0.08),
-    0 24px 50px -24px rgb(31 52 194 / 0.75),
-    0 2px 6px rgb(31 52 194 / 0.25);
+    0 24px 50px -24px rgb(90 56 240 / 0.75),
+    0 2px 6px rgb(90 56 240 / 0.25);
 }
 [data-theme="dark"] .hero-money {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.22),
     inset 0 0 0 1px rgb(255 255 255 / 0.08),
-    0 24px 60px -28px rgb(91 116 255 / 0.55);
+    0 24px 60px -28px rgb(111 79 255 / 0.6);
 }
 .hero-light {
   position: absolute;
   inset: -40%;
   pointer-events: none;
-  background: conic-gradient(from 200deg at 60% 40%, transparent 0deg, rgb(255 255 255 / 0.16) 50deg, transparent 110deg, transparent 220deg, rgb(160 190 255 / 0.18) 280deg, transparent 340deg);
+  background: conic-gradient(from 200deg at 60% 40%, transparent 0deg, rgb(255 255 255 / 0.16) 50deg, transparent 110deg, transparent 220deg, rgb(255 180 215 / 0.16) 280deg, transparent 340deg);
   filter: blur(30px);
 }
 @media (prefers-reduced-motion: no-preference) {
