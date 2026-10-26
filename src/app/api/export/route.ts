@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { getToken } from "@/lib/session";
+import { getToken, getWorkspaceId } from "@/lib/session";
 
 // CSV / PDF statement of the entries matching the Activity filters. The
 // browser can't call the API with the session token (httpOnly cookie), so
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const format = incoming.get("format") === "pdf" ? "pdf" : "csv";
   url.searchParams.set("format", format);
 
-  const upstream = await fetch(url, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+  const upstream = await fetch(url, { headers: { Authorization: `Bearer ${token}`, "X-Workspace-Id": await getWorkspaceId() } }).catch(() => null);
   if (!upstream?.ok || !upstream.body) return new Response("Export failed", { status: upstream?.status ?? 503 });
   const day = new Date().toISOString().slice(0, 10);
   return new Response(upstream.body, {

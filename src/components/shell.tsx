@@ -14,6 +14,7 @@ import {
   Repeat,
   SignOut,
   SquaresFour,
+  Storefront,
   Tag,
   UsersThree,
   Wallet,
@@ -25,7 +26,7 @@ import { Suspense, use, useState } from "react";
 
 import { signOut } from "@/actions/settings";
 import { useI18n } from "@/i18n/client";
-import type { User } from "@/lib/types";
+import type { User, Workspace } from "@/lib/types";
 
 import { CurrencyMenu } from "./currency-menu";
 import { useAi } from "./ai-assist";
@@ -39,6 +40,7 @@ import { Sheet } from "./sheet";
 import { ThemeMenu } from "./theme";
 import { TallyMark } from "./tally-mark";
 import { cn } from "./ui";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 
 // Every section, by how often it's used. Core ones are always one tap away
 // (dock on phones, sidebar on desktop); the rest sit together in a visible
@@ -62,7 +64,20 @@ const YOU = [
   { href: "/achievements", key: "achievements", icon: Medal },
 ] as const;
 
-type Section = (typeof CORE)[number] | (typeof PLAN)[number] | (typeof YOU)[number];
+// Only in a business workspace: its point of sale and reports
+const BUSINESS = { href: "/business", key: "business", icon: Storefront } as const;
+
+type Section = (typeof CORE)[number] | (typeof PLAN)[number] | (typeof YOU)[number] | typeof BUSINESS;
+
+// Where you are, for the parts of the shell that change with the workspace
+export interface WorkspaceProps {
+  workspaces: Promise<Workspace[]>;
+  current: Promise<Workspace | null>;
+}
+
+function InBusiness({ current, children }: { current: Promise<Workspace | null>; children: React.ReactNode }) {
+  return use(current)?.type === "business" ? children : null;
+}
 
 // On phones the dock keeps Home, Activity and Insights; Accounts joins the hub
 const DOCK = [CORE[0], CORE[1], CORE[3]] as const;
@@ -94,12 +109,13 @@ function LogoMark() {
   );
 }
 
-export function TopBar({ user, aiUnseen }: { user: Promise<User>; aiUnseen: Promise<number> }) {
+export function TopBar({ user, aiUnseen, workspace }: { user: Promise<User>; aiUnseen: Promise<number>; workspace: WorkspaceProps }) {
   return (
     <header className="topbar sticky top-0 z-30 [view-transition-name:topbar]">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 pt-[env(safe-area-inset-top)] sm:px-6">
-        <div className="lg:hidden">
+        <div className="flex items-center gap-1 lg:hidden">
           <Logo />
+          <WorkspaceSwitcher workspaces={workspace.workspaces} current={workspace.current} compact />
         </div>
         <div className="ml-auto flex items-center gap-1">
           <Suspense fallback={<AssistantButton unseen={0} />}>
@@ -214,7 +230,7 @@ function AttentionCount({ attention, dot }: { attention: Promise<number>; dot?: 
 // Desktop: everything visible in a sidebar, grouped, icon + word
 // ---------------------------------------------------------------------------
 
-export function Sidebar({ attention }: { attention: Promise<number> }) {
+export function Sidebar({ attention, workspace }: { attention: Promise<number>; workspace: WorkspaceProps }) {
   const pathname = usePathname();
   const { open } = useQuickAdd();
   const { t } = useI18n();
@@ -262,8 +278,11 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line/70 bg-[color-mix(in_oklab,var(--surface)_45%,transparent)] px-3 pt-4 pb-5 backdrop-blur-2xl [view-transition-name:sidebar] lg:flex">
-      <div className="px-2 pb-5">
+      <div className="px-2 pb-4">
         <Logo />
+      </div>
+      <div className="pb-4">
+        <WorkspaceSwitcher workspaces={workspace.workspaces} current={workspace.current} />
       </div>
       <button
         type="button"
@@ -274,6 +293,14 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
       </button>
       <nav aria-label={t.nav.primary} className="-mx-3 flex-1 space-y-5 overflow-y-auto px-3 pb-2">
         <ul className="space-y-0.5">{CORE.map(link)}</ul>
+        <Suspense fallback={null}>
+          <InBusiness current={workspace.current}>
+            <div>
+              <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">{t.nav.groupBusiness}</p>
+              <ul className="space-y-0.5">{link(BUSINESS)}</ul>
+            </div>
+          </InBusiness>
+        </Suspense>
         <div>
           <p className="px-3 pb-1.5 text-xs font-semibold text-ink-3">{t.nav.groupPlan}</p>
           <ul className="space-y-0.5">{PLAN.map(link)}</ul>
@@ -293,13 +320,13 @@ export function Sidebar({ attention }: { attention: Promise<number> }) {
 // Phones and tablets: a floating dock with the three most used sections,
 // "add" at its center, and More: every other section as big icon tiles.
 // Desktop uses the sidebar instead.
-export function Dock({ attention }: { attention: Promise<number> }) {
+export function Dock({ attention, workspace }: { attention: Promise<number>; workspace: WorkspaceProps }) {
   const pathname = usePathname();
   const { open } = useQuickAdd();
   const reduce = useReducedMotion();
   const { t } = useI18n();
   const [hubOpen, setHubOpen] = useState(false);
-  const inHub = HUB.some((section) => isActive(pathname, section.href)) || pathname.startsWith("/settings");
+  const inHub = [...HUB, BUSINESS].some((section) => isActive(pathname, section.href)) || pathname.startsWith("/settings");
 
   const tab = (key: string, label: string, Icon: typeof House, active: boolean) => (
     <>
@@ -370,7 +397,7 @@ export function Dock({ attention }: { attention: Promise<number> }) {
         </div>
       </nav>
       <Sheet open={hubOpen} onClose={() => setHubOpen(false)} title={t.nav.more}>
-        <Hub attention={attention} onPick={() => setHubOpen(false)} />
+        <Hub attention={attention} current={workspace.current} onPick={() => setHubOpen(false)} />
       </Sheet>
     </>
   );
@@ -412,7 +439,7 @@ function HubPro({ onPick, tile }: { onPick: () => void; tile: string }) {
 }
 
 // Every other section as a tile: a big icon first, one word under it
-function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => void }) {
+function Hub({ attention, current, onPick }: { attention: Promise<number>; current: Promise<Workspace | null>; onPick: () => void }) {
   const pathname = usePathname();
   const { t } = useI18n();
   const { open: openAi } = useAi();
@@ -421,8 +448,29 @@ function Hub({ attention, onPick }: { attention: Promise<number>; onPick: () => 
       "group relative flex aspect-[1.1] min-w-0 flex-col items-center justify-center gap-2.5 rounded-3xl border px-2 text-center text-sm font-medium transition-[background-color,border-color,transform,translate,scale,rotate] duration-300 ease-[var(--ease-out-expo)] active:scale-[0.95]",
       active ? "border-accent/50 bg-accent-soft text-ink" : "raised text-ink hover:border-line-strong",
     );
+  const tileFor = ({ href, key, icon: Icon }: Section) => {
+    const active = isActive(pathname, href);
+    return (
+      <li key={href}>
+        <Link href={href} onClick={onPick} aria-current={active ? "page" : undefined} className={tile(active)}>
+          <Icon
+            size={28}
+            weight="duotone"
+            className={cn("transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] group-hover:scale-110 group-hover:-rotate-6", active ? "text-accent" : "text-ink-2")}
+            aria-hidden
+          />
+          <span className="max-w-full truncate">{t.nav[key]}</span>
+          <PendingBar />
+        </Link>
+      </li>
+    );
+  };
   return (
     <ul className="grid grid-cols-3 gap-3 pb-2">
+      {/* The business's own screen first, when you're in one */}
+      <Suspense fallback={null}>
+        <InBusiness current={current}>{tileFor(BUSINESS)}</InBusiness>
+      </Suspense>
       {HUB.map(({ href, key, icon: Icon }) => {
         const active = isActive(pathname, href);
         return (

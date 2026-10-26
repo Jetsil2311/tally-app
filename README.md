@@ -17,6 +17,8 @@ Web dashboard for the `finance-tracker` API: accounts (cash, debit, credit card)
 - **Transfers and opening balances** are stored in the `Transfers` and `Opening balances` categories and left out of income/expense totals (`src/lib/insights.ts`).
 - **Time zone**: month boundaries use the browser's time zone (saved in the `ft_tz` cookie).
 - **Currency** is display-only (`ft_currency` cookie); amounts aren't converted.
+- **Workspaces** (like Notion's): personal plus any business workspaces, picked in the switcher at the top of the sidebar. The choice lives in the `ft_workspace` cookie and `src/lib/api.ts` sends it as `X-Workspace-Id` on every call, so every screen shows only that workspace's accounts and numbers. A deleted or unshared workspace falls back to personal for reads.
+- **Business** (`/business`, in a business workspace): connects the Bubble Kaapeh POS with a key from its admin (Ajustes → Conexiones), syncs its daily sales, purchases and fixed expenses into the workspace's account, and shows the POS's own reports (profit, cash flow, products, inventory, cash register) per month.
 
 ## Keyboard
 

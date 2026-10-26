@@ -5,7 +5,7 @@ import { Busy } from "@/components/busy";
 import { BudgetsManager } from "@/components/budgets";
 import { Skeleton } from "@/components/ui";
 import { getI18n } from "@/i18n/server";
-import { getAccounts, getBudgets, getCategories } from "@/lib/data";
+import { getAccounts, getBudgets, getCategories, getCurrentWorkspace } from "@/lib/data";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -23,14 +23,17 @@ export default function BudgetsPage() {
 }
 
 async function Budgets() {
-  const [accounts, categories] = await Promise.all([getAccounts(), getCategories()]);
+  const [accounts, categories, workspace] = await Promise.all([getAccounts(), getCategories(), getCurrentWorkspace()]);
+  // In a business workspace only its accounts' budgets: your personal ones
+  // are about your personal spending
+  const inBusiness = workspace?.type === "business";
   // Yours, then each account's (every member can see an account's budgets)
-  const [personal, ...perAccount] = await Promise.all([getBudgets(), ...accounts.map((a) => getBudgets(a.id))]);
+  const [personal, ...perAccount] = await Promise.all([inBusiness ? [] : getBudgets(), ...accounts.map((a) => getBudgets(a.id))]);
   const groups = [
-    { account: null, budgets: personal },
+    ...(inBusiness ? [] : [{ account: null, budgets: personal ?? [] }]),
     ...accounts.map((account, i) => ({ account, budgets: perAccount[i] ?? [] })),
   ];
-  return <BudgetsManager groups={groups} accounts={accounts} categories={categories} />;
+  return <BudgetsManager groups={groups} accounts={accounts} categories={categories} personal={!inBusiness} />;
 }
 
 function BudgetsSkeleton() {

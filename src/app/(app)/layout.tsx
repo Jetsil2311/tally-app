@@ -11,7 +11,7 @@ import { QuickAddProvider } from "@/components/quick-add";
 import { Dock, Sidebar, TopBar, TopBarSkeleton } from "@/components/shell";
 import { ToastProvider } from "@/components/toast";
 import { ViewerProvider } from "@/components/people-ui";
-import { getAccounts, getAttention, getBadges, getBilling, getCategories, getCurrencies, getCurrentUser, getInsights } from "@/lib/data";
+import { getAccounts, getAttention, getBadges, getBilling, getCategories, getCurrencies, getCurrentUser, getCurrentWorkspace, getInsights, getWorkspaces } from "@/lib/data";
 import { I18nProvider } from "@/i18n/client";
 import { getI18n } from "@/i18n/server";
 import { env } from "@/lib/env";
@@ -51,6 +51,8 @@ async function Shell({ children }: { children: React.ReactNode }) {
   // The plan (free / Pro), for the Pro chips; never awaited here
   const billing = getBilling();
   const aiUnseen = getInsights().then((list) => list.filter((insight) => !insight.seenAt).length);
+  // Personal or one of your businesses: the switcher, and the Business section
+  const workspace = { workspaces: getWorkspaces(), current: getCurrentWorkspace() };
 
   return (
     <I18nProvider locale={locale}>
@@ -71,15 +73,15 @@ async function Shell({ children }: { children: React.ReactNode }) {
           >
             {t.nav.skipToContent}
           </a>
-          <Sidebar attention={attention} />
+          <Sidebar attention={attention} workspace={workspace} />
           {/* Desktop: the sidebar takes the left 15rem */}
           <div className="lg:pl-60">
-          <TopBar user={user} aiUnseen={aiUnseen} />
+          <TopBar user={user} aiUnseen={aiUnseen} workspace={workspace} />
           <main id="main" className="mx-auto w-full max-w-6xl px-4 pt-2 pb-36 sm:px-6 sm:pb-32 lg:pb-12">
             <PageTransition>{children}</PageTransition>
           </main>
           </div>
-          <Dock attention={attention} />
+          <Dock attention={attention} workspace={workspace} />
           <AssistantSheet accounts={accounts} />
           <Suspense fallback={null}>
             <BadgeCelebrator badges={badges} />

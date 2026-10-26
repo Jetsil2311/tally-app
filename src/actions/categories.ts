@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 
 import { getI18n } from "@/i18n/server";
 import { api } from "@/lib/api";
+import { getCurrentWorkspace } from "@/lib/data";
 import type { ActionState, Category } from "@/lib/types";
 
 import { text, toActionState } from "./helpers";
@@ -73,9 +74,10 @@ export async function deleteCategory(id: string): Promise<ActionState> {
 // entry. Names come from the dictionary, in the user's language.
 export async function createStarterCategories(): Promise<ActionState> {
   const { t } = await getI18n();
-  const STARTER = t.categories.starter;
+  // A business gets a business set (sales, supplies, rent, payroll…)
+  const STARTER = (await getCurrentWorkspace())?.type === "business" ? t.categories.starterBusiness : t.categories.starter;
   try {
-    // The starter set is personal: compare against personal categories only
+    // The starter set is personal (in the current workspace): compare against those only
     const existing = (await api<Category[]>("/categories")).filter((c) => c.accountId === null);
     const names = new Set(existing.map((c) => c.name.toLowerCase()));
     for (const group of STARTER) {

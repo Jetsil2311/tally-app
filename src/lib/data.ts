@@ -20,6 +20,7 @@ import type {
   Insight,
   Installments,
   Invitation,
+  PosConnection,
   ManagedProfile,
   Member,
   RecurringPayment,
@@ -32,7 +33,9 @@ import type {
   TransactionType,
   Upcoming,
   User,
+  Workspace,
 } from "./types";
+import { PERSONAL_WORKSPACE, getWorkspaceId } from "./session";
 
 // Data Access Layer: the only place pages read from the API.
 // Reads are per-request (wrapped in React `cache` to dedupe within a render)
@@ -311,3 +314,29 @@ export const getChores = cache(async (accountId: string) =>
 // The plan. null when billing isn't set up on the API (503): the app then
 // hides everything Pro instead of offering a checkout that can't work.
 export const getBilling = cache(async () => optional<Billing | null>(api<Billing>("/billing/status"), null));
+
+// ---------------------------------------------------------------------------
+// Workspaces. Every other reader above already covers only the current
+// workspace: api() sends it with each request.
+// ---------------------------------------------------------------------------
+
+// Personal first. Empty on an API without workspaces yet: the switcher then
+// stays hidden and everything is personal, as before.
+export const getWorkspaces = cache(async () => optional<Workspace[]>(api<Workspace[]>("/workspaces"), []));
+
+// The one you're in. Falls back to personal when the saved one is gone
+// (api() reads in personal then too).
+export const getCurrentWorkspace = cache(async (): Promise<Workspace | null> => {
+  const [id, workspaces] = await Promise.all([getWorkspaceId(), getWorkspaces()]);
+  return workspaces.find((w) => w.id === id) ?? workspaces.find((w) => w.id === PERSONAL_WORKSPACE) ?? null;
+});
+
+export const getPosConnection = cache(async (workspaceId: string) =>
+  optional<PosConnection>(api<PosConnection>(`/workspaces/${workspaceId}/pos`), { connected: false }),
+);
+
+// One of the POS's own reports, read live. Throws ApiError when the POS
+// can't be reached, so each section can say so on its own.
+export async function getPosReport<T>(workspaceId: string, resource: string, from?: string, to?: string) {
+  return api<T>(`/workspaces/${workspaceId}/pos/${resource}`, { query: { from, to } });
+}

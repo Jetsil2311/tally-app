@@ -8,9 +8,17 @@ export const SESSION_COOKIE = "ft_session";
 // The browser's time zone, set by the boot script in app/layout.tsx.
 // (The preferred currency lives on the API: User.preferredCurrency.)
 export const TZ_COOKIE = "ft_tz";
+// The workspace you're in (Notion-style switcher): a business workspace's id,
+// or "personal". Sent to the API as X-Workspace-Id on every request.
+export const WORKSPACE_COOKIE = "ft_workspace";
+export const PERSONAL_WORKSPACE = "personal";
 
 export async function getToken(): Promise<string | null> {
   return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
+}
+
+export async function getWorkspaceId(): Promise<string> {
+  return (await cookies()).get(WORKSPACE_COOKIE)?.value || PERSONAL_WORKSPACE;
 }
 
 export async function getPreferences() {

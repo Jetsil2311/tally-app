@@ -1,6 +1,6 @@
 import { getI18n } from "@/i18n/server";
 import { env } from "@/lib/env";
-import { getToken } from "@/lib/session";
+import { getToken, getWorkspaceId } from "@/lib/session";
 
 // The assistant's answers, streamed. The browser can't call the API itself
 // (the session token is an httpOnly cookie), so this passes the API's
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   try {
     upstream = await fetch(`${env.apiUrl}/chat`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "X-Workspace-Id": await getWorkspaceId(), "Content-Type": "application/json" },
       body: JSON.stringify({
         message: body.message.slice(0, 1000),
         accountId: typeof body.accountId === "string" && body.accountId ? body.accountId : undefined,

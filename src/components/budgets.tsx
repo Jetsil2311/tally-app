@@ -26,7 +26,9 @@ export type BudgetGroup = { account: Account | null; budgets: Budget[] };
 
 type Panel = { kind: "new" } | { kind: "edit"; budget: Budget; account: Account | null };
 
-export function BudgetsManager({ groups, accounts, categories }: { groups: BudgetGroup[]; accounts: Account[]; categories: Category[] }) {
+// `personal`: whether "just you" budgets can be set here. Not in a business
+// workspace: a personal budget tracks your personal spending.
+export function BudgetsManager({ groups, accounts, categories, personal = true }: { groups: BudgetGroup[]; accounts: Account[]; categories: Category[]; personal?: boolean }) {
   const { t } = useI18n();
   const [panel, setPanel] = useState<Panel | null>(null);
   const [isOpen, setOpen] = useState(false);
@@ -86,10 +88,10 @@ export function BudgetsManager({ groups, accounts, categories }: { groups: Budge
 
       <Sheet open={isOpen} onClose={() => setOpen(false)} title={panel?.kind === "edit" ? budgetName(panel.budget, t) : t.budgets.add}>
         {panel?.kind === "new" ? (
-          <BudgetForm key={session} accounts={accounts} categories={categories} taken={groups} onDone={() => setOpen(false)} />
+          <BudgetForm key={session} accounts={accounts} categories={categories} taken={groups} personal={personal} onDone={() => setOpen(false)} />
         ) : null}
         {panel?.kind === "edit" ? (
-          <BudgetForm key={session} budget={panel.budget} account={panel.account} accounts={accounts} categories={categories} taken={groups} onDone={() => setOpen(false)} />
+          <BudgetForm key={session} budget={panel.budget} account={panel.account} accounts={accounts} categories={categories} taken={groups} personal={personal} onDone={() => setOpen(false)} />
         ) : null}
       </Sheet>
     </>
@@ -184,6 +186,7 @@ function BudgetForm({
   accounts,
   categories,
   taken,
+  personal,
   onDone,
 }: {
   budget?: Budget;
@@ -191,14 +194,16 @@ function BudgetForm({
   accounts: Account[];
   categories: Category[];
   taken: BudgetGroup[];
+  personal: boolean;
   onDone: () => void;
 }) {
   const { t } = useI18n();
   const toast = useToast();
   const { currency: preferred } = usePreferences();
   // Where it applies: just you, or an account you manage
-  const scopes = [null, ...accounts.filter((a) => a.isActive && canManage(a.myRole))];
-  const [scope, setScope] = useState<string>(account?.id ?? "");
+  const managed = accounts.filter((a) => a.isActive && canManage(a.myRole));
+  const scopes = personal ? [null, ...managed] : managed;
+  const [scope, setScope] = useState<string>(account?.id ?? (personal ? "" : managed[0]?.id ?? ""));
   const [categoryId, setCategoryId] = useState(budget?.categoryId ?? "");
   const [rollover, setRollover] = useState(budget?.rollover ?? false);
   const [deleting, startDelete] = useTransition();

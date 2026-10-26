@@ -5,7 +5,7 @@ import { Busy } from "@/components/busy";
 import { CategoriesManager } from "@/components/categories-manager";
 import { Skeleton } from "@/components/ui";
 import { getI18n } from "@/i18n/server";
-import { getAccounts, getCategories, getSummary } from "@/lib/data";
+import { getAccounts, getCategories, getCurrentWorkspace, getSummary } from "@/lib/data";
 import { currentMonthKey, monthRange } from "@/lib/dates";
 import { toCents } from "@/lib/money";
 import { getPreferences, requestTime } from "@/lib/session";
@@ -27,15 +27,28 @@ export default function CategoriesPage() {
 
 async function Categories() {
   const { timeZone } = await getPreferences();
+  const { t } = await getI18n();
   const range = monthRange(currentMonthKey(timeZone, await requestTime()), timeZone);
-  const [categories, summary, accounts] = await Promise.all([getCategories(), getSummary(range.from, range.to), getAccounts(true)]);
+  const [categories, summary, accounts, workspace] = await Promise.all([
+    getCategories(),
+    getSummary(range.from, range.to),
+    getAccounts(true),
+    getCurrentWorkspace(),
+  ]);
 
   const spent: Record<string, number> = {};
   for (const row of summary.byCategory) {
     if (row.type === "expense" && row.categoryId) spent[row.categoryId] = toCents(row.total);
   }
 
-  return <CategoriesManager categories={categories} spent={spent} accounts={accounts} />;
+  return (
+    <CategoriesManager
+      categories={categories}
+      spent={spent}
+      accounts={accounts}
+      businessName={workspace?.type === "business" ? workspace.name ?? t.nav.business : null}
+    />
+  );
 }
 
 function CategoriesSkeleton() {

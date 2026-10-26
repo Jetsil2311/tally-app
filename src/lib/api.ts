@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getI18n } from "@/i18n/server";
 
 import { env } from "./env";
-import { getToken } from "./session";
+import { PERSONAL_WORKSPACE, getToken, getWorkspaceId } from "./session";
 
 export class ApiError extends Error {
   constructor(
@@ -19,20 +19,37 @@ export class ApiError extends Error {
 type Query = Record<string, string | number | boolean | null | undefined>;
 
 interface Options {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   query?: Query;
 }
 
 // Every call to the finance-tracker API goes through here: it adds the
-// session token, turns error responses into ApiError, and sends the user
-// back to sign in when the token is missing or expired.
-export async function api<T>(path: string, { method = "GET", body, query }: Options = {}): Promise<T> {
+// session token and the current workspace, turns error responses into
+// ApiError, and sends the user back to sign in when the token is missing or
+// expired.
+export async function api<T>(path: string, options: Options = {}): Promise<T> {
   const token = await getToken();
   if (!token) {
     redirect("/login");
   }
+  const workspace = await getWorkspaceId();
+  try {
+    return await request<T>(path, options, token, workspace);
+  } catch (error) {
+    // The workspace in the cookie is gone (deleted, or you were removed from
+    // it): reads carry on in personal instead of breaking every page (the
+    // switcher shows personal meanwhile). Writes don't: something meant for
+    // a business must never quietly land in personal.
+    const read = (options.method ?? "GET") === "GET";
+    if (read && error instanceof ApiError && error.status === 404 && error.message === "Workspace not found" && workspace !== PERSONAL_WORKSPACE) {
+      return request<T>(path, options, token, PERSONAL_WORKSPACE);
+    }
+    throw error;
+  }
+}
 
+async function request<T>(path: string, { method = "GET", body, query }: Options, token: string, workspace: string): Promise<T> {
   const url = new URL(env.apiUrl + path);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null && value !== "") {
@@ -46,6 +63,7 @@ export async function api<T>(path: string, { method = "GET", body, query }: Opti
       method,
       headers: {
         Authorization: `Bearer ${token}`,
+        "X-Workspace-Id": workspace,
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,

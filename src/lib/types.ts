@@ -134,7 +134,8 @@ export interface Category {
   id: string;
   name: string;
   parentId: string | null;
-  // Set = shared by that account's members; null = personal (only yours)
+  // Set = shared by that account's members; null = personal (only yours,
+  // in the current workspace: each workspace has its own)
   accountId: string | null;
   // Type in the AI's categorization taxonomy, e.g. "restaurants"
   kind?: string | null;
@@ -475,4 +476,139 @@ export interface Billing {
   // Stripe's status: active, trialing, past_due, canceled...; null if never subscribed
   subscriptionStatus: string | null;
   currentPeriodEnd: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Workspaces (personal + business) and the business's point of sale
+// ---------------------------------------------------------------------------
+
+export type WorkspaceType = "personal" | "business";
+
+export interface Workspace {
+  // "personal" for the personal one
+  id: string;
+  type: WorkspaceType;
+  // The personal one is named after you (null if your profile has no name)
+  name: string | null;
+  // An emoji, e.g. "☕"
+  icon: string | null;
+  currency: string;
+  // Owner: rename/delete it, connect its POS. Member: shared one of its accounts with you.
+  role: "owner" | "member";
+  accountCount: number;
+  pos: { connected: boolean; businessName: string | null; lastSyncAt: string | null; lastSyncStatus: "ok" | "error" | null };
+}
+
+export type PosConnection =
+  | { connected: false }
+  | {
+      connected: true;
+      baseUrl: string;
+      // "bkpos_a1b2…"
+      keyHint: string;
+      businessName: string | null;
+      currency: string | null;
+      timeZone: string | null;
+      // Where synced entries go; null if that account was deleted
+      account: { id: string; name: string; currency: string } | null;
+      lastSyncAt: string | null;
+      lastSyncStatus: "ok" | "error" | null;
+      lastSyncError: string | null;
+    };
+
+export interface PosSyncResult {
+  from: string;
+  to: string;
+  created: number;
+  updated: number;
+  removed: number;
+  skipped: number;
+}
+
+// The POS's own reports (bk-menu-app docs/POS_API.md). Money is a string with 2 decimals.
+export interface PosSummary {
+  from: string;
+  to: string;
+  currency: string;
+  orders: number;
+  daysWithSales: number;
+  averageTicket: string;
+  revenue: string;
+  paidWith: { cash: string; card: string; rewards: string };
+  ingredientCost: string;
+  grossProfit: string;
+  grossMarginPercent: number;
+  fixedCosts: string;
+  netProfit: string;
+  revenueWithoutRecipe: string;
+  cashFlow: { moneyIn: string; ingredientPurchases: string; fixedExpensesDue: string; net: string };
+}
+
+export interface PosDay {
+  date: string;
+  orders: number;
+  revenue: string;
+  ingredientCost: string;
+  grossProfit: string;
+  fixedCosts: string;
+  netProfit: string;
+}
+
+export interface PosProduct {
+  productId: string | null;
+  name: string;
+  quantitySold: number;
+  revenue: string;
+  // null when the product has no recipe yet (its cost is unknown)
+  ingredientCost: string | null;
+  grossProfit: string | null;
+  marginPercent: number | null;
+  hasRecipe: boolean;
+}
+
+export interface PosInventory {
+  currency: string;
+  totalValue: string;
+  lowCount: number;
+  items: {
+    id: string;
+    name: string;
+    unit: string;
+    inStock: number;
+    costPerUnit: string;
+    value: string;
+    warnAt: number;
+    status: "ok" | "low" | "out";
+    supplier: string | null;
+  }[];
+}
+
+export interface PosRegisterSession {
+  date: string;
+  status: "open" | "closed";
+  openingCash: string;
+  cashSales: string;
+  cardSales: string;
+  cashIn: string;
+  cashOut: string;
+  expectedCash: string;
+  countedCash: string | null;
+  // < 0: cash missing
+  difference: string | null;
+}
+
+export interface PosExpense {
+  id: string;
+  name: string;
+  amount: string;
+  frequency: "weekly" | "monthly" | "annual";
+  nextDueDate: string;
+  equivalents: { daily: string; weekly: string; monthly: string; annual: string };
+}
+
+export interface PosList<T> {
+  from?: string;
+  to?: string;
+  currency: string;
+  data: T[];
 }

@@ -12,12 +12,14 @@ export function Menu({
   children,
   align = "end",
   panelClassName,
+  buttonClassName,
 }: {
   trigger: (props: { open: boolean }) => ReactNode;
   label: string;
   children: (close: () => void) => ReactNode;
   align?: "start" | "end";
   panelClassName?: string;
+  buttonClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -52,7 +54,7 @@ export function Menu({
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((value) => !value)}
-        className="rounded-full"
+        className={cn("rounded-full", buttonClassName)}
       >
         {trigger({ open })}
       </button>

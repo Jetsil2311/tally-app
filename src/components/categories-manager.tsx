@@ -33,10 +33,13 @@ export function CategoriesManager({
   categories,
   spent,
   accounts,
+  businessName,
 }: {
   categories: Category[];
   spent: Record<string, number>; // category id -> cents spent this month
   accounts: Account[];
+  // Set in a business workspace: your own categories there are that business's
+  businessName?: string | null;
 }) {
   const toast = useToast();
   const { t } = useI18n();
@@ -51,8 +54,8 @@ export function CategoriesManager({
     {
       key: "personal",
       accountId: null,
-      title: t.sharing.personal,
-      hint: t.sharing.personalHint,
+      title: businessName ?? t.sharing.personal,
+      hint: businessName ? t.sharing.workspaceOwnHint : t.sharing.personalHint,
       editable: true,
       categories: topLevel.filter((c) => c.accountId === null),
     },
